@@ -1,0 +1,82 @@
+# Node dependencies and logs
+node_modules/
+logs/
+*.log
+*.log.*
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+lerna-debug.log*
+
+# Build output
+dist/
+build/
+.vite/
+.esbuild/
+.rollup.cache/
+
+# Caches and temporary files
+.cache/
+.parcel-cache/
+.turbo/
+.npm/
+.pnpm-store/
+.nyc_output/
+coverage/
+lib-cov/
+tmp/
+temp/
+.tmp/
+
+# Framework-specific
+.next/
+.nuxt/
+.svelte-kit/
+storybook-static/
+.serverless/
+.vercel/
+.netlify/
+
+# Environment files (keep examples)
+.env
+.env.local
+.env.*.local
+.env.development
+.env.test
+.env.production
+!.env.example
+
+# Editor and IDE
+.vscode/*
+!.vscode/extensions.json
+!.vscode/launch.json
+!.vscode/settings.json
+!.vscode/tasks.json
+.idea/
+*.iml
+
+# OS-specific
+.DS_Store
+Thumbs.db
+ehthumbs.db
+Icon?
+Desktop.ini
+$RECYCLE.BIN/
+
+# Miscellaneous
+.eslintcache
+.stylelintcache
+*.pid
+*.pid.lock
+*.seed
+*.orig
+*.rej
+
+# Local databases or artifacts
+*.sqlite
+*.sqlite3
+*.db
+*.db-*
+*.local
+
