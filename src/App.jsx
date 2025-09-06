@@ -6,7 +6,13 @@ import { getApiKey } from './lib/config.js'
 
 const tools = [
   { name: 'PDF to Markdown', description: 'Convert PDF content into Markdown', link: '#/pdf-to-markdown' },
-  { name: 'Propose new tool', description: 'Suggest an idea on GitHub', link: 'https://github.com', muted: true },
+  {
+    name: 'Propose new tool',
+    description: 'Suggest an idea on GitHub',
+    link: 'https://github.com/nurcholisart/ai-toolbox',
+    target: '_blank',
+    muted: true,
+  },
 ]
 
 export default function App() {
@@ -97,7 +103,13 @@ export default function App() {
           const titleClass = isMuted ? 'font-semibold text-lg mb-2 text-gray-800' : 'font-semibold text-lg mb-2'
           const descClass = isMuted ? 'text-gray-600 text-sm' : 'text-gray-600 text-sm'
           return (
-            <a key={index} href={tool.link} className={cardClass}>
+            <a
+              key={index}
+              href={tool.link}
+              target={tool.target || undefined}
+              rel={tool.target === '_blank' ? 'noopener noreferrer' : undefined}
+              className={cardClass}
+            >
               <h2 className={titleClass}>{tool.name}</h2>
               <p className={descClass}>{tool.description}</p>
             </a>

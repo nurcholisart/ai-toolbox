@@ -1,5 +1,7 @@
 # AI Toolbox
 
+Live: https://ai-toolbox.nurcholis.art
+
 A lightweight Vite + React + Tailwind project showcasing an AI tools hub (cards linking to various tools). Use this repo as a starting point for adding routes, APIs, or real tool pages.
 
 ## Quick Start
