@@ -1,5 +1,5 @@
 import React, { useEffect, useRef, useState } from 'react'
-import { IconUpload, IconPlayerPlay, IconDownload } from '@tabler/icons-react'
+import { IconUpload, IconPlayerPlay, IconDownload, IconLoader2 } from '@tabler/icons-react'
 import { FFmpeg } from '@ffmpeg/ffmpeg'
 import { fetchFile } from '@ffmpeg/util'
 
@@ -217,10 +217,7 @@ export default function Mp4ToMp3() {
             <h1 className="text-xl font-semibold">MP4 to MP3 Converter</h1>
             {!ready && (
               <div className="inline-flex items-center text-sm text-gray-700">
-                <svg className="animate-spin -ml-1 mr-2 h-4 w-4 text-black" viewBox="0 0 24 24">
-                  <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                  <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V2A10 10 0 002 12h2zm2 5.3A8 8 0 104 12H2a10 10 0 1010 10v-2a8 8 0 01-6-2.7z"></path>
-                </svg>
+                <IconLoader2 className="animate-spin -ml-1 mr-2" size={16} />
                 Loading FFmpeg…
               </div>
             )}
@@ -305,10 +302,7 @@ export default function Mp4ToMp3() {
             <button onClick={convert} disabled={!videoFile || !ready || isLoading} className="w-full inline-flex items-center justify-center px-4 py-2 bg-black text-white rounded-lg hover:bg-gray-800 disabled:bg-gray-400 disabled:cursor-not-allowed">
               {isLoading ? (
                 <>
-                  <svg className="animate-spin -ml-1 mr-2 h-4 w-4" viewBox="0 0 24 24">
-                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V2A10 10 0 002 12h2zm2 5.3A8 8 0 104 12H2a10 10 0 1010 10v-2a8 8 0 01-6-2.7z"></path>
-                  </svg>
+                  <IconLoader2 className="animate-spin -ml-1 mr-2" size={16} />
                   Converting…
                 </>
               ) : (
