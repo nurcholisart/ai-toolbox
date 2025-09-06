@@ -1,10 +1,11 @@
 import React, { useEffect, useMemo, useState } from 'react'
-import { IconArrowLeft, IconSettings } from '@tabler/icons-react'
+import { IconArrowLeft, IconSettings, IconInfoCircle } from '@tabler/icons-react'
 import PdfToMarkdown from './components/PdfToMarkdown.jsx'
 import AssessmentRoast from './components/AssessmentRoast.jsx'
 import AudioTranscriber from './components/AudioTranscriber.jsx'
 import Mp4ToMp3 from './components/Mp4ToMp3.jsx'
 import Settings from './components/Settings.jsx'
+import About from './components/About.jsx'
 import { getApiKey } from './lib/config.js'
 
 const tools = [
@@ -43,6 +44,7 @@ export default function App() {
   const isAudioTool = useMemo(() => hash === '#/audio-transcriber', [hash])
   const isMp4ToMp3 = useMemo(() => hash === '#/mp4-to-mp3', [hash])
   const isSettings = useMemo(() => hash === '#/settings', [hash])
+  const isAbout = useMemo(() => hash === '#/about', [hash])
 
   if (isPdfTool) {
     return (
@@ -152,6 +154,10 @@ export default function App() {
     return <Settings />
   }
 
+  if (isAbout) {
+    return <About />
+  }
+
   return (
     <div className="min-h-screen bg-gray-50 flex flex-col items-center p-8">
       <h1 className="text-4xl font-bold mb-2">AI Toolbox</h1>
@@ -171,7 +177,14 @@ export default function App() {
         </div>
       )}
 
-      <div className="w-full max-w-6xl mb-6 flex justify-end">
+      <div className="w-full max-w-6xl mb-6 flex justify-end gap-3">
+        <a
+          href="#/about"
+          className="inline-flex items-center gap-2 text-sm bg-white text-black border-2 border-black rounded-lg px-3 py-1 hover:bg-gray-100 shadow-sm"
+        >
+          <IconInfoCircle size={16} stroke={2} />
+          About
+        </a>
         <a
           href="#/settings"
           className="inline-flex items-center gap-2 text-sm bg-white text-black border-2 border-black rounded-lg px-3 py-1 hover:bg-gray-100 shadow-sm"
