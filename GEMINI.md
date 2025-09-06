@@ -80,3 +80,8 @@ npm run preview
 ## Environment Variables
 - Store secrets in a `.env` file (this file is ignored by Git).
 - For new environment variables, add non-secret defaults to `.env.example`.
+
+## Knowledge Sync Reminder
+- If the AI identifies information useful for AI tasks that is not yet present here or in `AGENTS.md`, it must add a concise summary of that information to BOTH files.
+- Insert updates into the most relevant section; if none fits, create a brief "Notes" subsection.
+- Prevent duplication and maintain consistency with this document's style and tone.

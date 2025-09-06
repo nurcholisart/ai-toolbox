@@ -49,3 +49,8 @@
 ## Security & Configuration Tips
 - Never commit secrets. Use `.env` locally (already gitignored); provide non‑secret defaults in `.env.example` when adding env vars.
 - Node 18+ is recommended for Vite 5. Document any new scripts or commands in the README.
+
+## Knowledge Sync Reminder
+- If the AI discovers useful information for AI work that is not yet documented here or in `GEMINI.md`, it must add a concise summary of that information to BOTH files.
+- Place the addition in the most relevant section; if no suitable section exists, create a short "Notes" subsection.
+- Avoid duplication, keep entries factual and scoped, and follow the existing tone and formatting.
