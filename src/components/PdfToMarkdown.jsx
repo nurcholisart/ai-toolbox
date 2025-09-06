@@ -3,6 +3,7 @@ import * as pdfjsLib from 'pdfjs-dist/build/pdf'
 import pdfjsWorker from 'pdfjs-dist/build/pdf.worker.min?url'
 import { marked } from 'marked'
 import { getApiKey } from '../lib/config.js'
+import Disclosure from './Disclosure.jsx'
 
 pdfjsLib.GlobalWorkerOptions.workerSrc = pdfjsWorker
 
@@ -299,6 +300,7 @@ export default function PdfToMarkdown() {
             </div>
           </div>
         )}
+        <Disclosure />
         </div>
       </div>
     </div>

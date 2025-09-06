@@ -1,6 +1,7 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { IconArrowLeft, IconSettings, IconUpload, IconPlayerStop, IconCopy, IconDownload } from '@tabler/icons-react'
 import { getApiKey } from '../lib/config.js'
+import Disclosure from './Disclosure.jsx'
 
 export default function AudioTranscriber() {
   const [audioFile, setAudioFile] = useState(null)
@@ -290,9 +291,9 @@ export default function AudioTranscriber() {
               </div>
             </div>
           )}
+          <Disclosure />
         </div>
       </div>
     </div>
   )
 }
-

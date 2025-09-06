@@ -1,6 +1,7 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { marked } from 'marked'
 import { getApiKey } from '../lib/config.js'
+import Disclosure from './Disclosure.jsx'
 
 export default function AssessmentRoast() {
   const [inputType, setInputType] = useState('markdown') // 'markdown' | 'file'
@@ -322,9 +323,9 @@ export default function AssessmentRoast() {
               )}
             </div>
           </div>
+          <Disclosure />
         </div>
       </div>
     </div>
   )
 }
-
