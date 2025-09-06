@@ -11,6 +11,21 @@ A lightweight Vite + React + Tailwind project showcasing an AI tools hub (cards 
 - Production build: `npm run build` (outputs to `dist/`)
 - Preview build: `npm run preview`
 
+## Progressive Web App (PWA)
+This app is installable and works offline for static assets via `vite-plugin-pwa`.
+
+- Register SW: handled in `src/main.jsx` via `registerSW`
+- Manifest & caching: configured in `vite.config.js` (includes `.wasm` so ffmpeg assets can be cached)
+
+Usage:
+- Dev: `npm run dev` (SW enabled with `devOptions.enabled = true`)
+- Build: `npm run build` then `npm run preview`
+- Install: open the app in a supported browser and use “Install App”/Add to Home Screen
+
+Notes:
+- Default monochrome, maskable PNG icons are included at `public/icons/icon-192.png` and `public/icons/icon-512.png` and referenced in the manifest. Replace with your brand if needed.
+- Workbox `globPatterns` include `wasm` to help offline behavior for `@ffmpeg/core` served from `/public/ffmpeg/`.
+
 ## Project Structure
 - `index.html` — HTML entry for Vite
 - `src/main.jsx` — React bootstrap

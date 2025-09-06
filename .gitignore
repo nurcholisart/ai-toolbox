@@ -80,3 +80,4 @@ $RECYCLE.BIN/
 *.db-*
 *.local
 
+dev-dist/

@@ -88,3 +88,4 @@ npm run preview
 
 ## Notes
 - ffmpeg.wasm: Use `@ffmpeg/ffmpeg` 0.12+ ESM API (`FFmpeg` class) and serve `@ffmpeg/core` locally under `public/ffmpeg/esm/`. Avoid sandboxed iframes (breaks workers/wasm). With Vite, set `optimizeDeps.exclude = ['@ffmpeg/ffmpeg', '@ffmpeg/util']` to prevent the dep optimizer from inlining the worker and causing missing `worker.js?...` errors.
+ - PWA: The app uses `vite-plugin-pwa` with `autoUpdate` registration. Manifest/workbox configuration is in `vite.config.js`; `globPatterns` include `.wasm` so ffmpeg assets can be cached. The service worker is registered in `src/main.jsx` via `registerSW`.
