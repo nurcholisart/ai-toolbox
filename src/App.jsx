@@ -4,6 +4,7 @@ import PdfToMarkdown from './components/PdfToMarkdown.jsx'
 import AssessmentRoast from './components/AssessmentRoast.jsx'
 import AudioTranscriber from './components/AudioTranscriber.jsx'
 import Mp4ToMp3 from './components/Mp4ToMp3.jsx'
+import PictureMe from './components/PictureMe.jsx'
 import Settings from './components/Settings.jsx'
 import About from './components/About.jsx'
 import { getApiKey } from './lib/config.js'
@@ -13,6 +14,7 @@ const tools = [
   { name: 'Assessment Roast', description: 'Brutally review a project assessment', link: '#/assessment-roast' },
   { name: 'Audio Transcriber', description: 'Transcribe audio to Markdown', link: '#/audio-transcriber' },
   { name: 'MP4 to MP3', description: 'Convert video to MP3 in-browser', link: '#/mp4-to-mp3' },
+  { name: 'PictureMe', description: 'Transform photos with Gemini', link: '#/picture-me' },
   {
     name: 'Propose new tool',
     description: 'Suggest an idea on GitHub',
@@ -43,6 +45,7 @@ export default function App() {
   const isRoastTool = useMemo(() => hash === '#/assessment-roast', [hash])
   const isAudioTool = useMemo(() => hash === '#/audio-transcriber', [hash])
   const isMp4ToMp3 = useMemo(() => hash === '#/mp4-to-mp3', [hash])
+  const isPictureMe = useMemo(() => hash === '#/picture-me', [hash])
   const isSettings = useMemo(() => hash === '#/settings', [hash])
   const isAbout = useMemo(() => hash === '#/about', [hash])
 
@@ -148,6 +151,10 @@ export default function App() {
         <Mp4ToMp3 />
       </div>
     )
+  }
+
+  if (isPictureMe) {
+    return <PictureMe />
   }
 
   if (isSettings) {

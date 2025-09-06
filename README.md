@@ -73,3 +73,6 @@ Do not commit secrets. Use `.env` locally (already ignored) and document new var
 - The tool extracts text client‑side using `pdfjs-dist` and sends it to Gemini for GFM conversion.
 - It requires network access for the Gemini API.
 - Image‑based PDFs (scanned) may produce empty text extraction unless OCR is added (not included).
+
+## Notes
+- PictureMe: This tool is based on the Gemini Canvas template created by the Google team, and they shared details in this X post: https://x.com/GeminiApp/status/1963615829708132611
