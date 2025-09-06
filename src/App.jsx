@@ -3,6 +3,7 @@ import { IconArrowLeft, IconSettings } from '@tabler/icons-react'
 import PdfToMarkdown from './components/PdfToMarkdown.jsx'
 import AssessmentRoast from './components/AssessmentRoast.jsx'
 import AudioTranscriber from './components/AudioTranscriber.jsx'
+import Mp4ToMp3 from './components/Mp4ToMp3.jsx'
 import Settings from './components/Settings.jsx'
 import { getApiKey } from './lib/config.js'
 
@@ -10,6 +11,7 @@ const tools = [
   { name: 'PDF to Markdown', description: 'Convert PDF content into Markdown', link: '#/pdf-to-markdown' },
   { name: 'Assessment Roast', description: 'Brutally review a project assessment', link: '#/assessment-roast' },
   { name: 'Audio Transcriber', description: 'Transcribe audio to Markdown', link: '#/audio-transcriber' },
+  { name: 'MP4 to MP3', description: 'Convert video to MP3 in-browser', link: '#/mp4-to-mp3' },
   {
     name: 'Propose new tool',
     description: 'Suggest an idea on GitHub',
@@ -39,6 +41,7 @@ export default function App() {
   const isPdfTool = useMemo(() => hash === '#/pdf-to-markdown', [hash])
   const isRoastTool = useMemo(() => hash === '#/assessment-roast', [hash])
   const isAudioTool = useMemo(() => hash === '#/audio-transcriber', [hash])
+  const isMp4ToMp3 = useMemo(() => hash === '#/mp4-to-mp3', [hash])
   const isSettings = useMemo(() => hash === '#/settings', [hash])
 
   if (isPdfTool) {
@@ -115,6 +118,32 @@ export default function App() {
           </div>
         </div>
         <AudioTranscriber />
+      </div>
+    )
+  }
+
+  if (isMp4ToMp3) {
+    return (
+      <div className="min-h-screen bg-gray-50">
+        <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 pt-6">
+          <div className="flex items-center justify-between">
+            <a
+              href="#"
+              className="inline-flex items-center gap-2 text-sm bg-white text-black border-2 border-black rounded-lg px-3 py-1 hover:bg-gray-100 shadow-sm"
+            >
+              <IconArrowLeft size={18} stroke={2} />
+              Back to tools
+            </a>
+            <a
+              href="#/settings"
+              className="inline-flex items-center gap-2 text-sm bg-white text-black border-2 border-black rounded-lg px-3 py-1 hover:bg-gray-100 shadow-sm"
+            >
+              <IconSettings size={16} stroke={2} />
+              Edit Config
+            </a>
+          </div>
+        </div>
+        <Mp4ToMp3 />
       </div>
     )
   }

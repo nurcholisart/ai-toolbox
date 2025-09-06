@@ -85,3 +85,6 @@ npm run preview
 - If the AI identifies information useful for AI tasks that is not yet present here or in `AGENTS.md`, it must add a concise summary of that information to BOTH files.
 - Insert updates into the most relevant section; if none fits, create a brief "Notes" subsection.
 - Prevent duplication and maintain consistency with this document's style and tone.
+
+## Notes
+- ffmpeg.wasm: Use `@ffmpeg/ffmpeg` 0.12+ ESM API (`FFmpeg` class) and serve `@ffmpeg/core` locally under `public/ffmpeg/esm/`. Avoid sandboxed iframes (breaks workers/wasm). With Vite, set `optimizeDeps.exclude = ['@ffmpeg/ffmpeg', '@ffmpeg/util']` to prevent the dep optimizer from inlining the worker and causing missing `worker.js?...` errors.

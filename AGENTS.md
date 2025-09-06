@@ -54,3 +54,6 @@
 - If the AI discovers useful information for AI work that is not yet documented here or in `GEMINI.md`, it must add a concise summary of that information to BOTH files.
 - Place the addition in the most relevant section; if no suitable section exists, create a short "Notes" subsection.
 - Avoid duplication, keep entries factual and scoped, and follow the existing tone and formatting.
+
+## Notes
+- ffmpeg.wasm usage: In-browser video conversion is supported with `@ffmpeg/ffmpeg`. For 0.12+, prefer the ESM API (`new FFmpeg()`) and serve `@ffmpeg/core` locally (e.g., `/public/ffmpeg/esm/ffmpeg-core.js`). Avoid restrictive iframes/sandboxes that break workers/wasm. With Vite, exclude `@ffmpeg/ffmpeg` and `@ffmpeg/util` from `optimizeDeps` so the worker import (`new URL('./worker.js', import.meta.url)`) resolves correctly.
