@@ -24,7 +24,7 @@ Usage:
 
 Notes:
 - Default monochrome, maskable PNG icons are included at `public/icons/icon-192.png` and `public/icons/icon-512.png` and referenced in the manifest. Replace with your brand if needed.
-- Workbox `globPatterns` include `wasm` to help offline behavior for `@ffmpeg/core` served from `/public/ffmpeg/`.
+- Large ffmpeg `.wasm` files are intentionally excluded from precache to avoid exceeding Workbox size limits on build (Vercel). They will be fetched on demand, then cached at runtime using a `CacheFirst` strategy for `/ffmpeg/` assets.
 
 ## Project Structure
 - `index.html` — HTML entry for Vite

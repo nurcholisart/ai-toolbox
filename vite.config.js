@@ -24,8 +24,22 @@ export default defineConfig({
         ],
       },
       workbox: {
-        // Cache ffmpeg assets as well for offline once loaded
-        globPatterns: ['**/*.{js,css,html,ico,png,svg,webp,woff2,wasm,json}'],
+        // Exclude huge ffmpeg wasm from precache to avoid build errors on Vercel
+        globPatterns: ['**/*.{js,css,html,ico,png,svg,webp,woff2,json}'],
+        globIgnores: ['**/ffmpeg/**', '**/*.wasm'],
+        // Runtime cache ffmpeg assets after first use
+        runtimeCaching: [
+          {
+            urlPattern: ({ url }) => url.pathname.startsWith('/ffmpeg/'),
+            handler: 'CacheFirst',
+            options: {
+              cacheName: 'ffmpeg-assets',
+              cacheableResponse: { statuses: [0, 200] },
+              expiration: { maxEntries: 4, maxAgeSeconds: 7 * 24 * 60 * 60 },
+              matchOptions: { ignoreSearch: true },
+            },
+          },
+        ],
       },
       devOptions: {
         enabled: true,
