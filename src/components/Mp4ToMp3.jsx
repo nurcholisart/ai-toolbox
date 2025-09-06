@@ -235,8 +235,11 @@ export default function Mp4ToMp3() {
           {!ready && corePhase && (
             <div className="space-y-1">
               <p className="text-sm">{corePhase}: {coreProgress}%</p>
-              <div className="w-full bg-gray-200 rounded-full h-2">
-                <div className="bg-black h-2 rounded-full" style={{ width: `${coreProgress}%` }}></div>
+              <div className="w-full bg-gray-200 rounded-full h-2 overflow-hidden">
+                <div
+                  className="bg-black h-full rounded-full"
+                  style={{ width: `${Math.max(0, Math.min(100, coreProgress))}%` }}
+                ></div>
               </div>
             </div>
           )}
@@ -319,8 +322,11 @@ export default function Mp4ToMp3() {
               {isLoading && (
                 <div>
                   <p className="text-sm mb-1">Progress: {progress}%</p>
-                  <div className="w-full bg-gray-200 rounded-full h-2">
-                    <div className="bg-black h-2 rounded-full" style={{ width: `${progress}%` }}></div>
+                  <div className="w-full bg-gray-200 rounded-full h-2 overflow-hidden">
+                    <div
+                      className="bg-black h-full rounded-full"
+                      style={{ width: `${Math.max(0, Math.min(100, progress))}%` }}
+                    ></div>
                   </div>
                 </div>
               )}
