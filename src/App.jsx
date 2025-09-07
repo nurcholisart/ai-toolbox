@@ -11,6 +11,7 @@ import InformationVerifier from './components/InformationVerifier.jsx'
 import Settings from './components/Settings.jsx'
 import About from './components/About.jsx'
 import { getApiKey } from './lib/config.js'
+import InstallPrompt from './components/InstallPrompt.jsx'
 
 const tools = [
   { name: 'PDF to Markdown', description: 'Convert PDF content into Markdown', link: '#/pdf-to-markdown' },
@@ -70,13 +71,16 @@ export default function App() {
               <IconArrowLeft size={18} stroke={2} />
               Back to tools
             </a>
-            <a
-              href="#/settings"
-              className="inline-flex items-center gap-2 text-sm bg-white text-black border-2 border-black rounded-lg px-3 py-1 hover:bg-gray-100 shadow-sm"
-            >
-              <IconSettings size={16} stroke={2} />
-              Edit Config
-            </a>
+            <div className="flex items-center gap-2">
+              <InstallPrompt />
+              <a
+                href="#/settings"
+                className="inline-flex items-center gap-2 text-sm bg-white text-black border-2 border-black rounded-lg px-3 py-1 hover:bg-gray-100 shadow-sm"
+              >
+                <IconSettings size={16} stroke={2} />
+                Edit Config
+              </a>
+            </div>
           </div>
         </div>
         <PdfToMarkdown />
@@ -96,13 +100,16 @@ export default function App() {
               <IconArrowLeft size={18} stroke={2} />
               Back to tools
             </a>
-            <a
-              href="#/settings"
-              className="inline-flex items-center gap-2 text-sm bg-white text-black border-2 border-black rounded-lg px-3 py-1 hover:bg-gray-100 shadow-sm"
-            >
-              <IconSettings size={16} stroke={2} />
-              Edit Config
-            </a>
+            <div className="flex items-center gap-2">
+              <InstallPrompt />
+              <a
+                href="#/settings"
+                className="inline-flex items-center gap-2 text-sm bg-white text-black border-2 border-black rounded-lg px-3 py-1 hover:bg-gray-100 shadow-sm"
+              >
+                <IconSettings size={16} stroke={2} />
+                Edit Config
+              </a>
+            </div>
           </div>
         </div>
         <AssessmentRoast />
@@ -122,13 +129,16 @@ export default function App() {
               <IconArrowLeft size={18} stroke={2} />
               Back to tools
             </a>
-            <a
-              href="#/settings"
-              className="inline-flex items-center gap-2 text-sm bg-white text-black border-2 border-black rounded-lg px-3 py-1 hover:bg-gray-100 shadow-sm"
-            >
-              <IconSettings size={16} stroke={2} />
-              Edit Config
-            </a>
+            <div className="flex items-center gap-2">
+              <InstallPrompt />
+              <a
+                href="#/settings"
+                className="inline-flex items-center gap-2 text-sm bg-white text-black border-2 border-black rounded-lg px-3 py-1 hover:bg-gray-100 shadow-sm"
+              >
+                <IconSettings size={16} stroke={2} />
+                Edit Config
+              </a>
+            </div>
           </div>
         </div>
         <AudioTranscriber />
@@ -148,13 +158,16 @@ export default function App() {
               <IconArrowLeft size={18} stroke={2} />
               Back to tools
             </a>
-            <a
-              href="#/settings"
-              className="inline-flex items-center gap-2 text-sm bg-white text-black border-2 border-black rounded-lg px-3 py-1 hover:bg-gray-100 shadow-sm"
-            >
-              <IconSettings size={16} stroke={2} />
-              Edit Config
-            </a>
+            <div className="flex items-center gap-2">
+              <InstallPrompt />
+              <a
+                href="#/settings"
+                className="inline-flex items-center gap-2 text-sm bg-white text-black border-2 border-black rounded-lg px-3 py-1 hover:bg-gray-100 shadow-sm"
+              >
+                <IconSettings size={16} stroke={2} />
+                Edit Config
+              </a>
+            </div>
           </div>
         </div>
         <MeetingTranscription />
@@ -174,13 +187,16 @@ export default function App() {
               <IconArrowLeft size={18} stroke={2} />
               Back to tools
             </a>
-            <a
-              href="#/settings"
-              className="inline-flex items-center gap-2 text-sm bg-white text-black border-2 border-black rounded-lg px-3 py-1 hover:bg-gray-100 shadow-sm"
-            >
-              <IconSettings size={16} stroke={2} />
-              Edit Config
-            </a>
+            <div className="flex items-center gap-2">
+              <InstallPrompt />
+              <a
+                href="#/settings"
+                className="inline-flex items-center gap-2 text-sm bg-white text-black border-2 border-black rounded-lg px-3 py-1 hover:bg-gray-100 shadow-sm"
+              >
+                <IconSettings size={16} stroke={2} />
+                Edit Config
+              </a>
+            </div>
           </div>
         </div>
         <Mp4ToMp3 />
@@ -208,13 +224,16 @@ export default function App() {
               <IconArrowLeft size={18} stroke={2} />
               Back to tools
             </a>
-            <a
-              href="#/settings"
-              className="inline-flex items-center gap-2 text-sm bg-white text-black border-2 border-black rounded-lg px-3 py-1 hover:bg-gray-100 shadow-sm"
-            >
-              <IconSettings size={16} stroke={2} />
-              Edit Config
-            </a>
+            <div className="flex items-center gap-2">
+              <InstallPrompt />
+              <a
+                href="#/settings"
+                className="inline-flex items-center gap-2 text-sm bg-white text-black border-2 border-black rounded-lg px-3 py-1 hover:bg-gray-100 shadow-sm"
+              >
+                <IconSettings size={16} stroke={2} />
+                Edit Config
+              </a>
+            </div>
           </div>
         </div>
         <InformationVerifier />
@@ -250,6 +269,7 @@ export default function App() {
       )}
 
       <div className="w-full max-w-6xl mb-6 flex justify-end gap-3">
+        <InstallPrompt />
         <a
           href="#/about"
           className="inline-flex items-center gap-2 text-sm bg-white text-black border-2 border-black rounded-lg px-3 py-1 hover:bg-gray-100 shadow-sm"

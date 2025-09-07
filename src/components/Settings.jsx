@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react'
 import { IconArrowLeft } from '@tabler/icons-react'
 import { getApiKey, setApiKey, clearApiKey } from '../lib/config.js'
+import InstallPrompt from './InstallPrompt.jsx'
 
 export default function Settings() {
   const [apiKey, setApiKeyState] = useState('')
@@ -27,13 +28,16 @@ export default function Settings() {
   return (
     <div className="min-h-screen bg-gray-50">
       <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 pt-6">
-        <a
-          href="#"
-          className="inline-flex items-center gap-2 text-sm bg-white text-black border-2 border-black rounded-lg px-3 py-1 hover:bg-gray-100 shadow-sm"
-        >
-          <IconArrowLeft size={18} stroke={2} />
-          Back to tools
-        </a>
+        <div className="flex items-center justify-between">
+          <a
+            href="#"
+            className="inline-flex items-center gap-2 text-sm bg-white text-black border-2 border-black rounded-lg px-3 py-1 hover:bg-gray-100 shadow-sm"
+          >
+            <IconArrowLeft size={18} stroke={2} />
+            Back to tools
+          </a>
+          <InstallPrompt />
+        </div>
       </div>
 
       <div className="mx-auto max-w-5xl px-4 sm:px-6 lg:px-8 py-4 sm:py-6 lg:py-8">

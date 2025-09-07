@@ -17,6 +17,11 @@ This app is installable and works offline for static assets via `vite-plugin-pwa
 - Register SW: handled in `src/main.jsx` via `registerSW`
 - Manifest & caching: configured in `vite.config.js` (includes `.wasm` so ffmpeg assets can be cached)
 
+Install as App:
+- Android/Chrome: tap the `Install App` button in the header (or on the home screen actions). It triggers the native install prompt when available.
+- iOS/Safari: tap the `Install App` button to see a quick tip, then use Safari’s Share menu → `Add to Home Screen`.
+- The button only shows when installation is available and hides once installed or when running in standalone.
+
 Usage:
 - Dev: `npm run dev` (SW enabled with `devOptions.enabled = true`)
 - Build: `npm run build` then `npm run preview`

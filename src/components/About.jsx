@@ -1,5 +1,6 @@
 import React from 'react'
 import { IconArrowLeft, IconInfoCircle, IconBrandGithub, IconSettings } from '@tabler/icons-react'
+import InstallPrompt from './InstallPrompt.jsx'
 
 export default function About() {
   return (
@@ -13,13 +14,16 @@ export default function About() {
             <IconArrowLeft size={18} stroke={2} />
             Back to tools
           </a>
-          <a
-            href="#/settings"
-            className="inline-flex items-center gap-2 text-sm bg-white text-black border-2 border-black rounded-lg px-3 py-1 hover:bg-gray-100 shadow-sm"
-          >
-            <IconSettings size={16} stroke={2} />
-            Edit Config
-          </a>
+          <div className="flex items-center gap-2">
+            <InstallPrompt />
+            <a
+              href="#/settings"
+              className="inline-flex items-center gap-2 text-sm bg-white text-black border-2 border-black rounded-lg px-3 py-1 hover:bg-gray-100 shadow-sm"
+            >
+              <IconSettings size={16} stroke={2} />
+              Edit Config
+            </a>
+          </div>
         </div>
       </div>
 
