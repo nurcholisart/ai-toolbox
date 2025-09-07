@@ -20,6 +20,9 @@
 - JavaScript: 2‑space indentation, single quotes, no semicolons (match existing files), and trailing commas where valid.
 - Styling: favor Tailwind utility classes; avoid custom CSS unless necessary. Keep JSX shallow by extracting subcomponents.
 
+### UI Language
+- All user-facing UI text must be in English. Update any Indonesian copy to English when adding or modifying components.
+
 ## UI Styling (Monochrome)
 - Base palette: black, white, and neutral grays only (no blues/greens/reds for accents).
 - Cards/containers: `bg-white border-2 border-black rounded-xl shadow-md` with comfortable padding.
@@ -58,3 +61,11 @@
 ## Notes
 - ffmpeg.wasm usage: In-browser video conversion is supported with `@ffmpeg/ffmpeg`. For 0.12+, prefer the ESM API (`new FFmpeg()`) and serve `@ffmpeg/core` locally (e.g., `/public/ffmpeg/esm/ffmpeg-core.js`). Avoid restrictive iframes/sandboxes that break workers/wasm. With Vite, exclude `@ffmpeg/ffmpeg` and `@ffmpeg/util` from `optimizeDeps` so the worker import (`new URL('./worker.js', import.meta.url)`) resolves correctly.
  - PWA: We use `vite-plugin-pwa` with `registerType: 'autoUpdate'`. The manifest and Workbox config live in `vite.config.js`. Large ffmpeg `.wasm` files are excluded from precache (build size limits); they are fetched on demand. Add runtime caching if needed. Service worker is registered in `src/main.jsx` via `registerSW({ immediate: true })`.
+
+### Information Verifier Tool
+- Location: `src/components/InformationVerifier.jsx`; route: `#/information-verifier`; card added in `src/App.jsx`.
+- Purpose: verify a claim and return two outputs: verdict and reasoning, including citations.
+- Verdict categories: `Valid`, `Mislead`, `Hoax` (exact strings).
+- Model: `gemini-2.5-flash-preview-05-20` via `:generateContent`.
+- Grounding: include `tools: [{ googleSearch: {} }]` to enable web-grounded answers; if API rejects tools (400/404), retry without tools.
+- Output contract: strictly request JSON with `{ verdict, reason, citations: Array<{ title, url }> }` and render citations as links.

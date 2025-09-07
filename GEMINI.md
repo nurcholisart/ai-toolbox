@@ -101,3 +101,23 @@ Notes:
  - PWA: The app uses `vite-plugin-pwa` with `autoUpdate` registration. Manifest/workbox configuration is in `vite.config.js`. ffmpeg `.wasm` files are excluded from precache to avoid Workbox size limits on build; fetch on demand or add runtime caching if truly required. The service worker is registered in `src/main.jsx` via `registerSW`.
  - PictureMe: This tool is based on the Gemini Canvas template created by the Google team, and they shared details in this X post: https://x.com/GeminiApp/status/1963615829708132611
   - Image editing (Gemini): Use `gemini-2.5-flash-image-preview:generateContent` with `contents.parts = [{ text: instruction }, { inlineData: { mimeType, data } }]`. The API may return an `inlineData` image (PNG). For background removal, ask for a transparent PNG, preserve subject edges/hair, and avoid cropping; implement simple retry/backoff on `429`.
+
+### Google Search Grounding
+- To allow the model to search the web and ground responses, include `tools: [{ googleSearch: {} }]` in the `generateContent` payload.
+- Instruct the model to return citations (title + URL) explicitly so the client can render them.
+- If the server returns an error for unsupported tools, retry the same request without `tools` as a graceful fallback.
+
+### Information Verifier
+- Component: `src/components/InformationVerifier.jsx` (route `#/information-verifier`).
+- Goal: Given a claim, request a grounded verification and return:
+  - `verdict`: one of `Valid | Mislead | Hoax`
+  - `reason`: short explanation
+  - `citations`: array of `{ title, url }`
+- Payload pattern:
+  - `systemInstruction`: ask for strict JSON with the schema above, allow web search when available.
+  - `contents`: include the claim in a clear section; request “ONLY valid JSON” in the output.
+  - `tools`: include `[{ googleSearch: {} }]` for grounding; on 400/404, retry without tools.
+- Response handling: parse text to JSON (allow fenced ```json blocks), normalize verdict values to the exact set, filter citations with valid URLs.
+
+### UI Language
+- All user-facing UI text must be in English across tools and pages.

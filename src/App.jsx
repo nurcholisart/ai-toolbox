@@ -7,6 +7,7 @@ import Mp4ToMp3 from './components/Mp4ToMp3.jsx'
 import MeetingTranscription from './components/MeetingTranscription.jsx'
 import PictureMe from './components/PictureMe.jsx'
 import RemoveBackground from './components/RemoveBackground.jsx'
+import InformationVerifier from './components/InformationVerifier.jsx'
 import Settings from './components/Settings.jsx'
 import About from './components/About.jsx'
 import { getApiKey } from './lib/config.js'
@@ -19,6 +20,7 @@ const tools = [
   { name: 'MP4 to MP3', description: 'Convert video to MP3 in-browser', link: '#/mp4-to-mp3' },
   { name: 'PictureMe', description: 'Transform photos with Gemini', link: '#/picture-me' },
   { name: 'Remove Background', description: 'Erase backgrounds with Gemini', link: '#/remove-background' },
+  { name: 'Information Verifier', description: 'Verify information truthfulness + citations', link: '#/information-verifier' },
   {
     name: 'Propose new tool',
     description: 'Suggest an idea on GitHub',
@@ -52,6 +54,7 @@ export default function App() {
   const isMp4ToMp3 = useMemo(() => hash === '#/mp4-to-mp3', [hash])
   const isPictureMe = useMemo(() => hash === '#/picture-me', [hash])
   const isRemoveBackground = useMemo(() => hash === '#/remove-background', [hash])
+  const isInformationVerifier = useMemo(() => hash === '#/information-verifier', [hash])
   const isSettings = useMemo(() => hash === '#/settings', [hash])
   const isAbout = useMemo(() => hash === '#/about', [hash])
 
@@ -191,6 +194,32 @@ export default function App() {
 
   if (isRemoveBackground) {
     return <RemoveBackground />
+  }
+
+  if (isInformationVerifier) {
+    return (
+      <div className="min-h-screen bg-gray-50">
+        <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 pt-6">
+          <div className="flex items-center justify-between">
+            <a
+              href="#"
+              className="inline-flex items-center gap-2 text-sm bg-white text-black border-2 border-black rounded-lg px-3 py-1 hover:bg-gray-100 shadow-sm"
+            >
+              <IconArrowLeft size={18} stroke={2} />
+              Back to tools
+            </a>
+            <a
+              href="#/settings"
+              className="inline-flex items-center gap-2 text-sm bg-white text-black border-2 border-black rounded-lg px-3 py-1 hover:bg-gray-100 shadow-sm"
+            >
+              <IconSettings size={16} stroke={2} />
+              Edit Config
+            </a>
+          </div>
+        </div>
+        <InformationVerifier />
+      </div>
+    )
   }
 
   if (isSettings) {
