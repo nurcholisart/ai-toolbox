@@ -53,6 +53,16 @@ Stack: Vitest + React Testing Library with JSDOM environment. Example test check
 ## Environment
 Do not commit secrets. Use `.env` locally (already ignored) and document new variables by adding non‑secret defaults to `.env.example`.
 
+### Get Gemini API Key
+1. Open: https://aistudio.google.com/u/0/apikey
+2. Sign in with your Google account.
+3. Click "Create API key" to generate a new key, or copy an existing key.
+4. Paste the key in the app Settings (Settings card or `#/settings`) and click Save.
+
+Notes:
+- Treat the key like a password. It is stored locally in your browser (localStorage) and used directly from your device to the Gemini API.
+- You can revoke or rotate the key anytime from Google AI Studio.
+
 ## PDF → Markdown Tool
 - Location: `src/components/PdfToMarkdown.jsx`
 - Access: open the app and click the card “PDF to Markdown” (or navigate to `#/pdf-to-markdown`).

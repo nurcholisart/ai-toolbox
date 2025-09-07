@@ -78,7 +78,33 @@ export default function Settings() {
           </form>
 
           <div className="mt-6 text-sm text-gray-600">
-            <p>Get your key from Google AI Studio. This app never sends your key anywhere except directly to the Gemini API from your browser.</p>
+            <h2 className="text-base font-semibold text-gray-900 mb-2">How to get your Gemini API Key</h2>
+            <ol className="list-decimal pl-5 space-y-2">
+              <li>
+                Open:
+                {' '}
+                <a
+                  href="https://aistudio.google.com/u/0/apikey"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="underline text-black"
+                >
+                  https://aistudio.google.com/u/0/apikey
+                </a>
+              </li>
+              <li>
+                Sign in with your Google account. If you don’t have a key yet, click
+                {' '}<span className="font-medium">Create API key</span>. If you already have one, click the
+                {' '}<span className="font-medium">copy</span> icon to copy it.
+              </li>
+              <li>
+                Paste the API key into the field above and click
+                {' '}<span className="font-medium">Save</span>.
+              </li>
+            </ol>
+            <p className="mt-3 text-gray-700">
+              Note: treat your API key like a password. It’s only stored in your browser (localStorage) and used directly from your device to the Gemini API. You can revoke or rotate the key anytime from Google AI Studio.
+            </p>
           </div>
         </div>
       </div>

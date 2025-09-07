@@ -81,6 +81,16 @@ npm run preview
 - Store secrets in a `.env` file (this file is ignored by Git).
 - For new environment variables, add non-secret defaults to `.env.example`.
 
+## Get Gemini API Key
+1. Open: https://aistudio.google.com/u/0/apikey
+2. Sign in with your Google account.
+3. Click "Create API key" to generate a new key, or copy an existing one.
+4. Paste the key into the app Settings (`#/settings`) and click Save.
+
+Notes:
+- Treat the key like a password. The app stores it only in the browser (localStorage) and uses it directly to call the Gemini API from the client.
+- Revoke or rotate keys anytime from Google AI Studio.
+
 ## Knowledge Sync Reminder
 - If the AI identifies information useful for AI tasks that is not yet present here or in `AGENTS.md`, it must add a concise summary of that information to BOTH files.
 - Insert updates into the most relevant section; if none fits, create a brief "Notes" subsection.
