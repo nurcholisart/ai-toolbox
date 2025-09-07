@@ -69,28 +69,63 @@ export default function InformationVerifier() {
     };
   }, []);
 
-  // parse `#/information-verifier?result=...` from hash
+  // Parse shared payload from hash or search; also react to hash changes
   useEffect(() => {
-    const parseShared = () => {
-      const h = window.location.hash || ''
-      const qIndex = h.indexOf('?')
-      if (qIndex === -1) return
-      const query = new URLSearchParams(h.slice(qIndex + 1))
-      const encoded = query.get('result')
-      if (!encoded) return
+    const b64UrlDecode = (input) => {
+      const b64 = input.replace(/-/g, '+').replace(/_/g, '/')
+      const binary = atob(b64)
+      const bytes = new Uint8Array(binary.length)
+      for (let i = 0; i < binary.length; i++) bytes[i] = binary.charCodeAt(i)
+      return new TextDecoder().decode(bytes)
+    }
+
+    const parseEncodedPayload = (encoded) => {
+      // Prefer base64url JSON; fallback to LZ-URI if needed (back-compat)
+      // Try base64url first
       try {
-        // Prefer LZ compressed URI-safe payload; fallback to base64url JSON
+        const json = b64UrlDecode(encoded)
+        return JSON.parse(json)
+      } catch {}
+      // Try LZ after
+      try {
         const lz = decompressFromEncodedURIComponent(encoded)
-        const json = lz
-          ? lz
-          : (() => {
-              const b64 = encoded.replace(/-/g, '+').replace(/_/g, '/')
-              const binary = atob(b64)
-              const bytes = new Uint8Array(binary.length)
-              for (let i = 0; i < binary.length; i++) bytes[i] = binary.charCodeAt(i)
-              return new TextDecoder().decode(bytes)
-            })()
-        const parsed = JSON.parse(json)
+        if (lz) return JSON.parse(lz)
+      } catch {}
+      return null
+    }
+
+    const parseShared = () => {
+      try {
+        // Prefer hash: #/information-verifier?result=...
+        let encoded = null
+        const h = window.location.hash || ''
+        const qIndex = h.indexOf('?')
+        if (qIndex !== -1) {
+          const query = new URLSearchParams(h.slice(qIndex + 1))
+          encoded = query.get('result')
+        }
+
+        // Fallback: look in search (?result=...) in case some redirectors broke the '#'
+        if (!encoded) {
+          const qs = new URLSearchParams(window.location.search || '')
+          const fromSearch = qs.get('result')
+          if (fromSearch) {
+            // Normalize URL so our router state is consistent
+            const newHash = `#/information-verifier?result=${fromSearch}`
+            if (window.location.hash !== newHash) {
+              // Use replace to avoid pushing history entries; drop search params
+              window.location.replace(
+                `${window.location.origin}${window.location.pathname}${newHash}`,
+              )
+            }
+            encoded = fromSearch
+          }
+        }
+
+        if (!encoded) return
+
+        const parsed = parseEncodedPayload(encoded)
+        if (!parsed) return
         const verdict = normalizeVerdict(parsed.verdict)
         const reason = String(parsed.reason || '').trim()
         const citations = Array.isArray(parsed.citations)
@@ -108,12 +143,21 @@ export default function InformationVerifier() {
         // ignore bad payloads
       }
     }
+
     parseShared()
+    window.addEventListener('hashchange', parseShared)
+    return () => window.removeEventListener('hashchange', parseShared)
   }, [])
 
   // Update OG meta tags when result is present
   useEffect(() => {
     if (!result) return
+    const b64UrlEncode = (str) => {
+      const bytes = new TextEncoder().encode(str)
+      let binary = ''
+      for (let i = 0; i < bytes.length; i++) binary += String.fromCharCode(bytes[i])
+      return btoa(binary).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '')
+    }
     const shortClaim = claim?.trim() ? claim.trim().slice(0, 160) : ''
     const summary = shortClaim
       ? `[${result.verdict}] Claim: ${shortClaim}`
@@ -121,7 +165,7 @@ export default function InformationVerifier() {
     const shareUrl = (() => {
       try {
         const payload = { ...result, claim }
-        const encoded = compressToEncodedURIComponent(JSON.stringify(payload))
+        const encoded = b64UrlEncode(JSON.stringify(payload))
         return `${window.location.origin}${window.location.pathname}#/information-verifier?result=${encoded}`
       } catch {
         return `${window.location.origin}${window.location.pathname}#/information-verifier`
@@ -266,26 +310,54 @@ export default function InformationVerifier() {
 
   const buildShareUrl = () => {
     const payload = { ...result, claim }
-    const encoded = compressToEncodedURIComponent(JSON.stringify(payload))
-    return `${window.location.origin}${window.location.pathname}#/information-verifier?result=${encoded}`
+    const bytes = new TextEncoder().encode(JSON.stringify(payload))
+    let binary = ''
+    for (let i = 0; i < bytes.length; i++) binary += String.fromCharCode(bytes[i])
+    const b64 = btoa(binary).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '')
+    return `${window.location.origin}${window.location.pathname}#/information-verifier?result=${b64}`
+  }
+
+  const shortenUrl = async (longUrl) => {
+    try {
+      const resp = await fetch(
+        `https://tinyurl.com/api-create.php?url=${encodeURIComponent(longUrl)}`,
+      )
+      if (!resp.ok) throw new Error(`Shortener HTTP ${resp.status}`)
+      const text = (await resp.text()).trim()
+      if (!/^https?:\/\//i.test(text)) throw new Error('Invalid short URL')
+      return text
+    } catch (e) {
+      // Propagate so caller can fallback to the original URL
+      throw e
+    }
   }
 
   const handleShare = async () => {
     if (!result) return
     const url = buildShareUrl()
+    let finalUrl = url
     const title = `Information Verifier — ${result.verdict}`
     const text = claim?.trim()
       ? `[${result.verdict}] Claim: ${claim.trim()}`
       : `[${result.verdict}] ${String(result.reason || '').slice(0, 160)}`
     try {
+      setStatus('Shortening link…')
+      try {
+        finalUrl = await shortenUrl(url)
+        setStatus('Link shortened')
+      } catch {
+        // Fallback silently to the original URL
+        setStatus('Using original link (shortening unavailable)')
+      }
+
       if (navigator.share) {
-        await navigator.share({ title, text, url })
+        await navigator.share({ title, text, url: finalUrl })
         setStatus('Share dialog opened')
         return
       }
     } catch {}
     try {
-      await navigator.clipboard.writeText(url)
+      await navigator.clipboard.writeText(finalUrl)
       setStatus('Share link copied to clipboard.')
     } catch {
       setStatus('Copy failed. You can manually copy the URL.')
