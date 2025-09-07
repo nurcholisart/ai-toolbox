@@ -1,6 +1,8 @@
-import React, { useEffect, useMemo, useState } from "react";
-import { getApiKey } from "../lib/config.js";
-import Disclosure from "./Disclosure.jsx";
+import React, { useEffect, useMemo, useState } from 'react'
+import { IconShare } from '@tabler/icons-react'
+import { getApiKey } from '../lib/config.js'
+import Disclosure from './Disclosure.jsx'
+import { compressToEncodedURIComponent, decompressFromEncodedURIComponent } from '../lib/lz.js'
 
 const extractJson = (text) => {
   if (!text) return null;
@@ -66,6 +68,84 @@ export default function InformationVerifier() {
       window.removeEventListener("storage", onCfg);
     };
   }, []);
+
+  // parse `#/information-verifier?result=...` from hash
+  useEffect(() => {
+    const parseShared = () => {
+      const h = window.location.hash || ''
+      const qIndex = h.indexOf('?')
+      if (qIndex === -1) return
+      const query = new URLSearchParams(h.slice(qIndex + 1))
+      const encoded = query.get('result')
+      if (!encoded) return
+      try {
+        // Prefer LZ compressed URI-safe payload; fallback to base64url JSON
+        const lz = decompressFromEncodedURIComponent(encoded)
+        const json = lz
+          ? lz
+          : (() => {
+              const b64 = encoded.replace(/-/g, '+').replace(/_/g, '/')
+              const binary = atob(b64)
+              const bytes = new Uint8Array(binary.length)
+              for (let i = 0; i < binary.length; i++) bytes[i] = binary.charCodeAt(i)
+              return new TextDecoder().decode(bytes)
+            })()
+        const parsed = JSON.parse(json)
+        const verdict = normalizeVerdict(parsed.verdict)
+        const reason = String(parsed.reason || '').trim()
+        const citations = Array.isArray(parsed.citations)
+          ? parsed.citations
+              .map((c) => ({
+                title: (c && c.title ? String(c.title) : '').trim() || 'Source',
+                url: (c && c.url ? String(c.url) : '').trim(),
+              }))
+              .filter((c) => c.url)
+          : []
+        setResult({ verdict, reason, citations })
+        if (parsed.claim) setClaim(String(parsed.claim))
+        setStatus('Loaded shared result')
+      } catch (e) {
+        // ignore bad payloads
+      }
+    }
+    parseShared()
+  }, [])
+
+  // Update OG meta tags when result is present
+  useEffect(() => {
+    if (!result) return
+    const shortClaim = claim?.trim() ? claim.trim().slice(0, 160) : ''
+    const summary = shortClaim
+      ? `[${result.verdict}] Claim: ${shortClaim}`
+      : `[${result.verdict}] ${String(result.reason || '').slice(0, 160)}`
+    const shareUrl = (() => {
+      try {
+        const payload = { ...result, claim }
+        const encoded = compressToEncodedURIComponent(JSON.stringify(payload))
+        return `${window.location.origin}${window.location.pathname}#/information-verifier?result=${encoded}`
+      } catch {
+        return `${window.location.origin}${window.location.pathname}#/information-verifier`
+      }
+    })()
+
+    const setMeta = (property, content) => {
+      if (!content) return
+      let tag = document.head.querySelector(`meta[property="${property}"]`)
+      if (!tag) {
+        tag = document.createElement('meta')
+        tag.setAttribute('property', property)
+        document.head.appendChild(tag)
+      }
+      tag.setAttribute('content', content)
+    }
+
+    document.title = `Information Verifier — ${result.verdict}`
+    setMeta('og:type', 'website')
+    setMeta('og:site_name', 'AI Toolbox')
+    setMeta('og:title', `Information Verifier — ${result.verdict}`)
+    setMeta('og:description', summary)
+    setMeta('og:url', shareUrl)
+  }, [result, claim])
 
   const handleVerify = async () => {
     if (!claim.trim()) {
@@ -184,6 +264,34 @@ export default function InformationVerifier() {
     return <span className={base}>{result.verdict}</span>;
   }, [result]);
 
+  const buildShareUrl = () => {
+    const payload = { ...result, claim }
+    const encoded = compressToEncodedURIComponent(JSON.stringify(payload))
+    return `${window.location.origin}${window.location.pathname}#/information-verifier?result=${encoded}`
+  }
+
+  const handleShare = async () => {
+    if (!result) return
+    const url = buildShareUrl()
+    const title = `Information Verifier — ${result.verdict}`
+    const text = claim?.trim()
+      ? `[${result.verdict}] Claim: ${claim.trim()}`
+      : `[${result.verdict}] ${String(result.reason || '').slice(0, 160)}`
+    try {
+      if (navigator.share) {
+        await navigator.share({ title, text, url })
+        setStatus('Share dialog opened')
+        return
+      }
+    } catch {}
+    try {
+      await navigator.clipboard.writeText(url)
+      setStatus('Share link copied to clipboard.')
+    } catch {
+      setStatus('Copy failed. You can manually copy the URL.')
+    }
+  }
+
   return (
     <div className="min-h-screen bg-gray-50 py-4 sm:py-6 lg:py-8">
       <div className="mx-auto max-w-5xl px-4 sm:px-6 lg:px-8">
@@ -263,6 +371,16 @@ export default function InformationVerifier() {
               >
                 Reset
               </button>
+              {result && (
+                <button
+                  type="button"
+                  onClick={handleShare}
+                  className="inline-flex items-center gap-2 bg-black text-white px-4 py-2 rounded-lg hover:bg-gray-800 focus:outline-none focus:ring-2 focus:ring-black"
+                >
+                  <IconShare size={18} stroke={2} />
+                  Share result
+                </button>
+              )}
             </div>
 
             {result && (

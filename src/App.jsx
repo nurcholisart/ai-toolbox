@@ -48,16 +48,19 @@ export default function App() {
     , window.removeEventListener('storage', onCfg)
   }, [])
 
-  const isPdfTool = useMemo(() => hash === '#/pdf-to-markdown', [hash])
-  const isRoastTool = useMemo(() => hash === '#/assessment-roast', [hash])
-  const isAudioTool = useMemo(() => hash === '#/audio-transcriber', [hash])
-  const isMeetingTranscription = useMemo(() => hash === '#/meeting-transcription', [hash])
-  const isMp4ToMp3 = useMemo(() => hash === '#/mp4-to-mp3', [hash])
-  const isPictureMe = useMemo(() => hash === '#/picture-me', [hash])
-  const isRemoveBackground = useMemo(() => hash === '#/remove-background', [hash])
-  const isInformationVerifier = useMemo(() => hash === '#/information-verifier', [hash])
-  const isSettings = useMemo(() => hash === '#/settings', [hash])
-  const isAbout = useMemo(() => hash === '#/about', [hash])
+  // Normalize route path (ignore query string in hash)
+  const basePath = useMemo(() => (hash || '').split('?')[0], [hash])
+
+  const isPdfTool = useMemo(() => basePath === '#/pdf-to-markdown', [basePath])
+  const isRoastTool = useMemo(() => basePath === '#/assessment-roast', [basePath])
+  const isAudioTool = useMemo(() => basePath === '#/audio-transcriber', [basePath])
+  const isMeetingTranscription = useMemo(() => basePath === '#/meeting-transcription', [basePath])
+  const isMp4ToMp3 = useMemo(() => basePath === '#/mp4-to-mp3', [basePath])
+  const isPictureMe = useMemo(() => basePath === '#/picture-me', [basePath])
+  const isRemoveBackground = useMemo(() => basePath === '#/remove-background', [basePath])
+  const isInformationVerifier = useMemo(() => basePath === '#/information-verifier', [basePath])
+  const isSettings = useMemo(() => basePath === '#/settings', [basePath])
+  const isAbout = useMemo(() => basePath === '#/about', [basePath])
 
   if (isPdfTool) {
     return (

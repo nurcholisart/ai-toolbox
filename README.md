@@ -89,6 +89,26 @@ Notes:
 - It requires network access for the Gemini API.
 - Image‑based PDFs (scanned) may produce empty text extraction unless OCR is added (not included).
 
+## Information Verifier
+- Location: `src/components/InformationVerifier.jsx`
+- Route: `#/information-verifier`
+
+Features:
+- Web-grounded verification (Gemini + optional Google Search tool) returning a strict JSON: `{ verdict, reason, citations }` where `verdict` is one of `Valid | Mislead | Hoax`.
+- Share results: after verifying, click "Share result" to copy/open a link containing the encoded result.
+  - Click "Share result" to copy/open a link that embeds the full output (verdict, reason, all citations, and claim) using compressed, URI-safe encoding.
+
+Share link format:
+- Path: `#/information-verifier?result=<compressed>`
+- Encoding: LZ-based, URI‑safe compression of the UTF‑8 JSON payload.
+- Payload JSON: `{ verdict, reason, citations, claim }`.
+- Backward compatible: old Base64URL links still decode correctly.
+- Opening the link renders the shared result immediately without re‑verifying.
+- The page updates Open Graph tags (title/description/url) based on the shared result for richer previews. Note: most crawlers do not execute client JS; dynamic OG tags work best when the target supports server rendering.
+
+Note:
+- Older Base64URL links are still supported and render as usual.
+
 ## Notes
 - PictureMe: This tool is based on the Gemini Canvas template created by the Google team, and they shared details in this X post: https://x.com/GeminiApp/status/1963615829708132611
  - Image editing (Gemini): Client calls use the `gemini-2.5-flash-image-preview:generateContent` endpoint with two parts: a text instruction and the input image as `inlineData` (base64). The response may include an `inlineData` image (PNG). For background removal, instruct Gemini to produce a transparent PNG without cropping, and implement simple retries for `429`.
