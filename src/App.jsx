@@ -6,6 +6,7 @@ import AudioTranscriber from './components/AudioTranscriber.jsx'
 import Mp4ToMp3 from './components/Mp4ToMp3.jsx'
 import MeetingTranscription from './components/MeetingTranscription.jsx'
 import PictureMe from './components/PictureMe.jsx'
+import RemoveBackground from './components/RemoveBackground.jsx'
 import Settings from './components/Settings.jsx'
 import About from './components/About.jsx'
 import { getApiKey } from './lib/config.js'
@@ -17,6 +18,7 @@ const tools = [
   { name: 'Meeting Transcription', description: 'Upload audio/video → Markdown transcript', link: '#/meeting-transcription' },
   { name: 'MP4 to MP3', description: 'Convert video to MP3 in-browser', link: '#/mp4-to-mp3' },
   { name: 'PictureMe', description: 'Transform photos with Gemini', link: '#/picture-me' },
+  { name: 'Remove Background', description: 'Erase backgrounds with Gemini', link: '#/remove-background' },
   {
     name: 'Propose new tool',
     description: 'Suggest an idea on GitHub',
@@ -49,6 +51,7 @@ export default function App() {
   const isMeetingTranscription = useMemo(() => hash === '#/meeting-transcription', [hash])
   const isMp4ToMp3 = useMemo(() => hash === '#/mp4-to-mp3', [hash])
   const isPictureMe = useMemo(() => hash === '#/picture-me', [hash])
+  const isRemoveBackground = useMemo(() => hash === '#/remove-background', [hash])
   const isSettings = useMemo(() => hash === '#/settings', [hash])
   const isAbout = useMemo(() => hash === '#/about', [hash])
 
@@ -184,6 +187,10 @@ export default function App() {
 
   if (isPictureMe) {
     return <PictureMe />
+  }
+
+  if (isRemoveBackground) {
+    return <RemoveBackground />
   }
 
   if (isSettings) {
