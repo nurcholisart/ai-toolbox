@@ -41,6 +41,7 @@ export default function About() {
                 <li>PDF to Markdown: extract text to clean Markdown</li>
                 <li>Assessment Roast: critique assessments with structured feedback</li>
                 <li>Audio Transcriber: transcribe audio to Markdown</li>
+                <li>Meeting Transcription: upload audio/video → Markdown</li>
                 <li>MP4 to MP3: in-browser media conversion via ffmpeg.wasm</li>
               </ul>
             </section>
@@ -89,4 +90,3 @@ export default function About() {
     </div>
   )
 }
-
