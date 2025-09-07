@@ -16,11 +16,41 @@ export default defineConfig({
         background_color: '#ffffff',
         display: 'standalone',
         start_url: '/',
-        lang: 'id',
+        lang: 'en',
         icons: [
           { src: '/icons/icon-192.png', sizes: '192x192', type: 'image/png', purpose: 'any maskable' },
           { src: '/icons/icon-512.png', sizes: '512x512', type: 'image/png', purpose: 'any maskable' },
           { src: '/favicon.svg', sizes: 'any', type: 'image/svg+xml', purpose: 'any' },
+        ],
+        shortcuts: [
+          {
+            name: 'PDF to Markdown',
+            short_name: 'PDF → MD',
+            description: 'Convert PDF content into Markdown',
+            url: '/#/pdf-to-markdown',
+            icons: [{ src: '/icons/icon-192.png', sizes: '192x192', type: 'image/png' }],
+          },
+          {
+            name: 'MP4 to MP3',
+            short_name: 'MP4 → MP3',
+            description: 'Convert video to MP3 in-browser',
+            url: '/#/mp4-to-mp3',
+            icons: [{ src: '/icons/icon-192.png', sizes: '192x192', type: 'image/png' }],
+          },
+          {
+            name: 'Audio Transcriber',
+            short_name: 'Transcriber',
+            description: 'Transcribe audio to Markdown',
+            url: '/#/audio-transcriber',
+            icons: [{ src: '/icons/icon-192.png', sizes: '192x192', type: 'image/png' }],
+          },
+          {
+            name: 'Information Verifier',
+            short_name: 'Verifier',
+            description: 'Verify information with citations',
+            url: '/#/information-verifier',
+            icons: [{ src: '/icons/icon-192.png', sizes: '192x192', type: 'image/png' }],
+          },
         ],
       },
       workbox: {
