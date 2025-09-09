@@ -69,3 +69,9 @@
 - Model: `gemini-2.5-flash-preview-05-20` via `:generateContent`.
 - Grounding: include `tools: [{ googleSearch: {} }]` to enable web-grounded answers; if API rejects tools (400/404), retry without tools.
 - Output contract: strictly request JSON with `{ verdict, reason, citations: Array<{ title, url }> }` and render citations as links.
+
+### Lockfile Scanner
+- Location: `src/components/LockfileScanner.jsx`; route: `#/lockfile-scanner`; card added in `src/App.jsx`.
+- Purpose: scan JavaScript lockfiles for known vulnerabilities using OSV.dev.
+- Input: accepts pasted text or file upload of `package-lock.json`, `yarn.lock`, or `pnpm-lock.yaml`.
+- Output: table of packages with status and advisory IDs.

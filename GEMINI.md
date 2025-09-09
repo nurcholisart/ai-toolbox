@@ -121,3 +121,9 @@ Notes:
 
 ### UI Language
 - All user-facing UI text must be in English across tools and pages.
+
+### Lockfile Scanner
+- Component: `src/components/LockfileScanner.jsx` (route `#/lockfile-scanner`).
+- Goal: Parse JavaScript lockfiles and query OSV.dev for known vulnerabilities.
+- Input: pasted text or uploaded `package-lock.json`, `yarn.lock`, or `pnpm-lock.yaml`.
+- Output: table listing package name, version, status, and advisory IDs.
