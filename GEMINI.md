@@ -85,7 +85,7 @@ npm run preview
 1. Open: https://aistudio.google.com/u/0/apikey
 2. Sign in with your Google account.
 3. Click "Create API key" to generate a new key, or copy an existing one.
-4. Paste the key into the app Settings (`#/settings`) and click Save.
+4. Paste the key into the app Settings (`/settings`) and click Save.
 
 Notes:
 - Treat the key like a password. The app stores it only in the browser (localStorage) and uses it directly to call the Gemini API from the client.
@@ -108,7 +108,7 @@ Notes:
 - If the server returns an error for unsupported tools, retry the same request without `tools` as a graceful fallback.
 
 ### Information Verifier
-- Component: `src/components/InformationVerifier.jsx` (route `#/information-verifier`).
+- Component: `src/components/InformationVerifier.jsx` (route `/information-verifier`).
 - Goal: Given a claim, request a grounded verification and return:
   - `verdict`: one of `Valid | Mislead | Hoax`
   - `reason`: short explanation
@@ -123,7 +123,7 @@ Notes:
 - All user-facing UI text must be in English across tools and pages.
 
 ### Lockfile Scanners
-- `src/components/LockfileScanner.jsx` (`#/lockfile-scanner`): parses JavaScript lockfiles (`package-lock.json`, `yarn.lock`, `pnpm-lock.yaml`).
-- `src/components/GemfileScanner.jsx` (`#/gemfile-scanner`): parses Ruby `Gemfile.lock` files.
-- `src/components/GoSumScanner.jsx` (`#/go-sum-scanner`): parses Go `go.sum` files.
+- `src/components/LockfileScanner.jsx` (`/lockfile-scanner`): parses JavaScript lockfiles (`package-lock.json`, `yarn.lock`, `pnpm-lock.yaml`).
+- `src/components/GemfileScanner.jsx` (`/gemfile-scanner`): parses Ruby `Gemfile.lock` files.
+- `src/components/GoSumScanner.jsx` (`/go-sum-scanner`): parses Go `go.sum` files.
 - Each tool queries OSV.dev and lists package name, version, status, and advisory IDs.

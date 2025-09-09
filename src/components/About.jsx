@@ -8,7 +8,7 @@ export default function About() {
       <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 pt-6">
         <div className="flex items-center justify-between">
           <a
-            href="#"
+            href="/"
             className="inline-flex items-center gap-2 text-sm bg-white text-black border-2 border-black rounded-lg px-3 py-1 hover:bg-gray-100 shadow-sm"
           >
             <IconArrowLeft size={18} stroke={2} />
@@ -17,7 +17,7 @@ export default function About() {
           <div className="flex items-center gap-2">
             <InstallPrompt />
             <a
-              href="#/settings"
+              href="/settings"
               className="inline-flex items-center gap-2 text-sm bg-white text-black border-2 border-black rounded-lg px-3 py-1 hover:bg-gray-100 shadow-sm"
             >
               <IconSettings size={16} stroke={2} />

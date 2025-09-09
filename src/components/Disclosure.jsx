@@ -1,7 +1,10 @@
 import React, { useMemo } from 'react'
 
 export default function Disclosure() {
-  const isPictureMe = useMemo(() => typeof window !== 'undefined' && window.location.hash === '#/picture-me', [])
+  const isPictureMe = useMemo(
+    () => typeof window !== 'undefined' && window.location.pathname === '/picture-me',
+    [],
+  )
   return (
     <div className="mt-6 pt-4 border-t border-black/10 text-xs text-gray-600">
       <p>AI may be wrong. Please use this tool responsibly.</p>

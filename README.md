@@ -27,6 +27,13 @@ Usage:
 - Build: `npm run build` then `npm run preview`
 - Install: open the app in a supported browser and use “Install App”/Add to Home Screen
 
+Routing note:
+- Clean URLs use the History API (no `#/`). Vite dev/preview already fallback to `index.html`. For production, unknown routes must rewrite to `index.html` so direct links like `/information-verifier` work.
+- Included configs:
+  - Netlify: `public/_redirects` with `/* /index.html 200` is copied to `dist/`.
+  - Vercel: `vercel.json` routes use filesystem-first, then SPA fallback to `index.html`.
+  - Custom servers: enable SPA/history fallback (e.g., Nginx `try_files $uri /index.html;`).
+
 Notes:
 - Default monochrome, maskable PNG icons are included at `public/icons/icon-192.png` and `public/icons/icon-512.png` and referenced in the manifest. Replace with your brand if needed.
 - Large ffmpeg `.wasm` files are intentionally excluded from precache to avoid exceeding Workbox size limits on build (Vercel). They will be fetched on demand, then cached at runtime using a `CacheFirst` strategy for `/ffmpeg/` assets.
@@ -62,7 +69,7 @@ Do not commit secrets. Use `.env` locally (already ignored) and document new var
 1. Open: https://aistudio.google.com/u/0/apikey
 2. Sign in with your Google account.
 3. Click "Create API key" to generate a new key, or copy an existing key.
-4. Paste the key in the app Settings (Settings card or `#/settings`) and click Save.
+4. Paste the key in the app Settings (Settings card or `/settings`) and click Save.
 
 Notes:
 - Treat the key like a password. It is stored locally in your browser (localStorage) and used directly from your device to the Gemini API.
@@ -70,10 +77,10 @@ Notes:
 
 ## PDF → Markdown Tool
 - Location: `src/components/PdfToMarkdown.jsx`
-- Access: open the app and click the card “PDF to Markdown” (or navigate to `#/pdf-to-markdown`).
+- Access: open the app and click the card “PDF to Markdown” (or navigate to `/pdf-to-markdown`).
 
 ### Setup API Key (no .env)
-- Open the app and go to Settings (card or `#/settings`).
+- Open the app and go to Settings (card or `/settings`).
 - Paste your Gemini API Key and Save. It is stored in your browser (localStorage).
 - No environment variables are required.
 
@@ -91,7 +98,7 @@ Notes:
 
 ## Information Verifier
 - Location: `src/components/InformationVerifier.jsx`
-- Route: `#/information-verifier`
+- Route: `/information-verifier`
 
 Features:
 - Web-grounded verification (Gemini + optional Google Search tool) returning a strict JSON: `{ verdict, reason, citations }` where `verdict` is one of `Valid | Mislead | Hoax`.
@@ -99,7 +106,7 @@ Features:
   - Click "Share result" to copy/open a link that embeds the full output (verdict, reason, all citations, and claim) using compressed, URI-safe encoding.
 
 Share link format:
-- Path: `#/information-verifier?result=<compressed>`
+- Path: `/information-verifier?result=<compressed>`
 - Encoding: LZ-based, URI‑safe compression of the UTF‑8 JSON payload.
 - Payload JSON: `{ verdict, reason, citations, claim }`.
 - Backward compatible: old Base64URL links still decode correctly.
@@ -111,7 +118,7 @@ Note:
 
 ## Lockfile Scanner
 - Location: `src/components/LockfileScanner.jsx`
-- Route: `#/lockfile-scanner`
+- Route: `/lockfile-scanner`
 
 Features:
 - Paste or upload `package-lock.json`, `yarn.lock`, or `pnpm-lock.yaml`

@@ -17,17 +17,17 @@ import { getApiKey } from './lib/config.js'
 import InstallPrompt from './components/InstallPrompt.jsx'
 
 const tools = [
-  { name: 'PDF to Markdown', description: 'Convert PDF content into Markdown', link: '#/pdf-to-markdown' },
-  { name: 'Assessment Roast', description: 'Brutally review a project assessment', link: '#/assessment-roast' },
-  { name: 'Audio Transcriber', description: 'Transcribe audio to Markdown', link: '#/audio-transcriber' },
-  { name: 'Meeting Transcription', description: 'Upload audio/video → Markdown transcript', link: '#/meeting-transcription' },
-  { name: 'MP4 to MP3', description: 'Convert video to MP3 in-browser', link: '#/mp4-to-mp3' },
-  { name: 'PictureMe', description: 'Transform photos with Gemini', link: '#/picture-me' },
-  { name: 'Remove Background', description: 'Erase backgrounds with Gemini', link: '#/remove-background' },
-  { name: 'Information Verifier', description: 'Verify information truthfulness + citations', link: '#/information-verifier' },
-  { name: 'Lockfile Scanner', description: 'Check JS deps for vulnerabilities', link: '#/lockfile-scanner' },
-  { name: 'Gemfile.lock Scanner', description: 'Check Ruby gems for vulnerabilities', link: '#/gemfile-scanner' },
-  { name: 'go.sum Scanner', description: 'Check Go modules for vulnerabilities', link: '#/go-sum-scanner' },
+  { name: 'PDF to Markdown', description: 'Convert PDF content into Markdown', link: '/pdf-to-markdown' },
+  { name: 'Assessment Roast', description: 'Brutally review a project assessment', link: '/assessment-roast' },
+  { name: 'Audio Transcriber', description: 'Transcribe audio to Markdown', link: '/audio-transcriber' },
+  { name: 'Meeting Transcription', description: 'Upload audio/video → Markdown transcript', link: '/meeting-transcription' },
+  { name: 'MP4 to MP3', description: 'Convert video to MP3 in-browser', link: '/mp4-to-mp3' },
+  { name: 'PictureMe', description: 'Transform photos with Gemini', link: '/picture-me' },
+  { name: 'Remove Background', description: 'Erase backgrounds with Gemini', link: '/remove-background' },
+  { name: 'Information Verifier', description: 'Verify information truthfulness + citations', link: '/information-verifier' },
+  { name: 'Lockfile Scanner', description: 'Check JS deps for vulnerabilities', link: '/lockfile-scanner' },
+  { name: 'Gemfile.lock Scanner', description: 'Check Ruby gems for vulnerabilities', link: '/gemfile-scanner' },
+  { name: 'go.sum Scanner', description: 'Check Go modules for vulnerabilities', link: '/go-sum-scanner' },
   {
     name: 'Propose new tool',
     description: 'Suggest an idea on GitHub',
@@ -38,39 +38,64 @@ const tools = [
 ]
 
 export default function App() {
-  const [hash, setHash] = useState(window.location.hash)
+  const [path, setPath] = useState(window.location.pathname)
   const [hasKey, setHasKey] = useState(!!getApiKey())
 
   useEffect(() => {
-    const onHashChange = () => setHash(window.location.hash)
-    window.addEventListener('hashchange', onHashChange)
+    const onPopState = () => setPath(window.location.pathname)
+    window.addEventListener('popstate', onPopState, { passive: true })
+
+    // Intercept internal link clicks for SPA navigation
+    const onClick = (e) => {
+      if (e.defaultPrevented) return
+      // respect modifier keys
+      if (e.metaKey || e.ctrlKey || e.shiftKey || e.altKey) return
+      const a = e.target?.closest && e.target.closest('a')
+      if (!a) return
+      const href = a.getAttribute('href')
+      const target = a.getAttribute('target')
+      const download = a.hasAttribute('download')
+      if (!href || download || target === '_blank') return
+      // Only handle same-origin, root-relative links
+      if (href.startsWith('/') && a.origin === window.location.origin) {
+        e.preventDefault()
+        if (href !== window.location.pathname + window.location.search) {
+          window.history.pushState({}, '', href)
+          setPath(window.location.pathname)
+        }
+      }
+    }
+    window.addEventListener('click', onClick)
     const onCfg = () => setHasKey(!!getApiKey())
     window.addEventListener('ai-toolbox:config-updated', onCfg)
     window.addEventListener('storage', onCfg)
-    return () => window.removeEventListener('hashchange', onHashChange)
+    return () => {
+      window.removeEventListener('popstate', onPopState)
+      window.removeEventListener('click', onClick)
+    }
     // cleanup extra listeners
     // eslint-disable-next-line no-unreachable
     , window.removeEventListener('ai-toolbox:config-updated', onCfg)
     , window.removeEventListener('storage', onCfg)
   }, [])
 
-  // Normalize route path (ignore query string in hash)
-  const basePath = useMemo(() => (hash || '').split('?')[0], [hash])
+  // Normalize route path (ignore query string)
+  const basePath = useMemo(() => window.location.pathname, [path])
 
-  const isPdfTool = useMemo(() => basePath === '#/pdf-to-markdown', [basePath])
-  const isRoastTool = useMemo(() => basePath === '#/assessment-roast', [basePath])
-  const isAudioTool = useMemo(() => basePath === '#/audio-transcriber', [basePath])
-  const isMeetingTranscription = useMemo(() => basePath === '#/meeting-transcription', [basePath])
-  const isMp4ToMp3 = useMemo(() => basePath === '#/mp4-to-mp3', [basePath])
-  const isPictureMe = useMemo(() => basePath === '#/picture-me', [basePath])
-  const isRemoveBackground = useMemo(() => basePath === '#/remove-background', [basePath])
-  const isInformationVerifier = useMemo(() => basePath === '#/information-verifier', [basePath])
-  const isLockfileScanner = useMemo(() => basePath === '#/lockfile-scanner', [basePath])
-  const isGemfileScanner = useMemo(() => basePath === '#/gemfile-scanner', [basePath])
-  const isGoSumScanner = useMemo(() => basePath === '#/go-sum-scanner', [basePath])
+  const isPdfTool = useMemo(() => basePath === '/pdf-to-markdown', [basePath])
+  const isRoastTool = useMemo(() => basePath === '/assessment-roast', [basePath])
+  const isAudioTool = useMemo(() => basePath === '/audio-transcriber', [basePath])
+  const isMeetingTranscription = useMemo(() => basePath === '/meeting-transcription', [basePath])
+  const isMp4ToMp3 = useMemo(() => basePath === '/mp4-to-mp3', [basePath])
+  const isPictureMe = useMemo(() => basePath === '/picture-me', [basePath])
+  const isRemoveBackground = useMemo(() => basePath === '/remove-background', [basePath])
+  const isInformationVerifier = useMemo(() => basePath === '/information-verifier', [basePath])
+  const isLockfileScanner = useMemo(() => basePath === '/lockfile-scanner', [basePath])
+  const isGemfileScanner = useMemo(() => basePath === '/gemfile-scanner', [basePath])
+  const isGoSumScanner = useMemo(() => basePath === '/go-sum-scanner', [basePath])
   
-  const isSettings = useMemo(() => basePath === '#/settings', [basePath])
-  const isAbout = useMemo(() => basePath === '#/about', [basePath])
+  const isSettings = useMemo(() => basePath === '/settings', [basePath])
+  const isAbout = useMemo(() => basePath === '/about', [basePath])
 
   if (isPdfTool) {
     return (
@@ -78,7 +103,7 @@ export default function App() {
         <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 pt-6">
           <div className="flex items-center justify-between">
             <a
-              href="#"
+              href="/"
               className="inline-flex items-center gap-2 text-sm bg-white text-black border-2 border-black rounded-lg px-3 py-1 hover:bg-gray-100 shadow-sm"
             >
               <IconArrowLeft size={18} stroke={2} />
@@ -87,7 +112,7 @@ export default function App() {
             <div className="flex items-center gap-2">
               <InstallPrompt />
               <a
-                href="#/settings"
+                href="/settings"
                 className="inline-flex items-center gap-2 text-sm bg-white text-black border-2 border-black rounded-lg px-3 py-1 hover:bg-gray-100 shadow-sm"
               >
                 <IconSettings size={16} stroke={2} />
@@ -107,7 +132,7 @@ export default function App() {
         <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 pt-6">
           <div className="flex items-center justify-between">
             <a
-              href="#"
+              href="/"
               className="inline-flex items-center gap-2 text-sm bg-white text-black border-2 border-black rounded-lg px-3 py-1 hover:bg-gray-100 shadow-sm"
             >
               <IconArrowLeft size={18} stroke={2} />
@@ -116,7 +141,7 @@ export default function App() {
             <div className="flex items-center gap-2">
               <InstallPrompt />
               <a
-                href="#/settings"
+                href="/settings"
                 className="inline-flex items-center gap-2 text-sm bg-white text-black border-2 border-black rounded-lg px-3 py-1 hover:bg-gray-100 shadow-sm"
               >
                 <IconSettings size={16} stroke={2} />
@@ -136,7 +161,7 @@ export default function App() {
         <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 pt-6">
           <div className="flex items-center justify-between">
             <a
-              href="#"
+              href="/"
               className="inline-flex items-center gap-2 text-sm bg-white text-black border-2 border-black rounded-lg px-3 py-1 hover:bg-gray-100 shadow-sm"
             >
               <IconArrowLeft size={18} stroke={2} />
@@ -145,7 +170,7 @@ export default function App() {
             <div className="flex items-center gap-2">
               <InstallPrompt />
               <a
-                href="#/settings"
+                href="/settings"
                 className="inline-flex items-center gap-2 text-sm bg-white text-black border-2 border-black rounded-lg px-3 py-1 hover:bg-gray-100 shadow-sm"
               >
                 <IconSettings size={16} stroke={2} />
@@ -165,7 +190,7 @@ export default function App() {
         <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 pt-6">
           <div className="flex items-center justify-between">
             <a
-              href="#"
+              href="/"
               className="inline-flex items-center gap-2 text-sm bg-white text-black border-2 border-black rounded-lg px-3 py-1 hover:bg-gray-100 shadow-sm"
             >
               <IconArrowLeft size={18} stroke={2} />
@@ -174,7 +199,7 @@ export default function App() {
             <div className="flex items-center gap-2">
               <InstallPrompt />
               <a
-                href="#/settings"
+                href="/settings"
                 className="inline-flex items-center gap-2 text-sm bg-white text-black border-2 border-black rounded-lg px-3 py-1 hover:bg-gray-100 shadow-sm"
               >
                 <IconSettings size={16} stroke={2} />
@@ -194,7 +219,7 @@ export default function App() {
         <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 pt-6">
           <div className="flex items-center justify-between">
             <a
-              href="#"
+              href="/"
               className="inline-flex items-center gap-2 text-sm bg-white text-black border-2 border-black rounded-lg px-3 py-1 hover:bg-gray-100 shadow-sm"
             >
               <IconArrowLeft size={18} stroke={2} />
@@ -203,7 +228,7 @@ export default function App() {
             <div className="flex items-center gap-2">
               <InstallPrompt />
               <a
-                href="#/settings"
+                href="/settings"
                 className="inline-flex items-center gap-2 text-sm bg-white text-black border-2 border-black rounded-lg px-3 py-1 hover:bg-gray-100 shadow-sm"
               >
                 <IconSettings size={16} stroke={2} />
@@ -231,7 +256,7 @@ export default function App() {
         <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 pt-6">
           <div className="flex items-center justify-between">
             <a
-              href="#"
+              href="/"
               className="inline-flex items-center gap-2 text-sm bg-white text-black border-2 border-black rounded-lg px-3 py-1 hover:bg-gray-100 shadow-sm"
             >
               <IconArrowLeft size={18} stroke={2} />
@@ -240,7 +265,7 @@ export default function App() {
             <div className="flex items-center gap-2">
               <InstallPrompt />
               <a
-                href="#/settings"
+                href="/settings"
                 className="inline-flex items-center gap-2 text-sm bg-white text-black border-2 border-black rounded-lg px-3 py-1 hover:bg-gray-100 shadow-sm"
               >
                 <IconSettings size={16} stroke={2} />
@@ -260,7 +285,7 @@ export default function App() {
         <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 pt-6">
           <div className="flex items-center justify-between">
             <a
-              href="#"
+              href="/"
               className="inline-flex items-center gap-2 text-sm bg-white text-black border-2 border-black rounded-lg px-3 py-1 hover:bg-gray-100 shadow-sm"
             >
               <IconArrowLeft size={18} stroke={2} />
@@ -269,7 +294,7 @@ export default function App() {
             <div className="flex items-center gap-2">
               <InstallPrompt />
               <a
-                href="#/settings"
+                href="/settings"
                 className="inline-flex items-center gap-2 text-sm bg-white text-black border-2 border-black rounded-lg px-3 py-1 hover:bg-gray-100 shadow-sm"
               >
                 <IconSettings size={16} stroke={2} />
@@ -289,7 +314,7 @@ export default function App() {
         <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 pt-6">
           <div className="flex items-center justify-between">
             <a
-              href="#"
+              href="/"
               className="inline-flex items-center gap-2 text-sm bg-white text-black border-2 border-black rounded-lg px-3 py-1 hover:bg-gray-100 shadow-sm"
             >
               <IconArrowLeft size={18} stroke={2} />
@@ -298,7 +323,7 @@ export default function App() {
             <div className="flex items-center gap-2">
               <InstallPrompt />
               <a
-                href="#/settings"
+                href="/settings"
                 className="inline-flex items-center gap-2 text-sm bg-white text-black border-2 border-black rounded-lg px-3 py-1 hover:bg-gray-100 shadow-sm"
               >
                 <IconSettings size={16} stroke={2} />
@@ -318,7 +343,7 @@ export default function App() {
         <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 pt-6">
           <div className="flex items-center justify-between">
             <a
-              href="#"
+              href="/"
               className="inline-flex items-center gap-2 text-sm bg-white text-black border-2 border-black rounded-lg px-3 py-1 hover:bg-gray-100 shadow-sm"
             >
               <IconArrowLeft size={18} stroke={2} />
@@ -327,7 +352,7 @@ export default function App() {
             <div className="flex items-center gap-2">
               <InstallPrompt />
               <a
-                href="#/settings"
+                href="/settings"
                 className="inline-flex items-center gap-2 text-sm bg-white text-black border-2 border-black rounded-lg px-3 py-1 hover:bg-gray-100 shadow-sm"
               >
                 <IconSettings size={16} stroke={2} />
@@ -364,7 +389,7 @@ export default function App() {
             </svg>
             <div className="text-sm">
               <p className="font-medium">Gemini API key not set.</p>
-              <p>Open <a href="#/settings" className="underline text-black hover:text-gray-700">Settings</a> to add your key before using tools.</p>
+              <p>Open <a href="/settings" className="underline text-black hover:text-gray-700">Settings</a> to add your key before using tools.</p>
             </div>
           </div>
         </div>
@@ -373,14 +398,14 @@ export default function App() {
       <div className="w-full max-w-6xl mb-6 flex justify-end gap-3">
         <InstallPrompt />
         <a
-          href="#/about"
+          href="/about"
           className="inline-flex items-center gap-2 text-sm bg-white text-black border-2 border-black rounded-lg px-3 py-1 hover:bg-gray-100 shadow-sm"
         >
           <IconInfoCircle size={16} stroke={2} />
           About
         </a>
         <a
-          href="#/settings"
+          href="/settings"
           className="inline-flex items-center gap-2 text-sm bg-white text-black border-2 border-black rounded-lg px-3 py-1 hover:bg-gray-100 shadow-sm"
         >
           <IconSettings size={16} stroke={2} />

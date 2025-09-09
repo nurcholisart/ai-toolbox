@@ -69,7 +69,7 @@ export default function InformationVerifier() {
     };
   }, []);
 
-  // Parse shared payload from hash or search; also react to hash changes
+  // Parse shared payload from the URL query (?result=...); react to history changes
   useEffect(() => {
     const b64UrlDecode = (input) => {
       const b64 = input.replace(/-/g, '+').replace(/_/g, '/')
@@ -96,32 +96,8 @@ export default function InformationVerifier() {
 
     const parseShared = () => {
       try {
-        // Prefer hash: #/information-verifier?result=...
-        let encoded = null
-        const h = window.location.hash || ''
-        const qIndex = h.indexOf('?')
-        if (qIndex !== -1) {
-          const query = new URLSearchParams(h.slice(qIndex + 1))
-          encoded = query.get('result')
-        }
-
-        // Fallback: look in search (?result=...) in case some redirectors broke the '#'
-        if (!encoded) {
-          const qs = new URLSearchParams(window.location.search || '')
-          const fromSearch = qs.get('result')
-          if (fromSearch) {
-            // Normalize URL so our router state is consistent
-            const newHash = `#/information-verifier?result=${fromSearch}`
-            if (window.location.hash !== newHash) {
-              // Use replace to avoid pushing history entries; drop search params
-              window.location.replace(
-                `${window.location.origin}${window.location.pathname}${newHash}`,
-              )
-            }
-            encoded = fromSearch
-          }
-        }
-
+        const qs = new URLSearchParams(window.location.search || '')
+        const encoded = qs.get('result')
         if (!encoded) return
 
         const parsed = parseEncodedPayload(encoded)
@@ -145,8 +121,8 @@ export default function InformationVerifier() {
     }
 
     parseShared()
-    window.addEventListener('hashchange', parseShared)
-    return () => window.removeEventListener('hashchange', parseShared)
+    window.addEventListener('popstate', parseShared)
+    return () => window.removeEventListener('popstate', parseShared)
   }, [])
 
   // Update OG meta tags when result is present
@@ -166,9 +142,9 @@ export default function InformationVerifier() {
       try {
         const payload = { ...result, claim }
         const encoded = b64UrlEncode(JSON.stringify(payload))
-        return `${window.location.origin}${window.location.pathname}#/information-verifier?result=${encoded}`
+        return `${window.location.origin}/information-verifier?result=${encoded}`
       } catch {
-        return `${window.location.origin}${window.location.pathname}#/information-verifier`
+        return `${window.location.origin}/information-verifier`
       }
     })()
 
@@ -314,7 +290,7 @@ export default function InformationVerifier() {
     let binary = ''
     for (let i = 0; i < bytes.length; i++) binary += String.fromCharCode(bytes[i])
     const b64 = btoa(binary).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '')
-    return `${window.location.origin}${window.location.pathname}#/information-verifier?result=${b64}`
+    return `${window.location.origin}/information-verifier?result=${b64}`
   }
 
   const shortenUrl = async (longUrl) => {
