@@ -70,8 +70,8 @@
 - Grounding: include `tools: [{ googleSearch: {} }]` to enable web-grounded answers; if API rejects tools (400/404), retry without tools.
 - Output contract: strictly request JSON with `{ verdict, reason, citations: Array<{ title, url }> }` and render citations as links.
 
-### Lockfile Scanner
-- Location: `src/components/LockfileScanner.jsx`; route: `#/lockfile-scanner`; card added in `src/App.jsx`.
-- Purpose: scan JavaScript lockfiles for known vulnerabilities using OSV.dev.
-- Input: accepts pasted text or file upload of `package-lock.json`, `yarn.lock`, or `pnpm-lock.yaml`.
-- Output: table of packages with status and advisory IDs.
+### Lockfile Scanners
+- `src/components/LockfileScanner.jsx` (`#/lockfile-scanner`): scans JavaScript lockfiles (`package-lock.json`, `yarn.lock`, `pnpm-lock.yaml`).
+- `src/components/GemfileScanner.jsx` (`#/gemfile-scanner`): scans Ruby `Gemfile.lock` files.
+- `src/components/GoSumScanner.jsx` (`#/go-sum-scanner`): scans Go `go.sum` files.
+- All tools parse dependencies, query OSV.dev, and display advisory IDs.
