@@ -6,3 +6,14 @@ html, body, #root {
   height: 100%;
 }
 
+.record-dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 9999px;
+  background: red;
+}
+
+.annotation-canvas {
+  touch-action: none;
+}
+
