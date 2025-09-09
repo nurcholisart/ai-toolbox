@@ -1,4 +1,5 @@
 import React, { useEffect, useRef, useState } from 'react'
+import Toggle from './Toggle.jsx'
 
 export default function ScreenRecorder() {
   const [recording, setRecording] = useState(false)
@@ -12,6 +13,7 @@ export default function ScreenRecorder() {
   const [notice, setNotice] = useState('')
   const [time, setTime] = useState(0)
   const [error, setError] = useState('')
+  const [canRecord, setCanRecord] = useState(true)
   const screenVideoRef = useRef(null)
   const camVideoRef = useRef(null)
   const canvasRef = useRef(null)
@@ -33,6 +35,13 @@ export default function ScreenRecorder() {
   const zoomSelRef = useRef(null)
 
   const isSecure = typeof window !== 'undefined' ? window.isSecureContext : false
+
+  useEffect(() => {
+    const supported = typeof navigator !== 'undefined' && navigator.mediaDevices &&
+      typeof navigator.mediaDevices.getDisplayMedia === 'function'
+    setCanRecord(supported)
+    if (!supported) setError("Screen recording isn't supported on this device")
+  }, [])
 
   useEffect(() => {
     if (!recording) return
@@ -115,6 +124,10 @@ export default function ScreenRecorder() {
   }
 
   const start = async () => {
+    if (!canRecord) {
+      setError("Screen recording isn't supported on this device")
+      return
+    }
     setError('')
     setNotice('')
     let type = 'video/webm;codecs=vp8,opus'
@@ -324,7 +337,7 @@ export default function ScreenRecorder() {
         <button
           className="bg-black text-white px-3 py-1 rounded-lg disabled:opacity-50"
           onClick={start}
-          disabled={!isSecure || recording}
+          disabled={!isSecure || recording || !canRecord}
         >
           Start
         </button>
@@ -342,22 +355,22 @@ export default function ScreenRecorder() {
         >
           Stop & Download
         </button>
-        <label className="flex items-center gap-1 text-sm">
-          <input type="checkbox" checked={showCam} onChange={(e) => setShowCam(e.target.checked)} />
-          Show Webcam
-        </label>
-        <label className="flex items-center gap-1 text-sm">
-          <input type="checkbox" checked={useMic} onChange={(e) => setUseMic(e.target.checked)} />
-          Mic
-        </label>
-        <label className="flex items-center gap-1 text-sm">
-          <input type="checkbox" checked={enableAnnotate} onChange={(e) => setEnableAnnotate(e.target.checked)} />
-          Annotate
-        </label>
-        <label className="flex items-center gap-1 text-sm">
-          <input type="checkbox" checked={enableZoom} onChange={(e) => setEnableZoom(e.target.checked)} />
-          Zoom
-        </label>
+        <div className="flex items-center gap-1 text-sm">
+          <span>Show Webcam</span>
+          <Toggle enabled={showCam} onChange={setShowCam} label="Show webcam" />
+        </div>
+        <div className="flex items-center gap-1 text-sm">
+          <span>Mic</span>
+          <Toggle enabled={useMic} onChange={setUseMic} label="Microphone" />
+        </div>
+        <div className="flex items-center gap-1 text-sm">
+          <span>Annotate</span>
+          <Toggle enabled={enableAnnotate} onChange={setEnableAnnotate} label="Annotate" />
+        </div>
+        <div className="flex items-center gap-1 text-sm">
+          <span>Zoom</span>
+          <Toggle enabled={enableZoom} onChange={setEnableZoom} label="Zoom" />
+        </div>
         {recording && (
           <div className="flex items-center gap-1 ml-4">
             <span className="record-dot" />
