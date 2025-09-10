@@ -6,6 +6,8 @@ html, body, #root {
   height: 100%;
 }
 
+/* Tailwind Typography will style .prose */
+
 .record-dot {
   width: 10px;
   height: 10px;
