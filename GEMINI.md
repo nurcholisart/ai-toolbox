@@ -98,9 +98,13 @@ Notes:
 
 ## Notes
 - ffmpeg.wasm: Use `@ffmpeg/ffmpeg` 0.12+ ESM API (`FFmpeg` class) and serve `@ffmpeg/core` locally under `public/ffmpeg/esm/`. Avoid sandboxed iframes (breaks workers/wasm). With Vite, set `optimizeDeps.exclude = ['@ffmpeg/ffmpeg', '@ffmpeg/util']` to prevent the dep optimizer from inlining the worker and causing missing `worker.js?...` errors.
- - PWA: The app uses `vite-plugin-pwa` with `autoUpdate` registration. Manifest/workbox configuration is in `vite.config.js`. ffmpeg `.wasm` files are excluded from precache to avoid Workbox size limits on build; fetch on demand or add runtime caching if truly required. The service worker is registered in `src/main.jsx` via `registerSW`.
- - PictureMe: This tool is based on the Gemini Canvas template created by the Google team, and they shared details in this X post: https://x.com/GeminiApp/status/1963615829708132611
-  - Image editing (Gemini): Use `gemini-2.5-flash-image-preview:generateContent` with `contents.parts = [{ text: instruction }, { inlineData: { mimeType, data } }]`. The API may return an `inlineData` image (PNG). For background removal, ask for a transparent PNG, preserve subject edges/hair, and avoid cropping; implement simple retry/backoff on `429`.
+- PWA: The app uses `vite-plugin-pwa` with `autoUpdate` registration. Manifest/workbox configuration is in `vite.config.js`. ffmpeg `.wasm` files are excluded from precache to avoid Workbox size limits on build; fetch on demand or add runtime caching if truly required. The service worker is registered in `src/main.jsx` via `registerSW`.
+- PictureMe: This tool is based on the Gemini Canvas template created by the Google team, and they shared details in this X post: https://x.com/GeminiApp/status/1963615829708132611
+ - Image editing (Gemini): Use `gemini-2.5-flash-image-preview:generateContent` with `contents.parts = [{ text: instruction }, { inlineData: { mimeType, data } }]`. The API may return an `inlineData` image (PNG). For background removal, ask for a transparent PNG, preserve subject edges/hair, and avoid cropping; implement simple retry/backoff on `429`.
+
+### Flower Bouquet Generator
+- Component: `src/components/FlowerBouquetGenerator.jsx` (route `/flower-bouquet`).
+- Builds a detailed prompt to synthesize realistic bouquet photos using `gemini-2.5-flash-image-preview`.
 
 ### Google Search Grounding
 - To allow the model to search the web and ground responses, include `tools: [{ googleSearch: {} }]` in the `generateContent` payload.
