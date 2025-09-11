@@ -84,3 +84,4 @@
 - Component: `src/components/Notable.jsx` (route `/notable`).
 - Lexical-based editor for local notes with export/import options.
 - List insertion commands (`INSERT_ORDERED_LIST_COMMAND`, `INSERT_UNORDERED_LIST_COMMAND`) are exported from `@lexical/list`.
+- Code blocks: `@lexical/code` has no `INSERT_CODE_BLOCK_COMMAND`; use `$setBlocksType` with `$createCodeNode`.
