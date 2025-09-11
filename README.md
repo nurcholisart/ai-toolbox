@@ -130,7 +130,7 @@ Features:
 
 Features:
 - Fill a detailed form to craft a realistic bouquet prompt
-- Generates a studio-style flower bouquet photo with Gemini
+- Generates a studio-style flower bouquet photo with Gemini or OpenAI
 
 ## Notes
 - PictureMe: This tool is based on the Gemini Canvas template created by the Google team, and they shared details in this X post: https://x.com/GeminiApp/status/1963615829708132611

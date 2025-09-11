@@ -1,6 +1,6 @@
 import React, { useEffect, useMemo, useState } from 'react'
 import { IconArrowLeft, IconDownload, IconSettings, IconWand } from '@tabler/icons-react'
-import { getApiKey } from '../lib/config.js'
+import { getGeminiApiKey, getOpenAIApiKey } from '../lib/config.js'
 
 const STORAGE_KEY = 'flowerBouquetForm'
 
@@ -58,7 +58,7 @@ const fetchWithRetry = async (url, options, retries = 3, backoff = 800) => {
   }
 }
 
-const generateImage = async ({ apiKey, prompt }) => {
+const generateGeminiImage = async ({ apiKey, prompt }) => {
   const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-image-preview:generateContent?key=${apiKey}`
   const payload = {
     contents: [
@@ -75,8 +75,25 @@ const generateImage = async ({ apiKey, prompt }) => {
   return `data:image/png;base64,${b64}`
 }
 
+const generateOpenAIImage = async ({ apiKey, prompt, size }) => {
+  const payload = { model: 'gpt-image-1', prompt, size, response_format: 'b64_json' }
+  const data = await fetchWithRetry('https://api.openai.com/v1/images', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      Authorization: `Bearer ${apiKey}`,
+    },
+    body: JSON.stringify(payload),
+  })
+  const b64 = data?.data?.[0]?.b64_json
+  if (!b64) throw new Error('No image data returned by API')
+  return `data:image/png;base64,${b64}`
+}
+
 export default function FlowerBouquetGenerator() {
-  const [apiKey, setApiKey] = useState('')
+  const [geminiKey, setGeminiKey] = useState('')
+  const [openaiKey, setOpenaiKey] = useState('')
+  const [provider, setProvider] = useState('gemini')
   const [form, setForm] = useState(() => {
     const saved = localStorage.getItem(STORAGE_KEY)
     return saved ? JSON.parse(saved) : defaultForm
@@ -86,7 +103,10 @@ export default function FlowerBouquetGenerator() {
   const [status, setStatus] = useState('')
 
   useEffect(() => {
-    const load = () => setApiKey(getApiKey())
+    const load = () => {
+      setGeminiKey(getGeminiApiKey())
+      setOpenaiKey(getOpenAIApiKey())
+    }
     load()
     const onCfg = () => load()
     window.addEventListener('ai-toolbox:config-updated', onCfg)
@@ -163,14 +183,17 @@ export default function FlowerBouquetGenerator() {
   }, [form])
 
   const handleGenerate = async () => {
-    if (!apiKey) {
-      setStatus('API key not set. Open Settings to add your Gemini key.')
+    const key = provider === 'gemini' ? geminiKey : openaiKey
+    if (!key) {
+      setStatus(`API key not set. Open Settings to add your ${provider === 'gemini' ? 'Gemini' : 'OpenAI'} key.`)
       return
     }
     setIsLoading(true)
     setStatus('Generating…')
     try {
-      const img = await generateImage({ apiKey, prompt })
+      const img = provider === 'gemini'
+        ? await generateGeminiImage({ apiKey: key, prompt })
+        : await generateOpenAIImage({ apiKey: key, prompt, size: form.output.size })
       setImage(img)
       setStatus('')
     } catch (err) {
@@ -339,6 +362,10 @@ export default function FlowerBouquetGenerator() {
 
           <div className="bg-white border-2 border-black rounded-xl shadow-md p-4">
             <h2 className="font-semibold mb-3">2. Preview & Generate</h2>
+            <select value={provider} onChange={e => setProvider(e.target.value)} className="bg-white border-2 border-black rounded-lg px-2 py-1 mb-3">
+              <option value="gemini">Gemini</option>
+              <option value="openai">OpenAI</option>
+            </select>
             <textarea readOnly value={prompt} className="w-full h-48 bg-white border-2 border-black rounded-lg p-2 text-sm mb-3" />
             <button onClick={handleGenerate} disabled={isLoading} className="inline-flex items-center gap-2 bg-black text-white hover:bg-gray-800 focus:ring-2 focus:ring-black rounded-lg px-4 py-2">
               <IconWand size={18} />
@@ -360,7 +387,7 @@ export default function FlowerBouquetGenerator() {
           </div>
         </div>
         {image && (
-          <p className="text-center text-xs text-gray-600 mt-6">Made with Gemini</p>
+          <p className="text-center text-xs text-gray-600 mt-6">Made with {provider === 'gemini' ? 'Gemini' : 'OpenAI'}</p>
         )}
       </div>
     </div>
