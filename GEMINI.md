@@ -104,7 +104,7 @@ Notes:
 
 ### Flower Bouquet Generator
 - Component: `src/components/FlowerBouquetGenerator.jsx` (route `/flower-bouquet`).
-- Builds a detailed prompt to synthesize realistic bouquet photos using `gemini-2.5-flash-image-preview`.
+- Builds a detailed prompt to synthesize realistic bouquet photos using `gemini-2.5-flash-image-preview` or OpenAI's `gpt-image-1`.
 
 ### Google Search Grounding
 - To allow the model to search the web and ground responses, include `tools: [{ googleSearch: {} }]` in the `generateContent` payload.

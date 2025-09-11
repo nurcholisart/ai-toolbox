@@ -64,7 +64,7 @@
 
 ### Flower Bouquet Generator
 - Location: `src/components/FlowerBouquetGenerator.jsx`; route: `#/flower-bouquet`.
-- Generates realistic bouquet photos via `gemini-2.5-flash-image-preview` from a structured prompt form.
+- Generates realistic bouquet photos via `gemini-2.5-flash-image-preview` or OpenAI's `gpt-image-1` from a structured prompt form.
 
 ### Information Verifier Tool
 - Location: `src/components/InformationVerifier.jsx`; route: `#/information-verifier`; card added in `src/App.jsx`.
