@@ -8,17 +8,22 @@ import { ListPlugin } from '@lexical/react/LexicalListPlugin'
 import { LinkPlugin } from '@lexical/react/LexicalLinkPlugin'
 import { MarkdownShortcutPlugin } from '@lexical/react/LexicalMarkdownShortcutPlugin'
 import { HeadingNode, QuoteNode } from '@lexical/rich-text'
-import { ListItemNode, ListNode } from '@lexical/list'
-import { CodeNode, INSERT_CODE_BLOCK_COMMAND } from '@lexical/code'
+import {
+  ListItemNode,
+  ListNode,
+  INSERT_ORDERED_LIST_COMMAND,
+  INSERT_UNORDERED_LIST_COMMAND,
+} from '@lexical/list'
+import { CodeNode, $createCodeNode } from '@lexical/code'
+import { $setBlocksType } from '@lexical/selection'
 import { LinkNode, TOGGLE_LINK_COMMAND } from '@lexical/link'
 import { HorizontalRuleNode, INSERT_HORIZONTAL_RULE_COMMAND } from '@lexical/react/LexicalHorizontalRuleNode'
 import { TRANSFORMERS, $convertToMarkdownString } from '@lexical/markdown'
 import { useLexicalComposerContext } from '@lexical/react/LexicalComposerContext'
 import {
+  $getSelection,
   FORMAT_ELEMENT_COMMAND,
   FORMAT_TEXT_COMMAND,
-  INSERT_ORDERED_LIST_COMMAND,
-  INSERT_UNORDERED_LIST_COMMAND,
   REDO_COMMAND,
   UNDO_COMMAND,
 } from 'lexical'
@@ -41,6 +46,14 @@ function ToolbarPlugin() {
     const url = window.prompt('Enter URL')
     editor.dispatchCommand(TOGGLE_LINK_COMMAND, url || null)
   }
+  const insertCodeBlock = () => {
+    editor.update(() => {
+      const selection = $getSelection()
+      if (selection) {
+        $setBlocksType(selection, () => $createCodeNode())
+      }
+    })
+  }
   return (
     <div className='flex flex-wrap gap-2 mb-2'>
       <button className={btn} onClick={() => editor.dispatchCommand(FORMAT_TEXT_COMMAND, 'bold')}>B</button>
@@ -53,7 +66,7 @@ function ToolbarPlugin() {
       <button className={btn} onClick={() => editor.dispatchCommand(INSERT_UNORDERED_LIST_COMMAND)}>• List</button>
       <button className={btn} onClick={() => editor.dispatchCommand(INSERT_ORDERED_LIST_COMMAND)}>1. List</button>
       <button className={btn} onClick={() => editor.dispatchCommand(FORMAT_ELEMENT_COMMAND, 'quote')}>Quote</button>
-      <button className={btn} onClick={() => editor.dispatchCommand(INSERT_CODE_BLOCK_COMMAND)}>Code</button>
+      <button className={btn} onClick={insertCodeBlock}>Code</button>
       <button className={btn} onClick={insertLink}>Link</button>
       <button className={btn} onClick={() => editor.dispatchCommand(INSERT_HORIZONTAL_RULE_COMMAND)}>HR</button>
       <button className={btn} onClick={() => editor.dispatchCommand(UNDO_COMMAND)}>Undo</button>
@@ -228,8 +241,8 @@ export default function Notable() {
   const filtered = notes.filter((n) => n.title.toLowerCase().includes(filter.toLowerCase()))
 
   return (
-    <div className='flex h-screen bg-gray-50'>
-      <div className='w-64 border-r-2 border-black p-4 flex flex-col'>
+    <div className='flex flex-col md:flex-row min-h-screen bg-gray-50'>
+      <div className='w-full md:w-64 border-b-2 md:border-b-0 md:border-r-2 border-black p-4 flex flex-col'>
         <div className='flex gap-2 mb-2'>
           <button className='bg-white border-2 border-black rounded-lg px-2 py-1 hover:bg-gray-100 text-sm' onClick={createNote}>New</button>
           <button className='bg-white border-2 border-black rounded-lg px-2 py-1 hover:bg-gray-100 text-sm' onClick={() => fileRef.current.click()}>Import</button>
