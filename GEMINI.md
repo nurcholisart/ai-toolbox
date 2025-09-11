@@ -135,3 +135,5 @@ Notes:
 ### Notable Note-taking
 - Component: `src/components/Notable.jsx` (route `/notable`).
 - Offline-first Lexical editor for quick local notes; supports import/export and Markdown shortcuts.
+- List insertion commands (`INSERT_ORDERED_LIST_COMMAND`, `INSERT_UNORDERED_LIST_COMMAND`) come from `@lexical/list`.
+- Code blocks: `@lexical/code` lacks `INSERT_CODE_BLOCK_COMMAND`; use `$setBlocksType` with `$createCodeNode`.
