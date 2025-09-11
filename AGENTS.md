@@ -79,3 +79,7 @@
 - `src/components/GemfileScanner.jsx` (`#/gemfile-scanner`): scans Ruby `Gemfile.lock` files.
 - `src/components/GoSumScanner.jsx` (`#/go-sum-scanner`): scans Go `go.sum` files.
 - All tools parse dependencies, query OSV.dev, and display advisory IDs.
+
+### Notable Note-taking
+- Component: `src/components/Notable.jsx` (route `/notable`).
+- Lexical-based editor for local notes with export/import options.

@@ -12,6 +12,7 @@ import InformationVerifier from './components/InformationVerifier.jsx'
 import LockfileScanner from './components/LockfileScanner.jsx'
 import GemfileScanner from './components/GemfileScanner.jsx'
 import GoSumScanner from './components/GoSumScanner.jsx'
+import Notable from './components/Notable.jsx'
 import Settings from './components/Settings.jsx'
 import About from './components/About.jsx'
 import { getApiKey } from './lib/config.js'
@@ -30,6 +31,7 @@ const tools = [
   { name: 'Lockfile Scanner', description: 'Check JS deps for vulnerabilities', link: '/lockfile-scanner' },
   { name: 'Gemfile.lock Scanner', description: 'Check Ruby gems for vulnerabilities', link: '/gemfile-scanner' },
   { name: 'go.sum Scanner', description: 'Check Go modules for vulnerabilities', link: '/go-sum-scanner' },
+  { name: 'Notable', description: 'Quick local note-taking', link: '/notable' },
   {
     name: 'Propose new tool',
     description: 'Suggest an idea on GitHub',
@@ -96,6 +98,7 @@ export default function App() {
   const isLockfileScanner = useMemo(() => basePath === '/lockfile-scanner', [basePath])
   const isGemfileScanner = useMemo(() => basePath === '/gemfile-scanner', [basePath])
   const isGoSumScanner = useMemo(() => basePath === '/go-sum-scanner', [basePath])
+  const isNotable = useMemo(() => basePath === '/notable', [basePath])
   
   const isSettings = useMemo(() => basePath === '/settings', [basePath])
   const isAbout = useMemo(() => basePath === '/about', [basePath])
@@ -369,6 +372,35 @@ export default function App() {
           </div>
         </div>
         <GoSumScanner />
+      </div>
+    )
+  }
+
+  if (isNotable) {
+    return (
+      <div className="min-h-screen bg-gray-50">
+        <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 pt-6">
+          <div className="flex items-center justify-between">
+            <a
+              href="/"
+              className="inline-flex items-center gap-2 text-sm bg-white text-black border-2 border-black rounded-lg px-3 py-1 hover:bg-gray-100 shadow-sm"
+            >
+              <IconArrowLeft size={18} stroke={2} />
+              Back to tools
+            </a>
+            <div className="flex items-center gap-2">
+              <InstallPrompt />
+              <a
+                href="/settings"
+                className="inline-flex items-center gap-2 text-sm bg-white text-black border-2 border-black rounded-lg px-3 py-1 hover:bg-gray-100 shadow-sm"
+              >
+                <IconSettings size={16} stroke={2} />
+                Edit Config
+              </a>
+            </div>
+          </div>
+        </div>
+        <Notable />
       </div>
     )
   }
