@@ -83,3 +83,4 @@
 ### Notable Note-taking
 - Component: `src/components/Notable.jsx` (route `/notable`).
 - Lexical-based editor for local notes with export/import options.
+- List insertion commands (`INSERT_ORDERED_LIST_COMMAND`, `INSERT_UNORDERED_LIST_COMMAND`) are exported from `@lexical/list`.

@@ -8,7 +8,12 @@ import { ListPlugin } from '@lexical/react/LexicalListPlugin'
 import { LinkPlugin } from '@lexical/react/LexicalLinkPlugin'
 import { MarkdownShortcutPlugin } from '@lexical/react/LexicalMarkdownShortcutPlugin'
 import { HeadingNode, QuoteNode } from '@lexical/rich-text'
-import { ListItemNode, ListNode } from '@lexical/list'
+import {
+  ListItemNode,
+  ListNode,
+  INSERT_ORDERED_LIST_COMMAND,
+  INSERT_UNORDERED_LIST_COMMAND,
+} from '@lexical/list'
 import { CodeNode, INSERT_CODE_BLOCK_COMMAND } from '@lexical/code'
 import { LinkNode, TOGGLE_LINK_COMMAND } from '@lexical/link'
 import { HorizontalRuleNode, INSERT_HORIZONTAL_RULE_COMMAND } from '@lexical/react/LexicalHorizontalRuleNode'
@@ -17,8 +22,6 @@ import { useLexicalComposerContext } from '@lexical/react/LexicalComposerContext
 import {
   FORMAT_ELEMENT_COMMAND,
   FORMAT_TEXT_COMMAND,
-  INSERT_ORDERED_LIST_COMMAND,
-  INSERT_UNORDERED_LIST_COMMAND,
   REDO_COMMAND,
   UNDO_COMMAND,
 } from 'lexical'
