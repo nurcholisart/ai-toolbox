@@ -7,6 +7,7 @@ import Mp4ToMp3 from './components/Mp4ToMp3.jsx'
 import MeetingTranscription from './components/MeetingTranscription.jsx'
 import PictureMe from './components/PictureMe.jsx'
 import RemoveBackground from './components/RemoveBackground.jsx'
+import ContextCards from './components/ContextCards.jsx'
 import FlowerBouquetGenerator from './components/FlowerBouquetGenerator.jsx'
 import InformationVerifier from './components/InformationVerifier.jsx'
 import LockfileScanner from './components/LockfileScanner.jsx'
@@ -26,6 +27,7 @@ const tools = [
   { name: 'PictureMe', description: 'Transform photos with Gemini', link: '/picture-me' },
   { name: 'Remove Background', description: 'Erase backgrounds with Gemini', link: '/remove-background' },
   { name: 'Flower Bouquet Generator', description: 'Craft a realistic bouquet photo', link: '/flower-bouquet' },
+  { name: 'Context Cards', description: 'Mitigate context failure modes', link: '/context-cards' },
   { name: 'Information Verifier', description: 'Verify information truthfulness + citations', link: '/information-verifier' },
   { name: 'Lockfile Scanner', description: 'Check JS deps for vulnerabilities', link: '/lockfile-scanner' },
   { name: 'Gemfile.lock Scanner', description: 'Check Ruby gems for vulnerabilities', link: '/gemfile-scanner' },
@@ -92,6 +94,7 @@ export default function App() {
   const isPictureMe = useMemo(() => basePath === '/picture-me', [basePath])
   const isRemoveBackground = useMemo(() => basePath === '/remove-background', [basePath])
   const isFlowerBouquet = useMemo(() => basePath === '/flower-bouquet', [basePath])
+  const isContextCards = useMemo(() => basePath === '/context-cards', [basePath])
   const isInformationVerifier = useMemo(() => basePath === '/information-verifier', [basePath])
   const isLockfileScanner = useMemo(() => basePath === '/lockfile-scanner', [basePath])
   const isGemfileScanner = useMemo(() => basePath === '/gemfile-scanner', [basePath])
@@ -255,6 +258,35 @@ export default function App() {
 
   if (isFlowerBouquet) {
     return <FlowerBouquetGenerator />
+  }
+
+  if (isContextCards) {
+    return (
+      <div className="min-h-screen bg-gray-50">
+        <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 pt-6">
+          <div className="flex items-center justify-between">
+            <a
+              href="/"
+              className="inline-flex items-center gap-2 text-sm bg-white text-black border-2 border-black rounded-lg px-3 py-1 hover:bg-gray-100 shadow-sm"
+            >
+              <IconArrowLeft size={18} stroke={2} />
+              Back to tools
+            </a>
+            <div className="flex items-center gap-2">
+              <InstallPrompt />
+              <a
+                href="/settings"
+                className="inline-flex items-center gap-2 text-sm bg-white text-black border-2 border-black rounded-lg px-3 py-1 hover:bg-gray-100 shadow-sm"
+              >
+                <IconSettings size={16} stroke={2} />
+                Edit Config
+              </a>
+            </div>
+          </div>
+        </div>
+        <ContextCards />
+      </div>
+    )
   }
 
   if (isInformationVerifier) {
