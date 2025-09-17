@@ -70,7 +70,7 @@ async function parseBody(req) {
   })
 }
 
-module.exports = async function handler(req, res) {
+export default async function handler(req, res) {
   try {
     const url = new URL(req.url, 'http://localhost')
     let text = ''
@@ -104,4 +104,3 @@ module.exports = async function handler(req, res) {
     return send(res, 500, { valid: false, error: e?.message || String(e) })
   }
 }
-
