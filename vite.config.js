@@ -9,24 +9,7 @@ export default defineConfig({
     {
       name: 'mermaid-validate-api',
       configureServer(server) {
-        const starters = [
-          'graph', 'flowchart', 'sequenceDiagram', 'classDiagram', 'stateDiagram', 'erDiagram',
-          'gantt', 'pie', 'journey', 'mindmap', 'timeline', 'gitGraph', 'quadrantChart', 'xychart-beta',
-        ]
-
-        const lightweightValidate = (text) => {
-          const first = String(text || '').trim().split('\n').find(l => l.trim().length)?.trim() || ''
-          const ok = starters.some(k => first.startsWith(k))
-          if (!ok) {
-            return {
-              valid: false,
-              error: 'Does not look like a Mermaid definition. Start with a diagram keyword (e.g., "flowchart" or "graph").',
-              warning: 'Lightweight check only (mermaid not available).',
-              parser: 'lightweight',
-            }
-          }
-          return { valid: true, warning: 'Lightweight check only (mermaid not available).', parser: 'lightweight' }
-        }
+        // No heuristic validation here; only real Mermaid parser
 
         const parseBody = async (req) => new Promise((resolve) => {
           let data = ''
@@ -65,6 +48,7 @@ export default defineConfig({
             if (!String(text || '').trim()) {
               res.statusCode = 400
               res.setHeader('Content-Type', 'application/json')
+              res.setHeader('Cache-Control', 'no-store')
               res.end(JSON.stringify({ valid: false, error: 'Missing Mermaid definition. Provide ?b64= or ?text=, or POST { b64 | text }.' }))
               return
             }
@@ -73,8 +57,7 @@ export default defineConfig({
 
             let valid = false
             let error = undefined
-            let warning = undefined
-            let parser = 'lightweight'
+            let parser = 'none'
 
             // Try local mermaid if available
             let mermaid
@@ -106,11 +89,9 @@ export default defineConfig({
                   valid = true
                   parser = 'mermaid'
                 } else {
-                  const r = lightweightValidate(text)
-                  valid = r.valid
-                  error = r.error
-                  warning = r.warning || 'Mermaid loaded without a parser API. Using lightweight checks.'
-                  parser = r.parser
+                  valid = false
+                  error = 'Mermaid loaded without a parser API. Cannot validate without parser.'
+                  parser = 'mermaid'
                 }
               } catch (e) {
                 valid = false
@@ -118,18 +99,24 @@ export default defineConfig({
                 parser = 'mermaid'
               }
             } else {
-              const r = lightweightValidate(text)
-              valid = r.valid
-              error = r.error
-              warning = r.warning || 'Mermaid could not be loaded. Using lightweight checks.'
-              parser = r.parser
+              valid = false
+              error = 'Mermaid parser unavailable in dev. Install mermaid and jsdom.'
+              parser = 'none'
             }
 
+            // Status: 200 (valid), 422 (invalid syntax), 501 (parser unavailable)
+            if (parser !== 'mermaid' && !valid) {
+              res.statusCode = 501
+            } else {
+              res.statusCode = valid ? 200 : 422
+            }
             res.setHeader('Content-Type', 'application/json')
-            res.end(JSON.stringify({ valid, error, warning, parser }))
+            res.setHeader('Cache-Control', 'no-store')
+            res.end(JSON.stringify({ valid, error, parser }))
           } catch (e) {
             res.statusCode = 500
             res.setHeader('Content-Type', 'application/json')
+            res.setHeader('Cache-Control', 'no-store')
             res.end(JSON.stringify({ valid: false, error: e?.message || String(e) }))
           }
         })

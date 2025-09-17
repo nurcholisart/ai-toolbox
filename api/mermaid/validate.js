@@ -3,30 +3,20 @@
 // - Supports POST JSON { b64?: string, text?: string }
 // - Returns JSON { valid, error?, warning?, parser }
 
-const starters = [
-  'graph', 'flowchart', 'sequenceDiagram', 'classDiagram', 'stateDiagram', 'erDiagram',
-  'gantt', 'pie', 'journey', 'mindmap', 'timeline', 'gitGraph', 'quadrantChart', 'xychart-beta',
-]
-
-function lightweightValidate(text) {
-  const first = String(text || '').trim().split('\n').find(l => l.trim().length)?.trim() || ''
-  const ok = starters.some(k => first.startsWith(k))
-  if (!ok) {
-    return {
-      valid: false,
-      error: 'Does not look like a Mermaid definition. Start with a diagram keyword (e.g., "flowchart" or "graph").',
-      warning: 'Lightweight check only (server parser not enabled).',
-      parser: 'lightweight',
-    }
-  }
-  return { valid: true, warning: 'Lightweight check only (server parser not enabled).', parser: 'lightweight' }
-}
+// No heuristic validation: use real Mermaid parser only
 
 async function tryParseWithMermaid(text) {
   // Server-side full parsing is optional. Enable by:
   // - installing `mermaid` (adds bundle size), and
   // - set env ENABLE_MERMAID_PARSE=1
-  if (process.env.ENABLE_MERMAID_PARSE !== '1') return null
+  if (process.env.ENABLE_MERMAID_PARSE !== '1') {
+    return {
+      valid: false,
+      error: 'Mermaid parser disabled. Set ENABLE_MERMAID_PARSE=1 and install mermaid + jsdom.',
+      parser: 'none',
+      notImplemented: true,
+    }
+  }
   try {
     // Ensure a browser-like DOM exists so dompurify auto-instantiates
     if (typeof window === 'undefined' || !globalThis.window?.document) {
@@ -50,7 +40,12 @@ async function tryParseWithMermaid(text) {
       mermaid.mermaidAPI.parse(text)
       return { valid: true, parser: 'mermaid' }
     }
-    return { ...lightweightValidate(text), warning: 'Mermaid loaded without a parser API. Using lightweight checks.' }
+    return {
+      valid: false,
+      error: 'Mermaid loaded without a parser API. Cannot validate without parser.',
+      parser: 'mermaid',
+      notImplemented: true,
+    }
   } catch (e) {
     return { valid: false, error: e?.message || String(e), parser: 'mermaid' }
   }
@@ -106,11 +101,9 @@ export default async function handler(req, res) {
 
     // Optional: try real mermaid parse when enabled
     const parsed = await tryParseWithMermaid(text)
-    if (parsed) return send(res, 200, parsed)
-
-    // Default: lightweight heuristic
-    const r = lightweightValidate(text)
-    return send(res, 200, r)
+    if (parsed?.notImplemented) return send(res, 501, parsed)
+    if (parsed) return send(res, parsed.valid ? 200 : 422, parsed)
+    return send(res, 501, { valid: false, error: 'Mermaid parser unavailable', parser: 'none', notImplemented: true })
   } catch (e) {
     return send(res, 500, { valid: false, error: e?.message || String(e) })
   }

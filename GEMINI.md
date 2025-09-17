@@ -103,6 +103,27 @@ Notes:
  - Image editing (Gemini): Use `gemini-2.5-flash-image-preview:generateContent` with `contents.parts = [{ text: instruction }, { inlineData: { mimeType, data } }]`. The API may return an `inlineData` image (PNG). For background removal, ask for a transparent PNG, preserve subject edges/hair, and avoid cropping; implement simple retry/backoff on `429`.
  - Mermaid server parsing: When enabling server-side Mermaid parsing (set `ENABLE_MERMAID_PARSE=1`), the API sets up a JSDOM `window` before importing `mermaid` so DOMPurify hooks are available. This prevents `DOMPurify.addHook is not a function` in Node. Ensure `jsdom` is in `dependencies` for production (Vercel) if you turn this on.
 
+### Mermaid Validator API
+- Endpoint: `GET/POST /api/mermaid/validate`
+- Inputs: `b64` (Base64) or `text` (URL-encoded); POST JSON `{ b64?: string, text?: string }`
+- Output JSON: `{ valid: boolean, error?: string, parser: 'mermaid' | 'none' }`
+- Status codes: `200` (valid), `422` (invalid syntax), `400` (missing input), `501` (parser unavailable), `500` (server error)
+- Notes: No heuristic checks; uses the real Mermaid parser only. Literal `\n` sequences are normalized to real newlines.
+
+Example fetch (client):
+```js
+const validateMermaid = async (text) => {
+  const res = await fetch('/api/mermaid/validate', {
+    method: 'POST',
+    headers: { 'content-type': 'application/json' },
+    body: JSON.stringify({ text }),
+  })
+  const data = await res.json()
+  // Treat 422 (invalid) and 501 (parser unavailable) as handled cases
+  return { status: res.status, ...data }
+}
+```
+
 ### Flower Bouquet Generator
 - Component: `src/components/FlowerBouquetGenerator.jsx` (route `/flower-bouquet`).
 - Builds a detailed prompt to synthesize realistic bouquet photos using `gemini-2.5-flash-image-preview`.

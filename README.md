@@ -155,20 +155,20 @@ Features:
 - Route: `/mermaid-validator`
 
 Features:
-- Validates a Mermaid diagram string client-side.
-- Uses the `mermaid` package parser when available; otherwise performs lightweight heuristic checks (first line starts with a known diagram keyword like `flowchart` or `graph`).
+- Validates a Mermaid diagram string using the real Mermaid parser (no heuristics).
 
 Notes:
-- To enable full syntax validation, install Mermaid in your project: `npm install mermaid`.
-- The validator loads Mermaid dynamically; if the package is missing, it falls back to lightweight checks and displays a note.
+- Install Mermaid to enable validation in the browser: `npm install mermaid`.
+- If the parser is unavailable, the UI indicates it cannot validate.
 
 ### Dev cURL Endpoint
-During `npm run dev`, a small HTTP endpoint is exposed for validating Mermaid via cURL.
+During `npm run dev`, a small HTTP endpoint is exposed for validating Mermaid via cURL (no heuristic fallback).
 
 - URL: `GET /api/mermaid/validate`
 - Params: `b64` (Base64-encoded diagram) or `text` (raw, URL-encoded)
 - Also supports `POST` with JSON `{ b64?: string, text?: string }`
-- Response JSON: `{ valid: boolean, error?: string, warning?: string, parser: 'mermaid' | 'lightweight' }`
+- Response JSON: `{ valid: boolean, error?: string, parser: 'mermaid' | 'none' }`
+- Status codes: `200` (valid), `422` (invalid syntax), `400` (missing input), `501` (parser unavailable), `500` (server error)
  - Convenience: The API normalizes literal `\n` sequences in `text` into actual newlines, so `text=flowchart%20TD%5CnA--%3EB` works. Prefer `--data-urlencode` or `b64` for complex inputs.
 
 Examples:
@@ -180,16 +180,17 @@ Examples:
   - `curl -s -X POST -H 'content-type: application/json' --data '{"text":"flowchart TD\nA-->B"}' http://localhost:5173/api/mermaid/validate`
 
 Notes:
-- The endpoint attempts to use the Mermaid parser if the `mermaid` package is installed; otherwise it performs a lightweight check and returns a `warning` with `parser: "lightweight"`.
+- The dev endpoint requires `mermaid` and `jsdom` installed locally to validate; if missing, it returns `501`.
 - This endpoint is dev-only (available on the Vite dev server). `vite preview` serves static files and will not include this route.
- - PWA note: Navigating directly to `/api/...` in the browser can be treated as an app navigation by the Service Worker and return the SPA shell. The Workbox config now excludes `/api/` from navigation fallback; after deploy, refresh to update the SW.
+- PWA note: Navigating directly to `/api/...` in the browser can be treated as an app navigation by the Service Worker and return the SPA shell. The Workbox config excludes `/api/` from navigation fallback; refresh to update the SW.
 
 ### Production cURL Endpoint (Vercel)
-Deployed builds expose the same API shape via a Vercel Serverless Function.
+Deployed builds expose the same API shape via a Vercel Serverless Function (no heuristics).
 
 - URL: `GET/POST /api/mermaid/validate`
 - Inputs: `b64` (Base64) or `text` (raw, URL-encoded); POST JSON `{ b64?, text? }`
-- Output: `{ valid, error?, warning?, parser }`
+- Output: `{ valid, error?, parser }`
+- Status codes: `200` (valid), `422` (invalid syntax), `400` (missing input), `501` (parser unavailable), `500` (server error)
 
 Examples:
 - Base64 GET:
@@ -200,7 +201,6 @@ Examples:
   - `curl -s -X POST -H 'content-type: application/json' --data '{"text":"flowchart TD\nA-->B"}' https://<your-domain>/api/mermaid/validate`
 
 Notes:
-- The production function performs lightweight validation by default (checks known diagram starters). It returns `parser: "lightweight"`.
-- Optional full parse: install `mermaid` and set env var `ENABLE_MERMAID_PARSE=1` in Vercel. The function will then attempt to use Mermaid’s parser and respond with `parser: "mermaid"`.
-- Server-side parsing note: Mermaid depends on DOMPurify hooks which expect a browser-like `window`. The API now auto-creates a JSDOM window before importing Mermaid to avoid `DOMPurify.addHook is not a function`. If you enable full parsing on Vercel, ensure `jsdom` is installed as a production dependency (in `dependencies`, not only `devDependencies`).
- - PWA note: Typing `/api/...` in the address bar is a navigation; the Service Worker could serve `index.html`. We denylist `/api/` from navigation fallback so API endpoints return JSON when opened directly. After deployment, hard refresh to update the SW.
+- Install `mermaid` and set `ENABLE_MERMAID_PARSE=1` in Vercel to enable server-side parsing; otherwise the endpoint returns `501`.
+- Server-side parsing note: Mermaid depends on DOMPurify hooks which expect a browser-like `window`. The API auto-creates a JSDOM window before importing Mermaid to avoid `DOMPurify.addHook is not a function`. Ensure `jsdom` is in `dependencies` (not only `devDependencies`).
+- PWA note: Typing `/api/...` in the address bar is a navigation; the Service Worker could serve `index.html`. We denylist `/api/` from navigation fallback so API endpoints return JSON when opened directly. After deployment, hard refresh to update the SW.
