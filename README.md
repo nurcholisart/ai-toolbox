@@ -182,6 +182,7 @@ Examples:
 Notes:
 - The endpoint attempts to use the Mermaid parser if the `mermaid` package is installed; otherwise it performs a lightweight check and returns a `warning` with `parser: "lightweight"`.
 - This endpoint is dev-only (available on the Vite dev server). `vite preview` serves static files and will not include this route.
+ - PWA note: Navigating directly to `/api/...` in the browser can be treated as an app navigation by the Service Worker and return the SPA shell. The Workbox config now excludes `/api/` from navigation fallback; after deploy, refresh to update the SW.
 
 ### Production cURL Endpoint (Vercel)
 Deployed builds expose the same API shape via a Vercel Serverless Function.
@@ -202,3 +203,4 @@ Notes:
 - The production function performs lightweight validation by default (checks known diagram starters). It returns `parser: "lightweight"`.
 - Optional full parse: install `mermaid` and set env var `ENABLE_MERMAID_PARSE=1` in Vercel. The function will then attempt to use Mermaid’s parser and respond with `parser: "mermaid"`.
 - Server-side parsing note: Mermaid depends on DOMPurify hooks which expect a browser-like `window`. The API now auto-creates a JSDOM window before importing Mermaid to avoid `DOMPurify.addHook is not a function`. If you enable full parsing on Vercel, ensure `jsdom` is installed as a production dependency (in `dependencies`, not only `devDependencies`).
+ - PWA note: Typing `/api/...` in the address bar is a navigation; the Service Worker could serve `index.html`. We denylist `/api/` from navigation fallback so API endpoints return JSON when opened directly. After deployment, hard refresh to update the SW.

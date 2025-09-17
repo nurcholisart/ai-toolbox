@@ -187,6 +187,8 @@ export default defineConfig({
         // Exclude huge ffmpeg wasm from precache to avoid build errors on Vercel
         globPatterns: ['**/*.{js,css,html,ico,png,svg,webp,woff2,json}'],
         globIgnores: ['**/ffmpeg/**', '**/*.wasm'],
+        // Do not serve SPA shell for API navigations
+        navigateFallbackDenylist: [/^\/api\//],
         // Runtime cache ffmpeg assets after first use
         runtimeCaching: [
           {
