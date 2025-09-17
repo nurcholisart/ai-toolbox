@@ -149,3 +149,35 @@ Features:
 - Enable web-grounded answers by adding `tools: [{ googleSearch: {} }]` to the `generateContent` request body. The model may cite web sources in its answer when this tool is provided.
 - Ask the model to return a machine-readable citations list (title + URL) in the output to surface links in the UI.
 - Fallback: if the API rejects the `tools` field (400/404 on some regions/models), retry the same request without `tools`.
+
+## Mermaid Validator
+- Location: `src/components/MermaidValidator.jsx`
+- Route: `/mermaid-validator`
+
+Features:
+- Validates a Mermaid diagram string client-side.
+- Uses the `mermaid` package parser when available; otherwise performs lightweight heuristic checks (first line starts with a known diagram keyword like `flowchart` or `graph`).
+
+Notes:
+- To enable full syntax validation, install Mermaid in your project: `npm install mermaid`.
+- The validator loads Mermaid dynamically; if the package is missing, it falls back to lightweight checks and displays a note.
+
+### Dev cURL Endpoint
+During `npm run dev`, a small HTTP endpoint is exposed for validating Mermaid via cURL.
+
+- URL: `GET /api/mermaid/validate`
+- Params: `b64` (Base64-encoded diagram) or `text` (raw, URL-encoded)
+- Also supports `POST` with JSON `{ b64?: string, text?: string }`
+- Response JSON: `{ valid: boolean, error?: string, warning?: string, parser: 'mermaid' | 'lightweight' }`
+
+Examples:
+- Base64 GET:
+  - `printf 'flowchart TD\nA-->B' | base64 | tr -d '\n' | xargs -I{} curl -s "http://localhost:5173/api/mermaid/validate?b64={}"`
+- Raw text GET:
+  - `curl -s --get --data-urlencode "text=flowchart TD\nA-->B" http://localhost:5173/api/mermaid/validate`
+- POST JSON:
+  - `curl -s -X POST -H 'content-type: application/json' --data '{"text":"flowchart TD\nA-->B"}' http://localhost:5173/api/mermaid/validate`
+
+Notes:
+- The endpoint attempts to use the Mermaid parser if the `mermaid` package is installed; otherwise it performs a lightweight check and returns a `warning` with `parser: "lightweight"`.
+- This endpoint is dev-only (available on the Vite dev server). `vite preview` serves static files and will not include this route.
