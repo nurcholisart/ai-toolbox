@@ -12,6 +12,7 @@ import FlowerBouquetGenerator from './components/FlowerBouquetGenerator.jsx'
 import InformationVerifier from './components/InformationVerifier.jsx'
 import LockfileScanner from './components/LockfileScanner.jsx'
 import MermaidValidator from './components/MermaidValidator.jsx'
+import Notable from './components/Notable.jsx'
 import GemfileScanner from './components/GemfileScanner.jsx'
 import GoSumScanner from './components/GoSumScanner.jsx'
 import Settings from './components/Settings.jsx'
@@ -34,6 +35,7 @@ const tools = [
   { name: 'Gemfile.lock Scanner', description: 'Check Ruby gems for vulnerabilities', link: '/gemfile-scanner' },
   { name: 'go.sum Scanner', description: 'Check Go modules for vulnerabilities', link: '/go-sum-scanner' },
   { name: 'Mermaid Validator', description: 'Validate a Mermaid diagram string', link: '/mermaid-validator' },
+  { name: 'Notable', description: 'Local notes with a rich-text editor', link: '/notable' },
   {
     name: 'Propose new tool',
     description: 'Suggest an idea on GitHub',
@@ -102,6 +104,7 @@ export default function App() {
   const isGemfileScanner = useMemo(() => basePath === '/gemfile-scanner', [basePath])
   const isGoSumScanner = useMemo(() => basePath === '/go-sum-scanner', [basePath])
   const isMermaidValidator = useMemo(() => basePath === '/mermaid-validator', [basePath])
+  const isNotable = useMemo(() => basePath === '/notable', [basePath])
   
   const isSettings = useMemo(() => basePath === '/settings', [basePath])
   const isAbout = useMemo(() => basePath === '/about', [basePath])
@@ -432,7 +435,38 @@ export default function App() {
             </div>
           </div>
         </div>
-        <MermaidValidator />
+      <MermaidValidator />
+      </div>
+    )
+  }
+
+  if (isNotable) {
+    return (
+      <div className="min-h-screen bg-gray-50">
+        <div className="px-4 sm:px-6 lg:px-8 pt-6">
+          <div className="flex items-center justify-between">
+            <a
+              href="/"
+              className="inline-flex items-center gap-2 text-sm bg-white text-black border-2 border-black rounded-lg px-3 py-1 hover:bg-gray-100 shadow-sm"
+            >
+              <IconArrowLeft size={18} stroke={2} />
+              Back to tools
+            </a>
+            <div className="flex items-center gap-2">
+              <InstallPrompt />
+              <a
+                href="/settings"
+                className="inline-flex items-center gap-2 text-sm bg-white text-black border-2 border-black rounded-lg px-3 py-1 hover:bg-gray-100 shadow-sm"
+              >
+                <IconSettings size={16} stroke={2} />
+                Edit Config
+              </a>
+            </div>
+          </div>
+        </div>
+        <div className="px-4 sm:px-6 lg:px-8 pb-8">
+          <Notable />
+        </div>
       </div>
     )
   }
