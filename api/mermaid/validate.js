@@ -101,6 +101,9 @@ export default async function handler(req, res) {
       return send(res, 400, { valid: false, error: 'Missing Mermaid definition. Provide ?b64= or ?text=, or POST { b64 | text }.' })
     }
 
+    // Normalize common escaped newlines from query usage like %5Cn
+    text = String(text).replace(/\r\n/g, '\n').replace(/\\n/g, '\n')
+
     // Optional: try real mermaid parse when enabled
     const parsed = await tryParseWithMermaid(text)
     if (parsed) return send(res, 200, parsed)

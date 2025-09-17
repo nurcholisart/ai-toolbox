@@ -169,6 +169,7 @@ During `npm run dev`, a small HTTP endpoint is exposed for validating Mermaid vi
 - Params: `b64` (Base64-encoded diagram) or `text` (raw, URL-encoded)
 - Also supports `POST` with JSON `{ b64?: string, text?: string }`
 - Response JSON: `{ valid: boolean, error?: string, warning?: string, parser: 'mermaid' | 'lightweight' }`
+ - Convenience: The API normalizes literal `\n` sequences in `text` into actual newlines, so `text=flowchart%20TD%5CnA--%3EB` works. Prefer `--data-urlencode` or `b64` for complex inputs.
 
 Examples:
 - Base64 GET:

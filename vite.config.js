@@ -68,6 +68,8 @@ export default defineConfig({
               res.end(JSON.stringify({ valid: false, error: 'Missing Mermaid definition. Provide ?b64= or ?text=, or POST { b64 | text }.' }))
               return
             }
+            // Normalize common escaped newlines from query usage like %5Cn
+            text = String(text).replace(/\r\n/g, '\n').replace(/\\n/g, '\n')
 
             let valid = false
             let error = undefined
