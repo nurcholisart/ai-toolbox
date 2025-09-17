@@ -200,3 +200,4 @@ Examples:
 Notes:
 - The production function performs lightweight validation by default (checks known diagram starters). It returns `parser: "lightweight"`.
 - Optional full parse: install `mermaid` and set env var `ENABLE_MERMAID_PARSE=1` in Vercel. The function will then attempt to use Mermaid’s parser and respond with `parser: "mermaid"`.
+- Server-side parsing note: Mermaid depends on DOMPurify hooks which expect a browser-like `window`. The API now auto-creates a JSDOM window before importing Mermaid to avoid `DOMPurify.addHook is not a function`. If you enable full parsing on Vercel, ensure `jsdom` is installed as a production dependency (in `dependencies`, not only `devDependencies`).

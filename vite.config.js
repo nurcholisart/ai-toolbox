@@ -77,6 +77,14 @@ export default defineConfig({
             // Try local mermaid if available
             let mermaid
             try {
+              // Ensure a browser-like DOM for dompurify hooks used by mermaid
+              if (typeof window === 'undefined' || !globalThis.window?.document) {
+                const { JSDOM } = await import('jsdom')
+                const { window } = new JSDOM('<!doctype html><html><body></body></html>')
+                globalThis.window = window
+                globalThis.document = window.document
+                globalThis.self = window
+              }
               const mod = await import('mermaid')
               mermaid = mod?.default || mod
             } catch (e) {

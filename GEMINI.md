@@ -101,6 +101,7 @@ Notes:
 - PWA: The app uses `vite-plugin-pwa` with `autoUpdate` registration. Manifest/workbox configuration is in `vite.config.js`. ffmpeg `.wasm` files are excluded from precache to avoid Workbox size limits on build; fetch on demand or add runtime caching if truly required. The service worker is registered in `src/main.jsx` via `registerSW`.
 - PictureMe: This tool is based on the Gemini Canvas template created by the Google team, and they shared details in this X post: https://x.com/GeminiApp/status/1963615829708132611
  - Image editing (Gemini): Use `gemini-2.5-flash-image-preview:generateContent` with `contents.parts = [{ text: instruction }, { inlineData: { mimeType, data } }]`. The API may return an `inlineData` image (PNG). For background removal, ask for a transparent PNG, preserve subject edges/hair, and avoid cropping; implement simple retry/backoff on `429`.
+ - Mermaid server parsing: When enabling server-side Mermaid parsing (set `ENABLE_MERMAID_PARSE=1`), the API sets up a JSDOM `window` before importing `mermaid` so DOMPurify hooks are available. This prevents `DOMPurify.addHook is not a function` in Node. Ensure `jsdom` is in `dependencies` for production (Vercel) if you turn this on.
 
 ### Flower Bouquet Generator
 - Component: `src/components/FlowerBouquetGenerator.jsx` (route `/flower-bouquet`).

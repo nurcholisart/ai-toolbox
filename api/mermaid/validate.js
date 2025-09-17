@@ -28,6 +28,14 @@ async function tryParseWithMermaid(text) {
   // - set env ENABLE_MERMAID_PARSE=1
   if (process.env.ENABLE_MERMAID_PARSE !== '1') return null
   try {
+    // Ensure a browser-like DOM exists so dompurify auto-instantiates
+    if (typeof window === 'undefined' || !globalThis.window?.document) {
+      const { JSDOM } = await import('jsdom')
+      const { window } = new JSDOM('<!doctype html><html><body></body></html>')
+      globalThis.window = window
+      globalThis.document = window.document
+      globalThis.self = window
+    }
     // Avoid static bundler resolution by composing the module name
     const modName = ['mer', 'maid'].join('')
     const mod = await import(modName)
