@@ -181,3 +181,22 @@ Examples:
 Notes:
 - The endpoint attempts to use the Mermaid parser if the `mermaid` package is installed; otherwise it performs a lightweight check and returns a `warning` with `parser: "lightweight"`.
 - This endpoint is dev-only (available on the Vite dev server). `vite preview` serves static files and will not include this route.
+
+### Production cURL Endpoint (Vercel)
+Deployed builds expose the same API shape via a Vercel Serverless Function.
+
+- URL: `GET/POST /api/mermaid/validate`
+- Inputs: `b64` (Base64) or `text` (raw, URL-encoded); POST JSON `{ b64?, text? }`
+- Output: `{ valid, error?, warning?, parser }`
+
+Examples:
+- Base64 GET:
+  - `printf 'flowchart TD\nA-->B' | base64 | tr -d '\n' | xargs -I{} curl -s "https://<your-domain>/api/mermaid/validate?b64={}"`
+- Raw text GET:
+  - `curl -s --get --data-urlencode "text=flowchart TD\nA-->B" https://<your-domain>/api/mermaid/validate`
+- POST JSON:
+  - `curl -s -X POST -H 'content-type: application/json' --data '{"text":"flowchart TD\nA-->B"}' https://<your-domain>/api/mermaid/validate`
+
+Notes:
+- The production function performs lightweight validation by default (checks known diagram starters). It returns `parser: "lightweight"`.
+- Optional full parse: install `mermaid` and set env var `ENABLE_MERMAID_PARSE=1` in Vercel. The function will then attempt to use Mermaid’s parser and respond with `parser: "mermaid"`.
