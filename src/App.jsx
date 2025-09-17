@@ -15,6 +15,7 @@ import MermaidValidator from './components/MermaidValidator.jsx'
 import Notable from './components/Notable.jsx'
 import GemfileScanner from './components/GemfileScanner.jsx'
 import GoSumScanner from './components/GoSumScanner.jsx'
+import TailwindPaletteGenerator from './components/TailwindPaletteGenerator.jsx'
 import Settings from './components/Settings.jsx'
 import About from './components/About.jsx'
 import { getApiKey } from './lib/config.js'
@@ -30,6 +31,7 @@ const tools = [
   { name: 'Remove Background', description: 'Erase backgrounds with Gemini', link: '/remove-background' },
   { name: 'Flower Bouquet Generator', description: 'Craft a realistic bouquet photo', link: '/flower-bouquet' },
   { name: 'Context Cards', description: 'Mitigate context failure modes', link: '/context-cards' },
+  { name: 'Tailwind Palette Generator', description: 'Generate Tailwind-style color palettes', link: '/tailwind-palette' },
   { name: 'Information Verifier', description: 'Verify information truthfulness + citations', link: '/information-verifier' },
   { name: 'Lockfile Scanner', description: 'Check JS deps for vulnerabilities', link: '/lockfile-scanner' },
   { name: 'Gemfile.lock Scanner', description: 'Check Ruby gems for vulnerabilities', link: '/gemfile-scanner' },
@@ -104,6 +106,7 @@ export default function App() {
   const isGemfileScanner = useMemo(() => basePath === '/gemfile-scanner', [basePath])
   const isGoSumScanner = useMemo(() => basePath === '/go-sum-scanner', [basePath])
   const isMermaidValidator = useMemo(() => basePath === '/mermaid-validator', [basePath])
+  const isTailwindPalette = useMemo(() => basePath === '/tailwind-palette', [basePath])
   const isNotable = useMemo(() => basePath === '/notable', [basePath])
   
   const isSettings = useMemo(() => basePath === '/settings', [basePath])
@@ -264,6 +267,10 @@ export default function App() {
 
   if (isFlowerBouquet) {
     return <FlowerBouquetGenerator />
+  }
+
+  if (isTailwindPalette) {
+    return <TailwindPaletteGenerator />
   }
 
   if (isContextCards) {
