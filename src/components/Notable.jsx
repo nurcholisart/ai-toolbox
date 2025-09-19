@@ -22,6 +22,7 @@ import {
   IconCopy,
   IconTrash,
   IconDownload,
+  IconTypography,
 } from '@tabler/icons-react'
 import { IconEye, IconPencil, IconTextWrap, IconTextWrapDisabled } from '@tabler/icons-react'
 import { marked } from 'marked'
@@ -255,6 +256,71 @@ export default function Notable() {
     return sanitize(String(raw))
   }, [mdText])
 
+  // Markdown formatter to normalize to GitHub Flavored Markdown (GFM)
+  const formatMarkdownGFM = useCallback((input) => {
+    if (!input) return ''
+    let text = input.replace(/\r\n?/g, '\n')
+    const lines = text.split('\n')
+    const out = []
+    let i = 0
+    while (i < lines.length) {
+      const line = lines[i]
+      const next = i + 1 < lines.length ? lines[i + 1] : ''
+
+      // Trim trailing spaces
+      let cur = line.replace(/\s+$/g, '')
+
+      // Convert Setext headings to ATX (#/##)
+      if (/^\S/.test(cur) && /^(=+)\s*$/.test(next)) {
+        out.push('# ' + cur.replace(/\s+$/g, ''))
+        i += 2
+        continue
+      }
+      if (/^\S/.test(cur) && /^(-+)\s*$/.test(next)) {
+        out.push('## ' + cur.replace(/\s+$/g, ''))
+        i += 2
+        continue
+      }
+
+      // Normalize unordered list markers to '- '
+      cur = cur.replace(/^(\s*)[+*]\s+/g, '$1- ')
+
+      // Normalize ordered list numbering to '1.'
+      cur = cur.replace(/^(\s*)\d+[.)]\s+/g, '$11. ')
+
+      // Normalize horizontal rules to '---'
+      if (/^\s*(?:[-*_]\s*){3,}$/.test(cur)) {
+        out.push('---')
+        i += 1
+        continue
+      }
+
+      // Ensure a single space after blockquote marker(s)
+      cur = cur.replace(/^(\s*>+)\s*/g, (m, p1) => p1 + ' ')
+
+      out.push(cur)
+      i += 1
+    }
+
+    // Collapse excessive blank lines to a single blank line
+    const collapsed = []
+    let blank = 0
+    for (const l of out) {
+      if (/^\s*$/.test(l)) {
+        blank += 1
+        if (blank <= 1) collapsed.push('')
+      } else {
+        blank = 0
+        collapsed.push(l)
+      }
+    }
+
+    // Ensure file ends with a single newline
+    return collapsed.join('\n').replace(/\n+$/g, '\n')
+  }, [])
+
+  
+
   const filtered = notes.filter((n) => n.title.toLowerCase().includes(filter.toLowerCase()))
 
   React.useEffect(() => {
@@ -304,6 +370,15 @@ export default function Notable() {
     updateContent(value)
     pushHistory(value, opts)
   }
+
+  const handleFormatMarkdown = useCallback(() => {
+    const formatted = formatMarkdownGFM(mdText || '')
+    if (formatted !== (mdText || '')) {
+      onMarkdownChange(formatted)
+    }
+    // Refocus editor after formatting
+    requestAnimationFrame(() => { editorRef.current && editorRef.current.focusEnd() })
+  }, [mdText, onMarkdownChange, formatMarkdownGFM])
 
   // Editor commands are handled via CodeMirror keymaps inside MarkdownEditor
 
@@ -458,7 +533,7 @@ export default function Notable() {
                 <div className='flex items-center gap-2'>
                   <button
                     type='button'
-                    className='bg-white border-2 border-black text-black rounded-lg hover:bg-gray-100 px-2 py-1 text-sm flex items-center justify-center shrink-0'
+                    className='bg-white border-2 border-black text-black rounded-lg hover:bg-gray-100 w-9 h-9 flex items-center justify-center shrink-0'
                     aria-pressed={wrap}
                     aria-label='Toggle line wrap'
                     title={wrap ? 'Disable line wrap' : 'Enable line wrap'}
@@ -467,8 +542,17 @@ export default function Notable() {
                     {wrap ? <IconTextWrap size={16} /> : <IconTextWrapDisabled size={16} />}
                   </button>
                   <button
+                    type='button'
+                    className='bg-white border-2 border-black text-black rounded-lg hover:bg-gray-100 w-9 h-9 flex items-center justify-center shrink-0'
+                    aria-label='Format Markdown (GFM)'
+                    title='Format Markdown (GFM)'
+                    onClick={handleFormatMarkdown}
+                  >
+                    <IconTypography size={16} />
+                  </button>
+                  <button
                   type='button'
-                  className='bg-white border-2 border-black text-black rounded-lg hover:bg-gray-100 px-2 py-1 text-sm flex items-center justify-center shrink-0'
+                  className='bg-white border-2 border-black text-black rounded-lg hover:bg-gray-100 w-9 h-9 flex items-center justify-center shrink-0'
                   aria-label={mdMode ? 'Preview' : 'Edit'}
                   title={mdMode ? (isMac ? 'Preview (Cmd+Shift+P)' : 'Preview (Ctrl+Shift+P)') : (isMac ? 'Edit (Cmd+Shift+P)' : 'Edit (Ctrl+Shift+P)')}
                   onClick={() => setMdMode((v) => !v)}
