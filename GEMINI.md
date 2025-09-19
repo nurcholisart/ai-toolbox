@@ -64,6 +64,11 @@ npm run preview
 - Feedback/status: prefer grayscale text/icons; avoid colored success/error states.
 - Match the tools list styling for new pages to ensure visual consistency.
 
+### Dialogs & Menus
+- Use native HTML `dialog` for modals via `showModal()`/`close()` instead of custom overlay divs.
+- For dropdowns/menus, use non-modal `dialog` (`open` attribute) and position near the trigger.
+- Keep styling monochrome; add close buttons and support `Escape` to dismiss.
+
 ## Icons
 - Standardize on Tabler Icons with `@tabler/icons-react`.
 - Import only required icons to keep bundles lean (e.g., `import { IconArrowLeft } from '@tabler/icons-react'`).

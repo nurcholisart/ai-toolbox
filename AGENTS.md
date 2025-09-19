@@ -34,6 +34,11 @@
 - Status/feedback: use grayscale text/icons; avoid colored success/error states.
 - Consistency: align tool pages with the tools list style (monochrome cards, 2px black borders, rounded corners).
 
+### Dialogs & Menus
+- Modals: use native HTML `dialog` with `showModal()`/`close()`; avoid custom overlay divs.
+- Dropdowns/menus: prefer non-modal `dialog` (`open` attribute) positioned near the trigger.
+- Keep styling monochrome; provide explicit close buttons and support `Escape` to close.
+
 ## Icons
 - Use Tabler Icons via `@tabler/icons-react`.
 - Import only the needed icons (e.g., `import { IconArrowLeft } from '@tabler/icons-react'`).

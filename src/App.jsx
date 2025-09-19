@@ -16,6 +16,7 @@ import Notable from './components/Notable.jsx'
 import GemfileScanner from './components/GemfileScanner.jsx'
 import GoSumScanner from './components/GoSumScanner.jsx'
 import TailwindPaletteGenerator from './components/TailwindPaletteGenerator.jsx'
+import HillChart from './components/HillChart.jsx'
 import Settings from './components/Settings.jsx'
 import About from './components/About.jsx'
 import { getApiKey } from './lib/config.js'
@@ -32,6 +33,7 @@ const tools = [
   { name: 'Flower Bouquet Generator', description: 'Craft a realistic bouquet photo', link: '/flower-bouquet' },
   { name: 'Context Cards', description: 'Mitigate context failure modes', link: '/context-cards' },
   { name: 'Tailwind Palette Generator', description: 'Generate Tailwind-style color palettes', link: '/tailwind-palette' },
+  { name: 'Hill Chart', description: 'Track tasks along a hill', link: '/hill-chart' },
   { name: 'Information Verifier', description: 'Verify information truthfulness + citations', link: '/information-verifier' },
   { name: 'Lockfile Scanner', description: 'Check JS deps for vulnerabilities', link: '/lockfile-scanner' },
   { name: 'Gemfile.lock Scanner', description: 'Check Ruby gems for vulnerabilities', link: '/gemfile-scanner' },
@@ -107,6 +109,7 @@ export default function App() {
   const isGoSumScanner = useMemo(() => basePath === '/go-sum-scanner', [basePath])
   const isMermaidValidator = useMemo(() => basePath === '/mermaid-validator', [basePath])
   const isTailwindPalette = useMemo(() => basePath === '/tailwind-palette', [basePath])
+  const isHillChart = useMemo(() => basePath === '/hill-chart', [basePath])
   const isNotable = useMemo(() => basePath === '/notable', [basePath])
   
   const isSettings = useMemo(() => basePath === '/settings', [basePath])
@@ -298,6 +301,35 @@ export default function App() {
           </div>
         </div>
         <ContextCards />
+      </div>
+    )
+  }
+
+  if (isHillChart) {
+    return (
+      <div className="min-h-screen bg-gray-50">
+        <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 pt-6">
+          <div className="flex items-center justify-between">
+            <a
+              href="/"
+              className="inline-flex items-center gap-2 text-sm bg-white text-black border-2 border-black rounded-lg px-3 py-1 hover:bg-gray-100 shadow-sm"
+            >
+              <IconArrowLeft size={18} stroke={2} />
+              Back to tools
+            </a>
+            <div className="flex items-center gap-2">
+              <InstallPrompt />
+              <a
+                href="/settings"
+                className="inline-flex items-center gap-2 text-sm bg-white text-black border-2 border-black rounded-lg px-3 py-1 hover:bg-gray-100 shadow-sm"
+              >
+                <IconSettings size={16} stroke={2} />
+                Edit Config
+              </a>
+            </div>
+          </div>
+        </div>
+        <HillChart />
       </div>
     )
   }
