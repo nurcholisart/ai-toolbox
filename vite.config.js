@@ -126,9 +126,9 @@ export default defineConfig({
       registerType: 'autoUpdate',
       includeAssets: ['favicon.ico', 'favicon.svg', 'icons/icon-192.png', 'icons/icon-512.png'],
       manifest: {
-        name: 'AI Toolbox',
-        short_name: 'AI Toolbox',
-        description: 'AI Toolbox — your one‑stop AI tools hub',
+        name: 'Toolbox',
+        short_name: 'Toolbox',
+        description: 'Toolbox — your one‑stop AI tools hub',
         theme_color: '#000000',
         background_color: '#ffffff',
         display: 'standalone',

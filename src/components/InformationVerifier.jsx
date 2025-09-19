@@ -161,7 +161,7 @@ export default function InformationVerifier() {
 
     document.title = `Information Verifier — ${result.verdict}`
     setMeta('og:type', 'website')
-    setMeta('og:site_name', 'AI Toolbox')
+    setMeta('og:site_name', 'Toolbox')
     setMeta('og:title', `Information Verifier — ${result.verdict}`)
     setMeta('og:description', summary)
     setMeta('og:url', shareUrl)

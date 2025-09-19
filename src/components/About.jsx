@@ -34,7 +34,7 @@ export default function About() {
             <h1 className="text-3xl font-bold text-gray-900">About This App</h1>
           </div>
           <p className="text-gray-600 mb-6">
-            AI Toolbox is a lightweight, browser-first collection of utilities that help you work with AI and media.
+            Toolbox is a lightweight, browser-first collection of utilities that help you work with AI and media.
             It uses a monochrome UI, keeps things local when possible, and favors simple, reliable workflows.
           </p>
 

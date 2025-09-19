@@ -522,7 +522,7 @@ export default function App() {
 
   return (
     <div className="min-h-screen bg-gray-50 flex flex-col items-center p-8">
-      <h1 className="text-4xl font-bold mb-2">AI Toolbox</h1>
+      <h1 className="text-4xl font-bold mb-2">Toolbox</h1>
       <p className="text-gray-600 mb-8">Your one-stop hub for powerful AI-driven tools</p>
 
       {!hasKey && (

@@ -3,7 +3,7 @@
 ## Project Structure & Module Organization
 - `index.html`: Vite entry HTML.
 - `src/main.jsx`: App bootstrap.
-- `src/App.jsx`: AIToolbox UI.
+- `src/App.jsx`: Toolbox UI.
 - `src/index.css`: Tailwind entry and global styles.
 - `vite.config.js`, `tailwind.config.js`, `postcss.config.js`: tooling configuration.
 - Conventions: place reusable components in `src/components/` and assets in `src/assets/` (create these folders as needed).

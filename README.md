@@ -1,6 +1,6 @@
-# AI Toolbox
+# Toolbox
 
-Live: https://ai-toolbox.nurcholis.art
+Live: https://toolbox.nurcholis.art
 
 A lightweight Vite + React + Tailwind project showcasing an AI tools hub (cards linking to various tools). Use this repo as a starting point for adding routes, APIs, or real tool pages.
 
@@ -41,7 +41,7 @@ Notes:
 ## Project Structure
 - `index.html` — HTML entry for Vite
 - `src/main.jsx` — React bootstrap
-- `src/App.jsx` — AIToolbox UI (grid of tool cards)
+- `src/App.jsx` — Toolbox UI (grid of tool cards)
 - `src/index.css` — Tailwind entry and globals
 - `tailwind.config.js`, `postcss.config.js` — styling toolchain
 - `vitest.config.js`, `src/test/setup.js`, `src/App.test.jsx` — test setup and examples

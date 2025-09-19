@@ -8,7 +8,7 @@ This is a React application built with Vite and styled with Tailwind CSS.
 ## Key Files
 - `index.html`: Main HTML entry point.
 - `src/main.jsx`: Application bootstrap and rendering root.
-- `src/App.jsx`: Main application component (AIToolbox UI).
+- `src/App.jsx`: Main application component (Toolbox UI).
 - `src/index.css`: Global styles and Tailwind CSS entry point.
 - `vite.config.js`: Vite configuration.
 - `tailwind.config.js`: Tailwind CSS configuration.
