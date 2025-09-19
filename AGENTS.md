@@ -23,6 +23,31 @@
 ### UI Language
 - All user-facing UI text must be in English. Update any Indonesian copy to English when adding or modifying components.
 
+### Semantic HTML
+- Principle: use elements for meaning, not appearance (e.g., use `h1` for the page title, not a styled `div`).
+- Benefits: improves accessibility (landmarks like `header`, `nav`, `main`), SEO (clear hierarchy), and maintainability (readable structure).
+- Tags to prefer: `header`, `nav`, `main`, `article`, `section`, `aside`, `footer`, `h1`–`h6`, `ul/ol > li`, `table > thead/tbody/tr/th/td`, `button` for actions, `a` for navigation, `label`+`input` pairs.
+- React practices:
+  - Avoid wrapper `div`s; use React Fragments (`<>...</>`) to group without altering semantics, especially inside lists/tables.
+  - Keep one `h1` per view and use descending `h2`–`h6` for subsections.
+  - Allow polymorphic components via an `as` prop when appropriate (e.g., `<Title as="h2">`).
+- Example (concise):
+  ```jsx
+  // Good: semantic structure
+  export function BlogPost() {
+    return (
+      <article className='post'>
+        <header><h1>My First Blog Post</h1><p>By Jane Doe</p></header>
+        <section><p>Content...</p></section>
+        <footer><p>Posted on Sep 19, 2025</p></footer>
+      </article>
+    )
+  }
+
+  // Good: fragment avoids invalid wrappers in tables
+  function RowCells() { return (<><td>Item</td><td>Description</td></>) }
+  ```
+
 ## UI Styling (Monochrome)
 - Base palette: black, white, and neutral grays only (no blues/greens/reds for accents).
 - Cards/containers: `bg-white border-2 border-black rounded-xl shadow-md` with comfortable padding.

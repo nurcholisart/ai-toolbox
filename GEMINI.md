@@ -53,6 +53,26 @@ npm run preview
 - **Components**: Use PascalCase for component file names (e.g., `MyComponent.jsx`).
 - **Styling**: Use Tailwind CSS utility classes directly in JSX. Avoid creating separate CSS files.
 
+### Semantic HTML
+- Principle: choose elements for meaning, not looks (e.g., `h1` for the main title, not a styled `div`).
+- Why it matters: better accessibility (screen readers use landmarks like `nav`, `main`, `article`), stronger SEO (clear hierarchy), easier maintenance.
+- Prefer semantic tags: `header`, `nav`, `main`, `article`, `section`, `aside`, `footer`, correct headings `h1`–`h6` (single `h1` per view), lists `ul/ol > li`, tables `thead/tbody/tr/th/td`, `button` for actions, `a` for navigation, and labeled form controls (`label` + `input`).
+- React specifics:
+  - Avoid unnecessary wrapper `div`s; use React Fragments (`<>...</>`) to keep valid DOM, especially inside lists/tables.
+  - Use descending heading levels within sections; do not skip levels arbitrarily.
+  - Consider polymorphic components via an `as` prop for flexible semantics (e.g., `<Title as="h2">`).
+- Example:
+  ```jsx
+  <article>
+    <header><h1>Title</h1><p>By Jane Doe</p></header>
+    <section><p>Content...</p></section>
+    <footer><p>Posted Sep 19, 2025</p></footer>
+  </article>
+
+  // In a table row
+  const Cells = () => (<><td>Item</td><td>Description</td></>)
+  ```
+
 ## UI Styling (Monochrome)
 - Use a monochrome palette: black, white, and neutral grays only.
 - Containers/cards: `bg-white border-2 border-black rounded-xl shadow-md` with adequate padding.

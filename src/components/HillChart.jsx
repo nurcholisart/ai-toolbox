@@ -352,7 +352,16 @@ export default function HillChart() {
         <header className='text-center mb-6'>
           <h1 className='text-3xl sm:text-4xl font-bold text-black'>Hill Chart</h1>
           <p className='text-gray-600 mt-2'>
-            Hill Chart shows certainty, not time: left is uphill (figuring it out), right is downhill (execution). Move dots as confidence grows; crossing the peak means the approach is known.
+            Hill Chart shows certainty, not time: left is uphill (figuring it out), right is downhill (execution). Move dots as confidence grows; crossing the peak means the approach is known.{' '}
+            <a
+              href='https://basecamp.com/hill-charts'
+              target='_blank'
+              rel='noopener noreferrer'
+              className='underline hover:text-black'
+            >
+              read more about hill chart
+            </a>
+            .
           </p>
         </header>
 
@@ -513,11 +522,11 @@ export default function HillChart() {
 
                   // left caption
                   ctx.textAlign = 'left'
-                  ctx.fillText('↑ Uphill (Figuring it out)', chartX, captionY)
+                  ctx.fillText('Figuring it out', chartX, captionY)
 
                   // right caption
                   ctx.textAlign = 'right'
-                  ctx.fillText('↓ Downhill (Execution)', chartX + chartW, captionY)
+                  ctx.fillText('Execution', chartX + chartW, captionY)
                 }
 
                 // task list area (optional)
@@ -916,8 +925,8 @@ export default function HillChart() {
 
             {/* Labels */}
             <div className='absolute -bottom-7 left-0 right-0 flex justify-between text-sm text-gray-500'>
-              <span className='w-1/2 text-center font-semibold'>↑ Uphill (Figuring it out)</span>
-              <span className='w-1/2 text-center font-semibold'>↓ Downhill (Execution)</span>
+              <span className='w-1/2 text-center font-semibold'>Figuring it out</span>
+              <span className='w-1/2 text-center font-semibold'>Execution</span>
             </div>
           </div>
 

@@ -33,7 +33,7 @@ const tools = [
   { name: 'Flower Bouquet Generator', description: 'Craft a realistic bouquet photo', link: '/flower-bouquet' },
   { name: 'Context Cards', description: 'Mitigate context failure modes', link: '/context-cards' },
   { name: 'Tailwind Palette Generator', description: 'Generate Tailwind-style color palettes', link: '/tailwind-palette' },
-  { name: 'Hill Chart', description: 'Track tasks along a hill', link: '/hill-chart' },
+  { name: 'Hill Chart', description: 'Track tasks along a hill', link: '/hill-chart', extraLink: 'https://basecamp.com/hill-charts', extraLinkLabel: 'read more about hill chart' },
   { name: 'Information Verifier', description: 'Verify information truthfulness + citations', link: '/information-verifier' },
   { name: 'Lockfile Scanner', description: 'Check JS deps for vulnerabilities', link: '/lockfile-scanner' },
   { name: 'Gemfile.lock Scanner', description: 'Check Ruby gems for vulnerabilities', link: '/gemfile-scanner' },
@@ -565,6 +565,27 @@ export default function App() {
             : 'border-2 border-black rounded-xl p-4 bg-white shadow-md hover:shadow-xl transition duration-200 flex flex-col justify-between'
           const titleClass = isMuted ? 'font-semibold text-lg mb-2 text-gray-800' : 'font-semibold text-lg mb-2'
           const descClass = isMuted ? 'text-gray-600 text-sm' : 'text-gray-600 text-sm'
+          if (tool.extraLink) {
+            return (
+              <article key={index} className={cardClass}>
+                <h2 className={titleClass}>
+                  <a href={tool.link} className='hover:underline text-black'>{tool.name}</a>
+                </h2>
+                <p className={descClass}>
+                  {tool.description}{' '}
+                  <a
+                    href={tool.extraLink}
+                    target='_blank'
+                    rel='noopener noreferrer'
+                    className='underline hover:text-black'
+                  >
+                    {tool.extraLinkLabel || 'read more'}
+                  </a>
+                  .
+                </p>
+              </article>
+            )
+          }
           return (
             <a
               key={index}
