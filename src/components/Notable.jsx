@@ -1,8 +1,7 @@
-import React, { useCallback, useRef, useState } from 'react'
+import React, { useCallback, useMemo, useRef, useState } from 'react'
 import {
   IconBold,
   IconItalic,
-  IconUnderline,
   IconStrikethrough,
   IconH1,
   IconH2,
@@ -15,127 +14,82 @@ import {
   IconSeparator,
   IconArrowBackUp,
   IconArrowForwardUp,
+  IconPlus,
+  IconUpload,
+  IconHistory,
+  IconX,
+  IconFileArrowRight,
+  IconCopy,
+  IconTrash,
+  IconDownload,
 } from '@tabler/icons-react'
-import { LexicalComposer } from '@lexical/react/LexicalComposer'
-import { RichTextPlugin } from '@lexical/react/LexicalRichTextPlugin'
-import { ContentEditable } from '@lexical/react/LexicalContentEditable'
-import { HistoryPlugin } from '@lexical/react/LexicalHistoryPlugin'
-import { AutoFocusPlugin } from '@lexical/react/LexicalAutoFocusPlugin'
-import { ListPlugin } from '@lexical/react/LexicalListPlugin'
-import { LinkPlugin } from '@lexical/react/LexicalLinkPlugin'
-import { MarkdownShortcutPlugin } from '@lexical/react/LexicalMarkdownShortcutPlugin'
-import { HeadingNode, QuoteNode } from '@lexical/rich-text'
-import {
-  ListItemNode,
-  ListNode,
-  INSERT_ORDERED_LIST_COMMAND,
-  INSERT_UNORDERED_LIST_COMMAND,
-} from '@lexical/list'
-import { CodeNode, $createCodeNode } from '@lexical/code'
-import { $setBlocksType } from '@lexical/selection'
-import { LinkNode, TOGGLE_LINK_COMMAND } from '@lexical/link'
-import { HorizontalRuleNode, INSERT_HORIZONTAL_RULE_COMMAND } from '@lexical/react/LexicalHorizontalRuleNode'
-import { TRANSFORMERS, $convertToMarkdownString } from '@lexical/markdown'
-import { useLexicalComposerContext } from '@lexical/react/LexicalComposerContext'
-import {
-  $getSelection,
-  FORMAT_ELEMENT_COMMAND,
-  FORMAT_TEXT_COMMAND,
-  REDO_COMMAND,
-  UNDO_COMMAND,
-} from 'lexical'
+import { IconEye, IconPencil, IconTextWrap, IconTextWrapDisabled } from '@tabler/icons-react'
+import { marked } from 'marked'
+import MarkdownEditor from './MarkdownEditor'
+// Configure GitHub Flavored Markdown with soft line breaks
+marked.setOptions({ gfm: true, breaks: true })
 
-const emptyState = {
-  root: {
-    children: [
-      {
-        type: 'paragraph',
-        format: '',
-        indent: 0,
-        direction: 'ltr',
-        version: 1,
-        children: [
-          {
-            type: 'text',
-            text: '',
-            detail: 0,
-            format: 0,
-            mode: 'normal',
-            style: '',
-            version: 1,
-          },
-        ],
-      },
-    ],
-    direction: 'ltr',
-    format: '',
-    indent: 0,
-    type: 'root',
-    version: 1,
-  },
-}
-
-function ToolbarPlugin() {
-  const [editor] = useLexicalComposerContext()
-  const btn = 'bg-white border-2 border-black rounded-lg px-2 py-1 text-sm hover:bg-gray-100'
-  const insertLink = () => {
-    const url = window.prompt('Enter URL')
-    editor.dispatchCommand(TOGGLE_LINK_COMMAND, url || null)
-  }
-  const insertCodeBlock = () => {
-    editor.update(() => {
-      const selection = $getSelection()
-      if (selection) {
-        $setBlocksType(selection, () => $createCodeNode())
-      }
-    })
-  }
+const emptyMarkdown = ''
+function Toolbar({ applyWrap, applyLinePrefix, applyBlock, insertLink, insertHr, undo, redo, canUndo, canRedo, undoTitle, redoTitle, isMac }) {
+  const baseBtn = 'bg-white border-2 border-black rounded-lg px-2 py-1 text-sm hover:bg-gray-100'
   return (
-    <div className='absolute top-2 left-1/2 -translate-x-1/2 z-10 flex justify-center pointer-events-none'>
-      <div className='pointer-events-auto inline-flex flex-wrap gap-2 bg-white border-2 border-black rounded-xl shadow-md px-2 py-1'>
-        <button className={btn} aria-label='Bold' title='Bold' onClick={() => editor.dispatchCommand(FORMAT_TEXT_COMMAND, 'bold')}>
+    <div className='flex-1 mr-2 min-w-0'>
+      <div className='w-full flex flex-wrap items-center gap-2 bg-transparent px-0 py-0'>
+        <button className={baseBtn} aria-label='Bold' title={isMac ? 'Bold (Cmd+B)' : 'Bold (Ctrl+B)'} onClick={() => applyWrap('**')}>
           <IconBold size={16} />
         </button>
-        <button className={btn} aria-label='Italic' title='Italic' onClick={() => editor.dispatchCommand(FORMAT_TEXT_COMMAND, 'italic')}>
+        <button className={baseBtn} aria-label='Italic' title={isMac ? 'Italic (Cmd+I)' : 'Italic (Ctrl+I)'} onClick={() => applyWrap('*')}>
           <IconItalic size={16} />
         </button>
-        <button className={btn} aria-label='Underline' title='Underline' onClick={() => editor.dispatchCommand(FORMAT_TEXT_COMMAND, 'underline')}>
-          <IconUnderline size={16} />
-        </button>
-        <button className={btn} aria-label='Strikethrough' title='Strikethrough' onClick={() => editor.dispatchCommand(FORMAT_TEXT_COMMAND, 'strikethrough')}>
-          <IconStrikethrough size={16} />
-        </button>
-        <button className={btn} aria-label='Heading 1' title='Heading 1' onClick={() => editor.dispatchCommand(FORMAT_ELEMENT_COMMAND, 'h1')}>
-          <IconH1 size={16} />
-        </button>
-        <button className={btn} aria-label='Heading 2' title='Heading 2' onClick={() => editor.dispatchCommand(FORMAT_ELEMENT_COMMAND, 'h2')}>
-          <IconH2 size={16} />
-        </button>
-        <button className={btn} aria-label='Heading 3' title='Heading 3' onClick={() => editor.dispatchCommand(FORMAT_ELEMENT_COMMAND, 'h3')}>
-          <IconH3 size={16} />
-        </button>
-        <button className={btn} aria-label='Bulleted list' title='Bulleted list' onClick={() => editor.dispatchCommand(INSERT_UNORDERED_LIST_COMMAND)}>
-          <IconList size={16} />
-        </button>
-        <button className={btn} aria-label='Numbered list' title='Numbered list' onClick={() => editor.dispatchCommand(INSERT_ORDERED_LIST_COMMAND)}>
-          <IconListNumbers size={16} />
-        </button>
-        <button className={btn} aria-label='Quote' title='Quote' onClick={() => editor.dispatchCommand(FORMAT_ELEMENT_COMMAND, 'quote')}>
-          <IconBlockquote size={16} />
-        </button>
-        <button className={btn} aria-label='Code block' title='Code block' onClick={insertCodeBlock}>
+        <button className={baseBtn} aria-label='Inline code' title={isMac ? 'Inline code (Cmd+E) — GFM-friendly backticks' : 'Inline code (Ctrl+E) — GFM-friendly backticks'} onClick={() => applyWrap('`')}>
           <IconCode size={16} />
         </button>
-        <button className={btn} aria-label='Link' title='Link' onClick={insertLink}>
+        <button className={baseBtn} aria-label='Strikethrough' title={isMac ? 'Strikethrough (Cmd+Shift+S)' : 'Strikethrough (Ctrl+Shift+S)'} onClick={() => applyWrap('~~')}>
+          <IconStrikethrough size={16} />
+        </button>
+        <button className={baseBtn} aria-label='Heading 1' title={isMac ? 'Heading 1 (Cmd+Opt+1)' : 'Heading 1 (Ctrl+Alt+1)'} onClick={() => applyLinePrefix('# ')}>
+          <IconH1 size={16} />
+        </button>
+        <button className={baseBtn} aria-label='Heading 2' title={isMac ? 'Heading 2 (Cmd+Opt+2)' : 'Heading 2 (Ctrl+Alt+2)'} onClick={() => applyLinePrefix('## ')}>
+          <IconH2 size={16} />
+        </button>
+        <button className={baseBtn} aria-label='Heading 3' title={isMac ? 'Heading 3 (Cmd+Opt+3)' : 'Heading 3 (Ctrl+Alt+3)'} onClick={() => applyLinePrefix('### ')}>
+          <IconH3 size={16} />
+        </button>
+        <button className={baseBtn} aria-label='Bulleted list' title={isMac ? 'Bulleted list (Cmd+Shift+8)' : 'Bulleted list (Ctrl+Shift+8)'} onClick={() => applyLinePrefix('- ')}>
+          <IconList size={16} />
+        </button>
+        <button className={baseBtn} aria-label='Numbered list' title={isMac ? 'Numbered list (Cmd+Shift+7)' : 'Numbered list (Ctrl+Shift+7)'} onClick={() => applyLinePrefix('1. ')}>
+          <IconListNumbers size={16} />
+        </button>
+        <button className={baseBtn} aria-label='Quote' title={isMac ? 'Quote (Cmd+Shift+Q)' : 'Quote (Ctrl+Shift+Q)'} onClick={() => applyLinePrefix('> ')}>
+          <IconBlockquote size={16} />
+        </button>
+        <button className={baseBtn} aria-label='Code block' title={isMac ? 'Code block (Cmd+Shift+C)' : 'Code block (Ctrl+Shift+C)'} onClick={() => applyBlock('```','```')}>
+          <IconCode size={16} />
+        </button>
+        <button className={baseBtn} aria-label='Link' title={isMac ? 'Link (Cmd+K)' : 'Link (Ctrl+K)'} onClick={insertLink}>
           <IconLink size={16} />
         </button>
-        <button className={btn} aria-label='Horizontal rule' title='Horizontal rule' onClick={() => editor.dispatchCommand(INSERT_HORIZONTAL_RULE_COMMAND)}>
+        <button className={baseBtn} aria-label='Horizontal rule' title={isMac ? 'Horizontal rule (Cmd+Shift+H)' : 'Horizontal rule (Ctrl+Shift+H)'} onClick={insertHr}>
           <IconSeparator size={16} />
         </button>
-        <button className={btn} aria-label='Undo' title='Undo' onClick={() => editor.dispatchCommand(UNDO_COMMAND)}>
+        <button
+          className={`${baseBtn} ${!canUndo ? 'opacity-50 cursor-not-allowed' : ''}`}
+          aria-label='Undo'
+          title={undoTitle}
+          onClick={undo}
+          disabled={!canUndo}
+        >
           <IconArrowBackUp size={16} />
         </button>
-        <button className={btn} aria-label='Redo' title='Redo' onClick={() => editor.dispatchCommand(REDO_COMMAND)}>
+        <button
+          className={`${baseBtn} ${!canRedo ? 'opacity-50 cursor-not-allowed' : ''}`}
+          aria-label='Redo'
+          title={redoTitle}
+          onClick={redo}
+          disabled={!canRedo}
+        >
           <IconArrowForwardUp size={16} />
         </button>
       </div>
@@ -143,43 +97,21 @@ function ToolbarPlugin() {
   )
 }
 
-function AutosavePlugin({ onChange }) {
-  const [editor] = useLexicalComposerContext()
-  React.useEffect(() => {
-    return editor.registerUpdateListener(({ editorState }) => {
-      const json = editorState.toJSON()
-      onChange(json)
-    })
-  }, [editor, onChange])
-  return null
-}
-
-function LoadPlugin({ content }) {
-  const [editor] = useLexicalComposerContext()
-  React.useEffect(() => {
-    if (content) {
-      try {
-        const serialized = typeof content === 'string' ? content : JSON.stringify(content)
-        const state = editor.parseEditorState(serialized)
-        editor.setEditorState(state)
-      } catch (e) {
-        console.error('Failed to load note state, falling back to empty paragraph', e)
-        try {
-          editor.setEditorState(editor.parseEditorState(JSON.stringify(emptyState)))
-        } catch {}
+// Basic HTML sanitizer for preview (removes scripts/inline handlers)
+function sanitize(html) {
+  const parser = new DOMParser()
+  const doc = parser.parseFromString(html, 'text/html')
+  doc.querySelectorAll('script,style,iframe,object,embed').forEach((el) => el.remove())
+  doc.querySelectorAll('*').forEach((el) => {
+    Array.from(el.attributes).forEach((attr) => {
+      if (/^on/i.test(attr.name) || attr.name === 'srcdoc') el.removeAttribute(attr.name)
+      if (attr.name === 'href' || attr.name === 'src') {
+        const val = el.getAttribute(attr.name) || ''
+        if (/^\s*javascript:/i.test(val)) el.removeAttribute(attr.name)
       }
-      editor.focus()
-    }
-  }, [editor, content])
-  return null
-}
-
-function EditorRefPlugin({ editorRef }) {
-  const [editor] = useLexicalComposerContext()
-  React.useEffect(() => {
-    editorRef.current = editor
-  }, [editor, editorRef])
-  return null
+    })
+  })
+  return doc.body.innerHTML
 }
 
 export default function Notable() {
@@ -187,14 +119,31 @@ export default function Notable() {
     const stored = localStorage.getItem('notable:notes')
     if (stored) return JSON.parse(stored)
     const id = crypto.randomUUID()
-    const initial = [{ id, title: 'Untitled', content: JSON.stringify(emptyState), updated: Date.now() }]
+    const initial = [{ id, title: 'Untitled', content: emptyMarkdown, updated: Date.now() }]
     localStorage.setItem('notable:notes', JSON.stringify(initial))
     return initial
   })
   const [currentId, setCurrentId] = useState(notes[0].id)
   const [filter, setFilter] = useState('')
   const fileRef = useRef(null)
+  const notesDialogRef = useRef(null)
+  const [isEditingTitle, setIsEditingTitle] = useState(false)
+  const titleInputRef = useRef(null)
+  const [mdMode, setMdMode] = useState(true)
+  const [mdText, setMdText] = useState('')
+  const [wrap, setWrap] = useState(false)
+  const historyRef = useRef({ stack: [], index: -1, lastTime: 0 })
+  const [canUndo, setCanUndo] = useState(false)
+  const [canRedo, setCanRedo] = useState(false)
   const editorRef = useRef(null)
+  const isMac = React.useMemo(() => {
+    if (typeof navigator === 'undefined') return false
+    const p = navigator.platform || ''
+    const ua = navigator.userAgent || ''
+    return /Mac|iPhone|iPad|iPod/i.test(p) || /Macintosh|iPhone|iPad|iPod/i.test(ua)
+  }, [])
+  const undoTitle = isMac ? 'Undo (Cmd+Z)' : 'Undo (Ctrl+Z)'
+  const redoTitle = isMac ? 'Redo (Cmd+Shift+Z)' : 'Redo (Ctrl+Y)'
 
   const currentNote = notes.find((n) => n.id === currentId)
 
@@ -206,14 +155,9 @@ export default function Notable() {
     })
   }
 
-  const updateContent = useCallback(
-    (json) => {
-      persist((prev) =>
-        prev.map((n) => (n.id === currentId ? { ...n, content: JSON.stringify(json), updated: Date.now() } : n)),
-      )
-    },
-    [currentId],
-  )
+  const updateContent = useCallback((markdown) => {
+    persist((prev) => prev.map((n) => (n.id === currentId ? { ...n, content: markdown, updated: Date.now() } : n)))
+  }, [currentId])
 
   const updateTitle = (title) => {
     persist((prev) => prev.map((n) => (n.id === currentId ? { ...n, title } : n)))
@@ -221,7 +165,7 @@ export default function Notable() {
 
   const createNote = () => {
     const id = crypto.randomUUID()
-    const note = { id, title: 'Untitled', content: JSON.stringify(emptyState), updated: Date.now() }
+    const note = { id, title: 'Untitled', content: emptyMarkdown, updated: Date.now() }
     persist((prev) => [...prev, note])
     setCurrentId(id)
   }
@@ -270,17 +214,12 @@ export default function Notable() {
   }
 
   const exportMarkdown = () => {
-    const editor = editorRef.current
-    if (!editor) return
-    editor.getEditorState().read(() => {
-      const md = $convertToMarkdownString(TRANSFORMERS)
-      const blob = new Blob([md], { type: 'text/markdown' })
-      const a = document.createElement('a')
-      a.href = URL.createObjectURL(blob)
-      a.download = `${currentNote?.title || 'note'}.md`
-      a.click()
-      URL.revokeObjectURL(a.href)
-    })
+    const blob = new Blob([mdText], { type: 'text/markdown' })
+    const a = document.createElement('a')
+    a.href = URL.createObjectURL(blob)
+    a.download = `${currentNote?.title || 'note'}.md`
+    a.click()
+    URL.revokeObjectURL(a.href)
   }
 
   const onImport = (e) => {
@@ -290,6 +229,7 @@ export default function Notable() {
       try {
         const data = JSON.parse(text)
         const incoming = Array.isArray(data) ? data : [data]
+        let lastAddedId = null
         persist((prev) => {
           const ids = new Set(prev.map((n) => n.id))
           const merged = [...prev]
@@ -298,9 +238,11 @@ export default function Notable() {
             while (ids.has(id)) id = crypto.randomUUID()
             ids.add(id)
             merged.push({ ...n, id })
+            lastAddedId = id
           })
           return merged
         })
+        if (lastAddedId) setCurrentId(lastAddedId)
       } catch (err) {
         console.error(err)
       }
@@ -308,73 +250,322 @@ export default function Notable() {
     e.target.value = ''
   }
 
-  const initialConfig = {
-    namespace: 'notable',
-    onError: (e) => console.error(e),
-    nodes: [HeadingNode, QuoteNode, ListNode, ListItemNode, CodeNode, LinkNode, HorizontalRuleNode],
-  }
+  const htmlPreview = useMemo(() => {
+    const raw = marked.parse(mdText || '')
+    return sanitize(String(raw))
+  }, [mdText])
 
   const filtered = notes.filter((n) => n.title.toLowerCase().includes(filter.toLowerCase()))
 
+  React.useEffect(() => {
+    setIsEditingTitle(false)
+  }, [currentId])
+
+  // CodeMirror handles sizing internally; no textarea autoresize needed
+
+  React.useEffect(() => {
+    if (isEditingTitle) {
+      const t = setTimeout(() => titleInputRef.current && titleInputRef.current.focus(), 0)
+      return () => clearTimeout(t)
+    }
+  }, [isEditingTitle])
+
+  // Load note content into editor when switching
+  React.useEffect(() => {
+    const content = typeof currentNote?.content === 'string' ? currentNote.content : emptyMarkdown
+    setMdText(content)
+    // reset history for this note
+    historyRef.current = { stack: [content], index: 0, lastTime: Date.now() }
+    setCanUndo(false)
+    setCanRedo(false)
+  }, [currentId])
+
+  const pushHistory = (value, { coalesce = false } = {}) => {
+    const now = Date.now()
+    const h = historyRef.current
+    const current = h.stack[h.index]
+    if (current === value) return
+    if (coalesce && now - h.lastTime < 500 && h.index >= 0) {
+      // replace current entry
+      h.stack[h.index] = value
+    } else {
+      // truncate future and push
+      if (h.index < h.stack.length - 1) h.stack = h.stack.slice(0, h.index + 1)
+      h.stack.push(value)
+      h.index++
+    }
+    h.lastTime = now
+    setCanUndo(h.index > 0)
+    setCanRedo(h.index < h.stack.length - 1)
+  }
+
+  const onMarkdownChange = (value, opts = {}) => {
+    setMdText(value)
+    updateContent(value)
+    pushHistory(value, opts)
+  }
+
+  // Editor commands are handled via CodeMirror keymaps inside MarkdownEditor
+
+  // Text manipulation helpers
+  const applyWrap = (left, right = left) => editorRef.current && editorRef.current.wrap(left, right)
+
+  const applyLinePrefix = (prefix) => editorRef.current && editorRef.current.linePrefix(prefix)
+
+  const applyBlock = (open, close) => editorRef.current && editorRef.current.block(open, close)
+
+  const insertLink = () => editorRef.current && editorRef.current.insertLink()
+
+  const insertHr = () => editorRef.current && editorRef.current.insertHr()
+
+  const undo = () => {
+    const h = historyRef.current
+    if (h.index <= 0) return
+    h.index -= 1
+    const value = h.stack[h.index]
+    setMdText(value)
+    updateContent(value)
+    setCanUndo(h.index > 0)
+    setCanRedo(h.index < h.stack.length - 1)
+    requestAnimationFrame(() => { editorRef.current && editorRef.current.focusEnd() })
+  }
+
+  const redo = () => {
+    const h = historyRef.current
+    if (h.index >= h.stack.length - 1) return
+    h.index += 1
+    const value = h.stack[h.index]
+    setMdText(value)
+    updateContent(value)
+    setCanUndo(h.index > 0)
+    setCanRedo(h.index < h.stack.length - 1)
+    requestAnimationFrame(() => { editorRef.current && editorRef.current.focusEnd() })
+  }
+
+  // After toggling back to Edit, focus editor and place caret at end
+  React.useEffect(() => {
+    if (mdMode) {
+      requestAnimationFrame(() => { editorRef.current && editorRef.current.focusEnd() })
+    }
+  }, [mdMode])
+
+  // Global shortcut: Ctrl/Cmd+Shift+P toggles Edit/Preview
+  React.useEffect(() => {
+    const onKey = (e) => {
+      const isMod = e.metaKey || e.ctrlKey
+      if (isMod && e.shiftKey && e.key && e.key.toLowerCase() === 'p') {
+        e.preventDefault()
+        setMdMode((v) => !v)
+      }
+    }
+    window.addEventListener('keydown', onKey)
+    return () => window.removeEventListener('keydown', onKey)
+  }, [])
+
   return (
-    <div className='flex flex-col md:flex-row min-h-[calc(100vh-88px)] bg-gray-50'>
-      <div className='w-full md:w-72 border-b-2 md:border-b-0 md:border-r-2 border-black p-4 flex flex-col'>
-        <div className='flex gap-2 mb-2'>
-          <button className='bg-white border-2 border-black rounded-lg px-2 py-1 hover:bg-gray-100 text-sm' onClick={createNote}>New</button>
-          <button className='bg-white border-2 border-black rounded-lg px-2 py-1 hover:bg-gray-100 text-sm' onClick={() => fileRef.current.click()}>Import</button>
-          <input ref={fileRef} type='file' accept='application/json' onChange={onImport} className='hidden' />
-        </div>
-        <input
-          className='mb-2 bg-white border-2 border-black rounded-lg px-2 py-1 text-sm w-full'
-          value={currentNote?.title || ''}
-          onChange={(e) => updateTitle(e.target.value)}
-        />
-        <input
-          className='mb-2 bg-white border-2 border-black rounded-lg px-2 py-1 text-sm'
-          placeholder='Search...'
-          value={filter}
-          onChange={(e) => setFilter(e.target.value)}
-        />
-        <ul className='flex-1 overflow-y-auto flex flex-col gap-2'>
-          {filtered.map((note) => (
-            <li
-              key={note.id}
-              className={`flex items-center gap-2 p-2 border-2 rounded-lg ${note.id === currentId ? 'bg-gray-100' : 'bg-white'} border-black`}
+    <div className='flex flex-col min-h-[calc(100vh-88px)] bg-gray-50'>
+      <main className='flex-1 flex flex-col'>
+        {/* Remount the editor when switching notes to reinitialize state */}
+        {/* Markdown-only editor with preview toggle */}
+
+          <header className='w-full border-b-2 border-transparent'>
+            <div className='max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 pt-4 pb-2'>
+              <h1 className='sr-only'>Notable</h1>
+              <div className='flex items-center gap-3'>
+                {isEditingTitle ? (
+                  <input
+                    ref={titleInputRef}
+                    id='note-title'
+                    className='bg-white border-2 border-black rounded-lg px-3 py-2 text-2xl font-semibold flex-1 min-w-0'
+                    value={currentNote?.title || ''}
+                    onChange={(e) => updateTitle(e.target.value)}
+                    onBlur={() => setIsEditingTitle(false)}
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter') {
+                        e.preventDefault()
+                        e.currentTarget.blur()
+                      } else if (e.key === 'Escape') {
+                        e.preventDefault()
+                        setIsEditingTitle(false)
+                      }
+                    }}
+                    aria-label='Note title'
+                  />
+                ) : (
+                  <h2
+                    className='text-2xl font-semibold cursor-text flex-1 min-w-0 truncate'
+                    onClick={() => setIsEditingTitle(true)}
+                    title='Click to edit title'
+                  >
+                    {currentNote?.title || 'Untitled'}
+                  </h2>
+                )}
+                <div className='flex items-center gap-2'>
+                  <button
+                    type='button'
+                    className='bg-black text-white rounded-lg hover:bg-gray-800 w-9 h-9 flex items-center justify-center'
+                    aria-label='New note'
+                    title='New note'
+                    onClick={createNote}
+                  >
+                    <IconPlus size={18} />
+                  </button>
+                  <button
+                    type='button'
+                    className='bg-white border-2 border-black text-black rounded-lg hover:bg-gray-100 w-9 h-9 flex items-center justify-center'
+                    aria-label='Import notes'
+                    title='Import notes'
+                    onClick={() => fileRef.current && fileRef.current.click()}
+                  >
+                    <IconUpload size={18} />
+                  </button>
+                  <input ref={fileRef} type='file' accept='application/json' onChange={onImport} className='hidden' />
+                  <button
+                    type='button'
+                    className='bg-white border-2 border-black text-black rounded-lg hover:bg-gray-100 w-9 h-9 flex items-center justify-center'
+                    aria-label='Export Markdown'
+                    title='Export Markdown'
+                    onClick={exportMarkdown}
+                  >
+                    <IconDownload size={16} />
+                  </button>
+                  <button
+                    type='button'
+                    className='bg-white border-2 border-black text-black rounded-lg hover:bg-gray-100 w-9 h-9 flex items-center justify-center'
+                    aria-label='History'
+                    title='History'
+                    onClick={() => notesDialogRef.current && notesDialogRef.current.showModal()}
+                  >
+                    <IconHistory size={16} />
+                  </button>
+                </div>
+              </div>
+              <div className='mt-3 flex items-center justify-between gap-3'>
+                <Toolbar
+                  applyWrap={applyWrap}
+                  applyLinePrefix={applyLinePrefix}
+                  applyBlock={applyBlock}
+                  insertLink={insertLink}
+                  insertHr={insertHr}
+                  undo={undo}
+                  redo={redo}
+                  canUndo={canUndo}
+                  canRedo={canRedo}
+                  undoTitle={undoTitle}
+                  redoTitle={redoTitle}
+                  isMac={isMac}
+                />
+                <div className='flex items-center gap-2'>
+                  <button
+                    type='button'
+                    className='bg-white border-2 border-black text-black rounded-lg hover:bg-gray-100 px-2 py-1 text-sm flex items-center justify-center shrink-0'
+                    aria-pressed={wrap}
+                    aria-label='Toggle line wrap'
+                    title={wrap ? 'Disable line wrap' : 'Enable line wrap'}
+                    onClick={() => setWrap((v) => !v)}
+                  >
+                    {wrap ? <IconTextWrap size={16} /> : <IconTextWrapDisabled size={16} />}
+                  </button>
+                  <button
+                  type='button'
+                  className='bg-white border-2 border-black text-black rounded-lg hover:bg-gray-100 px-2 py-1 text-sm flex items-center justify-center shrink-0'
+                  aria-label={mdMode ? 'Preview' : 'Edit'}
+                  title={mdMode ? (isMac ? 'Preview (Cmd+Shift+P)' : 'Preview (Ctrl+Shift+P)') : (isMac ? 'Edit (Cmd+Shift+P)' : 'Edit (Ctrl+Shift+P)')}
+                  onClick={() => setMdMode((v) => !v)}
+                >
+                  {mdMode ? <IconEye size={16} /> : <IconPencil size={16} />}
+                  </button>
+                </div>
+              </div>
+            </div>
+          </header>
+
+          <section className='flex-1 relative'>
+            <div className='max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 pt-2 pb-4'>
+              <div className='relative mt-1 bg-white border-2 border-black rounded-xl shadow-md p-4 notable-editor'>
+                {mdMode ? (
+                  <MarkdownEditor
+                    ref={editorRef}
+                    className='w-full'
+                    value={mdText}
+                    onChange={(val, opts) => onMarkdownChange(val, opts)}
+                    wrap={wrap}
+                    placeholder='Write Markdown here...'
+                    aria-label='Markdown editor'
+                  />
+                ) : (
+                  <article className='markdown-preview min-h-[60vh]'>
+                    <div dangerouslySetInnerHTML={{ __html: htmlPreview }} />
+                  </article>
+                )}
+              </div>
+            </div>
+          </section>
+      </main>
+
+      <dialog ref={notesDialogRef} className='rounded-xl border-2 border-black p-0 w-[92vw] max-w-2xl bg-white text-black'>
+        <form method='dialog'>
+          <div className='border-b-2 border-black px-4 py-2 flex items-center justify-between'>
+            <strong>History</strong>
+            <button className='bg-white border-2 border-black rounded-lg p-1 hover:bg-gray-100 w-9 h-9 flex items-center justify-center' aria-label='Close'>
+              <IconX size={16} />
+            </button>
+          </div>
+        </form>
+        <div className='p-4 max-h-[70vh] overflow-auto'>
+          <div className='flex gap-2 mb-3'>
+            <button
+              className='bg-white border-2 border-black rounded-lg hover:bg-gray-100 ml-auto w-9 h-9 flex items-center justify-center'
+              aria-label='Export all notes'
+              title='Export all notes'
+              onClick={exportAll}
             >
-              <button onClick={() => setCurrentId(note.id)} className='flex-1 text-left overflow-hidden'>
-                <div className='font-semibold truncate'>{note.title}</div>
-                <div className='text-xs text-gray-600'>{new Date(note.updated).toLocaleString()}</div>
-              </button>
-              <button className='bg-white border-2 border-black rounded px-1 text-xs hover:bg-gray-100' onClick={() => duplicateNote(note.id)}>Dup</button>
-              <button className='bg-white border-2 border-black rounded px-1 text-xs hover:bg-gray-100' onClick={() => deleteNote(note.id)}>Del</button>
-            </li>
-          ))}
-        </ul>
-        <div className='mt-2 flex flex-col gap-2'>
-          <button className='bg-white border-2 border-black rounded-lg px-2 py-1 hover:bg-gray-100 text-sm' onClick={exportNote}>Export</button>
-          <button className='bg-white border-2 border-black rounded-lg px-2 py-1 hover:bg-gray-100 text-sm' onClick={exportAll}>Export All</button>
-          <button className='bg-white border-2 border-black rounded-lg px-2 py-1 hover:bg-gray-100 text-sm' onClick={exportMarkdown}>Export Markdown</button>
+              <IconFileArrowRight size={16} />
+            </button>
+          </div>
+          <input
+            className='mb-3 bg-white border-2 border-black rounded-lg px-3 py-2 text-sm w-full'
+            placeholder='Search notes...'
+            value={filter}
+            onChange={(e) => setFilter(e.target.value)}
+          />
+          <ul className='flex flex-col gap-2'>
+            {filtered.map((note) => (
+              <li
+                key={note.id}
+                className={`flex items-center gap-2 p-2 border-2 rounded-lg ${note.id === currentId ? 'bg-gray-100' : 'bg-white'} border-black`}
+              >
+                <button
+                  onClick={() => {
+                    setCurrentId(note.id)
+                    notesDialogRef.current && notesDialogRef.current.close()
+                  }}
+                  className='flex-1 text-left overflow-hidden'
+                >
+                  <div className='font-semibold truncate'>{note.title}</div>
+                  <div className='text-xs text-gray-600'>{new Date(note.updated).toLocaleString()}</div>
+                </button>
+                <button
+                  className='bg-white border-2 border-black rounded-lg hover:bg-gray-100 w-8 h-8 flex items-center justify-center'
+                  aria-label='Duplicate note'
+                  title='Duplicate note'
+                  onClick={() => duplicateNote(note.id)}
+                >
+                  <IconCopy size={14} />
+                </button>
+                <button
+                  className='bg-white border-2 border-black rounded-lg hover:bg-gray-100 w-8 h-8 flex items-center justify-center'
+                  aria-label='Delete note'
+                  title='Delete note'
+                  onClick={() => deleteNote(note.id)}
+                >
+                  <IconTrash size={14} />
+                </button>
+              </li>
+            ))}
+          </ul>
         </div>
-      </div>
-      <div className='flex-1 flex flex-col'>
-        <div className='flex-1 relative overflow-hidden'>
-          <LexicalComposer initialConfig={initialConfig}>
-            <EditorRefPlugin editorRef={editorRef} />
-            <LoadPlugin content={currentNote?.content} />
-            <AutosavePlugin onChange={updateContent} />
-            <ToolbarPlugin />
-            <RichTextPlugin
-              contentEditable={<ContentEditable className='h-full w-full outline-none leading-relaxed overflow-auto' />}
-              placeholder={null}
-            />
-            <HistoryPlugin />
-            <AutoFocusPlugin />
-            <ListPlugin />
-            <LinkPlugin />
-            <MarkdownShortcutPlugin transformers={TRANSFORMERS} />
-          </LexicalComposer>
-        </div>
-      </div>
+      </dialog>
     </div>
   )
 }

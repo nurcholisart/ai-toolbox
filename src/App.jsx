@@ -482,7 +482,7 @@ export default function App() {
   if (isNotable) {
     return (
       <div className="min-h-screen bg-gray-50">
-        <div className="px-4 sm:px-6 lg:px-8 pt-6">
+        <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 pt-6">
           <div className="flex items-center justify-between">
             <a
               href="/"
@@ -503,7 +503,7 @@ export default function App() {
             </div>
           </div>
         </div>
-        <div className="px-4 sm:px-6 lg:px-8 pb-8">
+        <div className="px-4 sm:px-6 lg:px-8 pb-8 mt-6">
           <Notable />
         </div>
       </div>

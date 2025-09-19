@@ -36,6 +36,13 @@ export default {
               borderRadius: theme('borderRadius.md'),
               padding: '0 0.25rem',
             },
+            blockquote: {
+              borderLeftColor: theme('colors.black'),
+              borderLeftWidth: '2px',
+              paddingLeft: theme('spacing.3'),
+              fontStyle: 'normal',
+              color: theme('colors.gray.700'),
+            },
             table: {
               borderWidth: '2px',
               borderColor: theme('colors.black'),
