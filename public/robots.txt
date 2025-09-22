@@ -1,0 +1,11 @@
+# robots.txt for Toolbox — AI & Developer Tools
+# Serve plain text, not HTML. Vite copies files in /public to the build root.
+
+User-agent: *
+Allow: /
+
+# Optionally block API routes (uncomment if using serverless functions)
+Disallow: /api/
+
+# Sitemap location
+Sitemap: https://toolbox.nurcholis.art/sitemap.xml

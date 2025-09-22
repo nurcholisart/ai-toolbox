@@ -92,20 +92,12 @@
 - ffmpeg.wasm usage: In-browser video conversion is supported with `@ffmpeg/ffmpeg`. For 0.12+, prefer the ESM API (`new FFmpeg()`) and serve `@ffmpeg/core` locally (e.g., `/public/ffmpeg/esm/ffmpeg-core.js`). Avoid restrictive iframes/sandboxes that break workers/wasm. With Vite, exclude `@ffmpeg/ffmpeg` and `@ffmpeg/util` from `optimizeDeps` so the worker import (`new URL('./worker.js', import.meta.url)`) resolves correctly.
 - PWA: We use `vite-plugin-pwa` with `registerType: 'autoUpdate'`. The manifest and Workbox config live in `vite.config.js`. Large ffmpeg `.wasm` files are excluded from precache (build size limits); they are fetched on demand. Add runtime caching if needed. Service worker is registered in `src/main.jsx` via `registerSW({ immediate: true })`.
 
-### Flower Bouquet Generator
-- Location: `src/components/FlowerBouquetGenerator.jsx`; route: `#/flower-bouquet`.
-- Generates realistic bouquet photos via `gemini-2.5-flash-image-preview` from a structured prompt form.
+### SEO & Crawling
+- robots.txt: Keep a real text file at `public/robots.txt`. Without it, hosting fallbacks can serve `index.html`, which makes Lighthouse report “robots.txt is not valid”.
+- Sitemap: Provide `public/sitemap.xml` and link it from `robots.txt` with an absolute URL: `Sitemap: https://toolbox.nurcholis.art/sitemap.xml`.
+- Routing: The app uses path-based routes (History API). Crawlers do not discover hash (`/#/…`) routes; keep URLs like `/information-verifier`.
+- Verify locally: run `npm run dev` then open `/robots.txt` and `/sitemap.xml`. After deploy, re-run Lighthouse SEO.
+- Maintenance: when adding a tool/page, add its path to `public/sitemap.xml` to keep discovery current.
 
-### Information Verifier Tool
-- Location: `src/components/InformationVerifier.jsx`; route: `#/information-verifier`; card added in `src/App.jsx`.
-- Purpose: verify a claim and return two outputs: verdict and reasoning, including citations.
-- Verdict categories: `Valid`, `Mislead`, `Hoax` (exact strings).
-- Model: `gemini-2.5-flash-preview-05-20` via `:generateContent`.
-- Grounding: include `tools: [{ googleSearch: {} }]` to enable web-grounded answers; if API rejects tools (400/404), retry without tools.
-- Output contract: strictly request JSON with `{ verdict, reason, citations: Array<{ title, url }> }` and render citations as links.
-
-### Lockfile Scanners
-- `src/components/LockfileScanner.jsx` (`#/lockfile-scanner`): scans JavaScript lockfiles (`package-lock.json`, `yarn.lock`, `pnpm-lock.yaml`).
-- `src/components/GemfileScanner.jsx` (`#/gemfile-scanner`): scans Ruby `Gemfile.lock` files.
-- `src/components/GoSumScanner.jsx` (`#/go-sum-scanner`): scans Go `go.sum` files.
-- All tools parse dependencies, query OSV.dev, and display advisory IDs.
+### Notes Scope
+This document focuses on repo-wide guidelines and patterns. Tool-specific documentation lives with the component or in README/feature docs.

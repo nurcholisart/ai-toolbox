@@ -1,0 +1,30 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
+  <url>
+    <loc>https://toolbox.nurcholis.art/</loc>
+    <changefreq>daily</changefreq>
+    <priority>1.0</priority>
+  </url>
+  <url><loc>https://toolbox.nurcholis.art/pdf-to-markdown</loc><changefreq>weekly</changefreq><priority>0.8</priority></url>
+  <url><loc>https://toolbox.nurcholis.art/assessment-roast</loc><changefreq>weekly</changefreq><priority>0.7</priority></url>
+  <url><loc>https://toolbox.nurcholis.art/audio-transcriber</loc><changefreq>weekly</changefreq><priority>0.8</priority></url>
+  <url><loc>https://toolbox.nurcholis.art/microphone-transcriber</loc><changefreq>weekly</changefreq><priority>0.6</priority></url>
+  <url><loc>https://toolbox.nurcholis.art/meeting-transcription</loc><changefreq>weekly</changefreq><priority>0.7</priority></url>
+  <url><loc>https://toolbox.nurcholis.art/mp4-to-mp3</loc><changefreq>weekly</changefreq><priority>0.8</priority></url>
+  <url><loc>https://toolbox.nurcholis.art/picture-me</loc><changefreq>weekly</changefreq><priority>0.5</priority></url>
+  <url><loc>https://toolbox.nurcholis.art/remove-background</loc><changefreq>weekly</changefreq><priority>0.5</priority></url>
+  <url><loc>https://toolbox.nurcholis.art/flower-bouquet</loc><changefreq>weekly</changefreq><priority>0.6</priority></url>
+  <url><loc>https://toolbox.nurcholis.art/context-cards</loc><changefreq>weekly</changefreq><priority>0.6</priority></url>
+  <url><loc>https://toolbox.nurcholis.art/tailwind-palette</loc><changefreq>weekly</changefreq><priority>0.5</priority></url>
+  <url><loc>https://toolbox.nurcholis.art/hill-chart</loc><changefreq>weekly</changefreq><priority>0.5</priority></url>
+  <url><loc>https://toolbox.nurcholis.art/shape-up</loc><changefreq>weekly</changefreq><priority>0.5</priority></url>
+  <url><loc>https://toolbox.nurcholis.art/information-verifier</loc><changefreq>weekly</changefreq><priority>0.7</priority></url>
+  <url><loc>https://toolbox.nurcholis.art/lockfile-scanner</loc><changefreq>weekly</changefreq><priority>0.7</priority></url>
+  <url><loc>https://toolbox.nurcholis.art/gemfile-scanner</loc><changefreq>weekly</changefreq><priority>0.6</priority></url>
+  <url><loc>https://toolbox.nurcholis.art/go-sum-scanner</loc><changefreq>weekly</changefreq><priority>0.6</priority></url>
+  <url><loc>https://toolbox.nurcholis.art/mermaid-validator</loc><changefreq>weekly</changefreq><priority>0.5</priority></url>
+  <url><loc>https://toolbox.nurcholis.art/notable</loc><changefreq>weekly</changefreq><priority>0.5</priority></url>
+  <url><loc>https://toolbox.nurcholis.art/chromatic-tuner</loc><changefreq>weekly</changefreq><priority>0.5</priority></url>
+  <url><loc>https://toolbox.nurcholis.art/settings</loc><changefreq>monthly</changefreq><priority>0.2</priority></url>
+  <url><loc>https://toolbox.nurcholis.art/about</loc><changefreq>monthly</changefreq><priority>0.3</priority></url>
+</urlset>

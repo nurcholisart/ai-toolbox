@@ -128,35 +128,23 @@ Notes:
  - Image editing (Gemini): Use `gemini-2.5-flash-image-preview:generateContent` with `contents.parts = [{ text: instruction }, { inlineData: { mimeType, data } }]`. The API may return an `inlineData` image (PNG). For background removal, ask for a transparent PNG, preserve subject edges/hair, and avoid cropping; implement simple retry/backoff on `429`.
  - Mermaid server parsing: When enabling server-side Mermaid parsing (set `ENABLE_MERMAID_PARSE=1`), the API sets up a JSDOM `window` before importing `mermaid` so DOMPurify hooks are available. This prevents `DOMPurify.addHook is not a function` in Node. Ensure `jsdom` is in `dependencies` for production (Vercel) if you turn this on.
 
-### Mermaid Validator API
-- Endpoint: `GET/POST /api/mermaid/validate`
-- Inputs: `b64` (Base64) or `text` (URL-encoded); POST JSON `{ b64?: string, text?: string }`
-- Output JSON: `{ valid: boolean, error?: string, parser: 'mermaid' | 'none' }`
-- Status codes: `200` (valid), `422` (invalid syntax), `400` (missing input), `501` (parser unavailable), `500` (server error)
-- Notes: No heuristic checks; uses the real Mermaid parser only. Literal `\n` sequences are normalized to real newlines.
+### SEO & Crawling
+- robots.txt: Ship a plain-text `public/robots.txt`. If absent, SPA fallbacks may serve `index.html`, triggering Lighthouse “robots.txt is not valid”.
+- Sitemap: Include `public/sitemap.xml` and reference it from `robots.txt` with an absolute URL: `Sitemap: https://toolbox.nurcholis.art/sitemap.xml`.
+- Routing: Use path-based routes (History API). Search engines do not discover hash (`/#/…`) URLs.
+- Local check: `npm run dev` then open `/robots.txt` and `/sitemap.xml`. After deploy, re-run Lighthouse SEO to verify.
+- Keep updated: add new tool/page paths to `public/sitemap.xml` when shipping features.
 
-Example fetch (client):
-```js
-const validateMermaid = async (text) => {
-  const res = await fetch('/api/mermaid/validate', {
-    method: 'POST',
-    headers: { 'content-type': 'application/json' },
-    body: JSON.stringify({ text }),
-  })
-  const data = await res.json()
-  // Treat 422 (invalid) and 501 (parser unavailable) as handled cases
-  return { status: res.status, ...data }
-}
-```
+### Web Grounding (Gemini)
+- Enable web-grounded answers by including `tools: [{ googleSearch: {} }]` in `generateContent`.
+- Ask the model to output an explicit citations array (title + URL) for rendering.
+- Fallback: if the API rejects `tools` (e.g., 400/404 on certain regions/models), retry the same request without `tools`.
 
-### Flower Bouquet Generator
-- Component: `src/components/FlowerBouquetGenerator.jsx` (route `/flower-bouquet`).
-- Builds a detailed prompt to synthesize realistic bouquet photos using `gemini-2.5-flash-image-preview`.
+### UI Language
+- All user-facing UI text must be in English across tools and pages.
 
-### Google Search Grounding
-- To allow the model to search the web and ground responses, include `tools: [{ googleSearch: {} }]` in the `generateContent` payload.
-- Instruct the model to return citations (title + URL) explicitly so the client can render them.
-- If the server returns an error for unsupported tools, retry the same request without `tools` as a graceful fallback.
+### Scope
+- This document covers cross-cutting practices (prompting, grounding, data handling). Tool-specific docs live alongside their components or in separate feature docs.
 
 ### Information Verifier
 - Component: `src/components/InformationVerifier.jsx` (route `/information-verifier`).
