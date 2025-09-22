@@ -23,11 +23,13 @@ import Settings from './components/Settings.jsx'
 import About from './components/About.jsx'
 import { getApiKey } from './lib/config.js'
 import InstallPrompt from './components/InstallPrompt.jsx'
+import MicrophoneTranscriber from './components/MicrophoneTranscriber.jsx'
 
 const tools = [
   { name: 'PDF to Markdown', description: 'Convert PDF content into Markdown', link: '/pdf-to-markdown' },
   { name: 'Assessment Roast', description: 'Brutally review a project assessment', link: '/assessment-roast' },
   { name: 'Audio Transcriber', description: 'Transcribe audio to Markdown', link: '/audio-transcriber' },
+  { name: 'Microphone Transcriber', description: 'Record mic → Markdown transcript', link: '/microphone-transcriber' },
   { name: 'Meeting Transcription', description: 'Upload audio/video → Markdown transcript', link: '/meeting-transcription' },
   { name: 'MP4 to MP3', description: 'Convert video to MP3 in-browser', link: '/mp4-to-mp3' },
   { name: 'PictureMe', description: 'Transform photos with Gemini', link: '/picture-me' },
@@ -101,6 +103,7 @@ export default function App() {
   const isPdfTool = useMemo(() => basePath === '/pdf-to-markdown', [basePath])
   const isRoastTool = useMemo(() => basePath === '/assessment-roast', [basePath])
   const isAudioTool = useMemo(() => basePath === '/audio-transcriber', [basePath])
+  const isMicTranscriber = useMemo(() => basePath === '/microphone-transcriber', [basePath])
   const isMeetingTranscription = useMemo(() => basePath === '/meeting-transcription', [basePath])
   const isMp4ToMp3 = useMemo(() => basePath === '/mp4-to-mp3', [basePath])
   const isPictureMe = useMemo(() => basePath === '/picture-me', [basePath])
@@ -204,6 +207,35 @@ export default function App() {
           </div>
         </div>
         <AudioTranscriber />
+      </div>
+    )
+  }
+
+  if (isMicTranscriber) {
+    return (
+      <div className="min-h-screen bg-gray-50">
+        <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 pt-6">
+          <div className="flex items-center justify-between">
+            <a
+              href="/"
+              className="inline-flex items-center gap-2 text-sm bg-white text-black border-2 border-black rounded-lg px-3 py-1 hover:bg-gray-100 shadow-sm"
+            >
+              <IconArrowLeft size={18} stroke={2} />
+              Back to tools
+            </a>
+            <div className="flex items-center gap-2">
+              <InstallPrompt />
+              <a
+                href="/settings"
+                className="inline-flex items-center gap-2 text-sm bg-white text-black border-2 border-black rounded-lg px-3 py-1 hover:bg-gray-100 shadow-sm"
+              >
+                <IconSettings size={16} stroke={2} />
+                Edit Config
+              </a>
+            </div>
+          </div>
+        </div>
+        <MicrophoneTranscriber />
       </div>
     )
   }
