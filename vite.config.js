@@ -128,7 +128,7 @@ export default defineConfig({
       manifest: {
         name: 'Toolbox',
         short_name: 'Toolbox',
-        description: 'Toolbox — your one‑stop AI tools hub',
+        description: 'Toolbox — in‑browser AI & developer tools',
         theme_color: '#000000',
         background_color: '#ffffff',
         display: 'standalone',

@@ -34,6 +34,41 @@ export default function MicrophoneTranscriber() {
     marked.setOptions({ gfm: true, breaks: true })
   }, [])
 
+  // Set Open Graph / Twitter meta for this route
+  useEffect(() => {
+    const title = 'Microphone Transcriber — Toolbox'
+    const description = 'Record your voice up to 15 minutes and transcribe to clean GitHub Flavored Markdown with Gemini.'
+    const image = `${window.location.origin}/og/microphone-transcriber.svg`
+    const url = `${window.location.origin}/microphone-transcriber`
+
+    document.title = title
+    const setMeta = (attr, name, content) => {
+      if (!content) return
+      let q
+      if (attr === 'property') q = `meta[property="${name}"]`
+      else q = `meta[name="${name}"]`
+      let tag = document.head.querySelector(q)
+      if (!tag) {
+        tag = document.createElement('meta')
+        tag.setAttribute(attr, name)
+        document.head.appendChild(tag)
+      }
+      tag.setAttribute('content', content)
+    }
+
+    setMeta('property', 'og:type', 'website')
+    setMeta('property', 'og:site_name', 'Toolbox')
+    setMeta('property', 'og:title', title)
+    setMeta('property', 'og:description', description)
+    setMeta('property', 'og:image', image)
+    setMeta('property', 'og:url', url)
+
+    setMeta('name', 'twitter:card', 'summary_large_image')
+    setMeta('name', 'twitter:title', title)
+    setMeta('name', 'twitter:description', description)
+    setMeta('name', 'twitter:image', image)
+  }, [])
+
   useEffect(() => {
     const load = () => setApiKey(getApiKey())
     load()

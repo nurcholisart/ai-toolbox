@@ -1,0 +1,18 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="630" viewBox="0 0 1200 630">
+  <rect width="1200" height="630" fill="#ffffff"/>
+  <rect x="35" y="35" width="1130" height="560" fill="none" stroke="#000000" stroke-width="10" rx="24"/>
+  <g fill="#000000">
+    <text x="60" y="160" font-family="Inter, ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial" font-weight="700" font-size="80">Microphone Transcriber</text>
+    <text x="60" y="235" font-family="Inter, ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial" font-size="38" fill="#333">Record voice → Gemini → Markdown (GFM)</text>
+  </g>
+  <!-- Mic icon -->
+  <g transform="translate(60,300)" fill="none" stroke="#000" stroke-width="12" stroke-linecap="round" stroke-linejoin="round">
+    <rect x="0" y="0" width="120" height="180" rx="60"/>
+    <path d="M60 200v60"/>
+    <path d="M30 260h60"/>
+  </g>
+  <!-- Wave -->
+  <g transform="translate(240,360)" stroke="#000" fill="none">
+    <path d="M0,60 C40,20 80,100 120,60 S200,20 240,60 320,100 360,60 440,20 480,60 560,100 600,60 680,20 720,60 800,100 840,60 920,20 960,60" stroke-width="8"/>
+  </g>
+</svg>
