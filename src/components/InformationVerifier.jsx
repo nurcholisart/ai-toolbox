@@ -50,7 +50,7 @@ export default function InformationVerifier() {
   const [status, setStatus] = useState("");
   const [result, setResult] = useState(null);
   // Always use Google Search Grounding
-  const [reasonLang, setReasonLang] = useState("en"); // 'en' | 'id'
+  const [reasonLang, setReasonLang] = useState("id"); // 'en' | 'id'
 
   useEffect(() => {
     const load = () => setApiKey(getApiKey());
@@ -415,6 +415,22 @@ export default function InformationVerifier() {
 
           <div className="space-y-4">
             <div>
+              <div className="flex items-center gap-2 text-sm text-gray-700">
+                <label htmlFor="reasonLang" className="whitespace-nowrap">
+                  Reasoning language
+                </label>
+                <select
+                  id="reasonLang"
+                  value={reasonLang}
+                  onChange={(e) => setReasonLang(e.target.value)}
+                  className="bg-white border-2 border-black rounded-lg px-2 py-1 focus:outline-none text-gray-900"
+                >
+                  <option value="en">English</option>
+                  <option value="id">Bahasa Indonesia</option>
+                </select>
+              </div>
+            </div>
+            <div>
               <label
                 htmlFor="claim"
                 className="block text-sm font-medium text-gray-800 mb-1"
@@ -430,20 +446,6 @@ export default function InformationVerifier() {
                 className="w-full bg-white border-2 border-black rounded-lg px-3 py-2 focus:outline-none text-gray-900 placeholder-gray-500"
               />
               {/* Grounding is always enabled; toggle removed */}
-              <div className="mt-2 flex items-center gap-2 text-sm text-gray-700">
-                <label htmlFor="reasonLang" className="whitespace-nowrap">
-                  Reasoning language
-                </label>
-                <select
-                  id="reasonLang"
-                  value={reasonLang}
-                  onChange={(e) => setReasonLang(e.target.value)}
-                  className="bg-white border-2 border-black rounded-lg px-2 py-1 focus:outline-none text-gray-900"
-                >
-                  <option value="en">English</option>
-                  <option value="id">Bahasa Indonesia</option>
-                </select>
-              </div>
             </div>
 
             {status && <div className="text-sm text-gray-800">{status}</div>}
