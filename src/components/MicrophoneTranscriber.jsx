@@ -321,6 +321,27 @@ export default function MicrophoneTranscriber() {
     URL.revokeObjectURL(url)
   }
 
+  const handleDownloadAudio = () => {
+    if (!audioBlob) return
+    const url = URL.createObjectURL(audioBlob)
+    const a = document.createElement('a')
+    a.href = url
+    // pick extension from mime
+    let ext = 'webm'
+    const mt = (mimeType || '').split(';')[0]
+    if (mt === 'audio/ogg') ext = 'ogg'
+    else if (mt === 'audio/mp4') ext = 'mp4'
+    else if (mt === 'audio/webm') ext = 'webm'
+    const ts = new Date()
+    const pad = (n) => String(n).padStart(2, '0')
+    const name = `recording-${ts.getFullYear()}${pad(ts.getMonth()+1)}${pad(ts.getDate())}-${pad(ts.getHours())}${pad(ts.getMinutes())}${pad(ts.getSeconds())}.${ext}`
+    a.download = name
+    document.body.appendChild(a)
+    a.click()
+    document.body.removeChild(a)
+    URL.revokeObjectURL(url)
+  }
+
   const previewHtml = useMemo(() => (markdown ? marked.parse(markdown) : ''), [markdown])
 
   return (
@@ -342,7 +363,18 @@ export default function MicrophoneTranscriber() {
 
               {audioUrl && (
                 <div className="w-full max-w-xl">
-                  <audio controls src={audioUrl} className="w-full" />
+                  <div className="flex items-center gap-2">
+                    <audio controls src={audioUrl} className="flex-1 min-w-0" />
+                    <button
+                      onClick={handleDownloadAudio}
+                      aria-label="Download audio"
+                      className="shrink-0 bg-white border-2 border-black text-black rounded-lg p-2 hover:bg-gray-100 focus:outline-none"
+                      disabled={!audioBlob}
+                      title="Download audio"
+                    >
+                      <IconDownload size={18} stroke={2} />
+                    </button>
+                  </div>
                   <div className="mt-1 text-sm text-gray-700">
                     <span>Type: {mimeType}</span>
                     {audioBlob && <span> · Size: {(audioBlob.size / 1024 / 1024).toFixed(2)} MB</span>}
@@ -380,21 +412,23 @@ export default function MicrophoneTranscriber() {
             </div>
           </section>
 
-          <section aria-label="Actions" className="mb-6 flex items-center gap-3 justify-center">
-            <button
-              onClick={handleTranscribe}
-              disabled={!audioBlob || isTranscribing}
-              className="bg-black text-white px-4 py-2 rounded-lg hover:bg-gray-800 focus:outline-none focus:ring-2 focus:ring-black disabled:opacity-50"
-            >
-              {isTranscribing ? 'Transcribing…' : 'Transcribe'}
-            </button>
-            <button
-              onClick={() => { resetRecordingState(); setAudioBlob(null); setAudioUrl(''); setMarkdown(''); setStatus('') }}
-              className="bg-white border-2 border-black text-black px-4 py-2 rounded-lg hover:bg-gray-100 focus:outline-none"
-            >
-              Reset
-            </button>
-          </section>
+          {audioBlob && (
+            <section aria-label="Actions" className="mb-6 flex items-center gap-3 justify-center">
+              <button
+                onClick={handleTranscribe}
+                disabled={!audioBlob || isTranscribing}
+                className="bg-black text-white px-4 py-2 rounded-lg hover:bg-gray-800 focus:outline-none focus:ring-2 focus:ring-black disabled:opacity-50"
+              >
+                {isTranscribing ? 'Transcribing…' : 'Transcribe'}
+              </button>
+              <button
+                onClick={() => { resetRecordingState(); setAudioBlob(null); setAudioUrl(''); setMarkdown(''); setStatus('') }}
+                className="bg-white border-2 border-black text-black px-4 py-2 rounded-lg hover:bg-gray-100 focus:outline-none"
+              >
+                Reset
+              </button>
+            </section>
+          )}
 
           <div className="min-h-[1.5rem] mb-4 text-center">
             {status && <span className="text-gray-800 font-medium">{status}</span>}
