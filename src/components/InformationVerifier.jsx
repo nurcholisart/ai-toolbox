@@ -30,23 +30,18 @@ const extractJson = (text) => {
 };
 
 const normalizeVerdict = (v) => {
-  const s = String(v || "").toLowerCase();
-  if (
-    ["valid", "benar", "true", "akurasi", "akurat"].some((k) => s.includes(k))
-  )
-    return "Valid";
-  if (
-    ["mislead", "menyesat", "parsial", "konteks", "partially"].some((k) =>
-      s.includes(k),
-    )
-  )
-    return "Mislead";
-  if (
-    ["hoax", "palsu", "false", "salah", "fabricated"].some((k) => s.includes(k))
-  )
-    return "Hoax";
-  return "Mislead";
-};
+  const s = String(v || '').toLowerCase()
+  // Order matters: check more specific phrases first
+  const tests = [
+    { out: 'Partly True', any: ['sebagian benar', 'partly true', 'partially true', 'partial', 'parsial', 'mixed'] },
+    { out: 'Misleading', any: ['mislead', 'misleading', 'menyesat', 'konteks', 'out of context', 'cherry-pick'] },
+    { out: 'False', any: ['keliru', 'false', 'palsu', 'salah', 'hoax', 'fabricated', 'not true', 'incorrect'] },
+    { out: 'Fallacious', any: ['sesat', 'fallacy', 'fallacious', 'unsound', 'incorrect inference', 'salah kaprah'] },
+    { out: 'True', any: ['benar', 'true', 'valid', 'akurasi', 'akurat', 'correct', 'accurate'] },
+  ]
+  for (const t of tests) if (t.any.some((k) => s.includes(k))) return t.out
+  return 'Misleading'
+}
 
 export default function InformationVerifier() {
   const [apiKey, setApiKey] = useState("");
@@ -54,7 +49,7 @@ export default function InformationVerifier() {
   const [isLoading, setIsLoading] = useState(false);
   const [status, setStatus] = useState("");
   const [result, setResult] = useState(null);
-  const [useGrounding, setUseGrounding] = useState(true);
+  // Always use Google Search Grounding
   const [reasonLang, setReasonLang] = useState("en"); // 'en' | 'id'
 
   useEffect(() => {
@@ -185,34 +180,40 @@ export default function InformationVerifier() {
     const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`;
 
     const languageName = reasonLang === "id" ? "Bahasa Indonesia" : "English";
+    const nowIso = new Date().toISOString()
 
     const systemInstruction = [
-      "You are an objective, rigorous fact-checker.",
-      "Task: verify the claim using reliable sources.",
-      "Classify exactly one of: Valid, Mislead, Hoax.",
-      "Provide a concise reason and include a citations list (title + URL).",
-      'Respond ONLY as strict JSON matching this schema exactly: { verdict: "Valid|Mislead|Hoax", reason: string, citations: Array<{ title: string, url: string }> }.',
-      "Use web search when available to ensure accuracy and cite primary sources.",
-      `Write the value of the "reason" field in ${languageName}. The "verdict" must remain one of: Valid, Mislead, Hoax (English).`,
-    ].join("\n");
+      'You are an objective, rigorous fact-checker.',
+      'Task: verify the claim using reliable sources.',
+      'Classify exactly one of: True, Partly True, False, Misleading, Fallacious.',
+      'Definitions:',
+      '- True: Substantively accurate and supported by credible sources; core context is not misleading.',
+      '- Partly True: Contains factual elements but is incomplete/partial; key details or context are missing or wrong.',
+      '- False: Materially incorrect or contradicted by evidence on the main point.',
+      '- Misleading: Presentation steers readers to a wrong conclusion (twisted context, old clip with new narrative, cherry-picked evidence, etc.).',
+      '- Fallacious: Uses accurate fragments but draws an invalid conclusion (faulty link between facts).',
+      `Current date/time: ${nowIso}. Prefer the most recent, authoritative sources (official sites, primary documents). If the claim is time-sensitive (appointments/dismissals, regulations, events), explicitly verify recency.`,
+      'Provide a concise reason and include a citations list (title + URL). Indicate temporality in the reason (e.g., "As of <date>, …").',
+      'Respond ONLY as strict JSON matching exactly this schema: { verdict: "True|Partly True|False|Misleading|Fallacious", reason: string, citations: Array<{ title: string, url: string }>, checkedAt: string (ISO 8601) }. No extra commentary.',
+      'Use web search when available to ensure accuracy and cite primary sources.',
+      `Write the value of the "reason" field in ${languageName}. The "verdict" must remain one of: True, Partly True, False, Misleading, Fallacious (English).`,
+    ].join('\n')
 
     const userPrompt = [
-      "# CLAIM",
+      '# CLAIM',
       claim.trim(),
-      "",
-      "# OUTPUT",
-      "Return ONLY valid JSON with no extra text or commentary.",
-    ].join("\n");
+      '',
+      '# OUTPUT',
+      'Return ONLY valid JSON per the schema with fields: verdict, reason, citations, checkedAt. No prose outside JSON.',
+    ].join('\n')
 
     const payloadBase = {
       contents: [{ parts: [{ text: userPrompt }] }],
       systemInstruction: { parts: [{ text: systemInstruction }] },
-    };
+    }
 
-    // Try with Google Search Grounding tool first (if enabled)
-    const payloadWithTools = useGrounding
-      ? { ...payloadBase, tools: [{ googleSearch: {} }] }
-      : payloadBase;
+    // Always use Google Search Grounding tool
+    const payloadWithTools = { ...payloadBase, tools: [{ googleSearch: {} }] }
 
     const tryRequest = async (payload) => {
       const resp = await fetch(url, {
@@ -224,20 +225,15 @@ export default function InformationVerifier() {
     };
 
     try {
+      // 1) Grounded retrieval + initial reasoning
       let resp = await tryRequest(payloadWithTools);
 
-      // Fallback without tools if the request fails due to unsupported field
+      // Simple retry for rate-limit/server errors; keep tools enabled
       if (!resp.ok) {
-        const retriable = resp.status === 429 || resp.status >= 500;
-        const maybeToolIssue = resp.status === 400 || resp.status === 404;
-        if (maybeToolIssue && useGrounding) {
-          resp = await tryRequest(payloadBase);
-        } else if (retriable) {
-          // simple retry once
-          await new Promise((r) => setTimeout(r, 1000));
-          resp = await tryRequest(
-            useGrounding ? payloadWithTools : payloadBase,
-          );
+        const retriable = resp.status === 429 || resp.status >= 500
+        if (retriable) {
+          await new Promise((r) => setTimeout(r, 1000))
+          resp = await tryRequest(payloadWithTools)
         }
       }
 
@@ -250,25 +246,89 @@ export default function InformationVerifier() {
         throw new Error(msg);
       }
 
-      const data = await resp.json();
-      const text = data?.candidates?.[0]?.content?.parts?.[0]?.text || "";
-      const parsed = extractJson(text);
-      if (!parsed)
-        throw new Error("Failed to parse AI output. Please try again.");
+      const data1 = await resp.json();
+      const findingsText = data1?.candidates?.[0]?.content?.parts?.[0]?.text || ''
 
-      const verdict = normalizeVerdict(parsed.verdict);
-      const reason = String(parsed.reason || "").trim();
-      const citations = Array.isArray(parsed.citations)
-        ? parsed.citations
+      // 2) Structured formatting without tools (enforce schema)
+      setStatus('Refining structured output…')
+
+      const systemInstruction2 = [
+        'You are a precise formatter.',
+        'Given a claim and grounded findings, produce a final fact-check result in strict JSON only.',
+        'Schema: { verdict: "True|Partly True|False|Misleading|Fallacious", reason: string, citations: Array<{ title: string, url: string }>, checkedAt: string (ISO 8601) }.',
+        'Rules:',
+        '- verdict must be ONE of the enum values above (English).',
+        `- reason is written in ${languageName}, concise, and indicates temporality (e.g., "As of <date>, …").`,
+        '- citations contain credible, directly relevant sources; include title and full URL.',
+        `- checkedAt is the current date/time close to now (${new Date().toISOString()}) in ISO 8601.`,
+        'Return ONLY the JSON object. No commentary.',
+      ].join('\n')
+
+      const userPrompt2 = [
+        '# CLAIM',
+        claim.trim(),
+        '',
+        '# GROUNDED FINDINGS',
+        findingsText || '(no findings text provided)'
+      ].join('\n')
+
+      const payloadRefine = {
+        contents: [{ parts: [{ text: userPrompt2 }] }],
+        systemInstruction: { parts: [{ text: systemInstruction2 }] },
+        generationConfig: {
+          responseMimeType: 'application/json',
+          responseSchema: {
+            type: 'OBJECT',
+            properties: {
+              verdict: { type: 'STRING', enum: ['True','Partly True','False','Misleading','Fallacious'] },
+              reason: { type: 'STRING' },
+              citations: {
+                type: 'ARRAY',
+                items: {
+                  type: 'OBJECT',
+                  properties: {
+                    title: { type: 'STRING' },
+                    url: { type: 'STRING' },
+                  },
+                  required: ['url'],
+                  propertyOrdering: ['title','url']
+                }
+              },
+              checkedAt: { type: 'STRING' }
+            },
+            required: ['verdict','reason','citations','checkedAt'],
+            propertyOrdering: ['verdict','reason','citations','checkedAt']
+          }
+        }
+      }
+
+      const resp2 = await tryRequest(payloadRefine)
+      if (!resp2.ok) {
+        let msg = `HTTP error ${resp2.status}`
+        try {
+          const err = await resp2.json()
+          msg = err.error?.message || msg
+        } catch {}
+        throw new Error(msg)
+      }
+      const data2 = await resp2.json()
+      const text2 = data2?.candidates?.[0]?.content?.parts?.[0]?.text || ''
+      const parsed2 = extractJson(text2)
+      if (!parsed2) throw new Error('Failed to parse structured output.')
+
+      const verdict = normalizeVerdict(parsed2.verdict)
+      const reason = String(parsed2.reason || '').trim()
+      const citations = Array.isArray(parsed2.citations)
+        ? parsed2.citations
             .map((c) => ({
-              title: (c && c.title ? String(c.title) : "").trim() || "Source",
-              url: (c && c.url ? String(c.url) : "").trim(),
+              title: (c && c.title ? String(c.title) : '').trim() || 'Source',
+              url: (c && c.url ? String(c.url) : '').trim(),
             }))
             .filter((c) => c.url)
-        : [];
+        : []
 
-      setResult({ verdict, reason, citations });
-      setStatus("Done");
+      setResult({ verdict, reason, citations })
+      setStatus('Done')
     } catch (e) {
       console.error(e);
       setStatus(e.message || "An error occurred.");
@@ -369,18 +429,7 @@ export default function InformationVerifier() {
                 placeholder="Type the claim you want to verify…"
                 className="w-full bg-white border-2 border-black rounded-lg px-3 py-2 focus:outline-none text-gray-900 placeholder-gray-500"
               />
-              <div className="mt-2 flex items-center gap-2 text-sm text-gray-700">
-                <input
-                  id="grounding"
-                  type="checkbox"
-                  checked={useGrounding}
-                  onChange={(e) => setUseGrounding(e.target.checked)}
-                  className="h-4 w-4 border-2 border-black rounded"
-                />
-                <label htmlFor="grounding">
-                  Use Google Search Grounding (if available)
-                </label>
-              </div>
+              {/* Grounding is always enabled; toggle removed */}
               <div className="mt-2 flex items-center gap-2 text-sm text-gray-700">
                 <label htmlFor="reasonLang" className="whitespace-nowrap">
                   Reasoning language
