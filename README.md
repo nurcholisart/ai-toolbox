@@ -204,3 +204,16 @@ Notes:
 - Install `mermaid` and set `ENABLE_MERMAID_PARSE=1` in Vercel to enable server-side parsing; otherwise the endpoint returns `501`.
 - Server-side parsing note: Mermaid depends on DOMPurify hooks which expect a browser-like `window`. The API auto-creates a JSDOM window before importing Mermaid to avoid `DOMPurify.addHook is not a function`. Ensure `jsdom` is in `dependencies` (not only `devDependencies`).
 - PWA note: Typing `/api/...` in the address bar is a navigation; the Service Worker could serve `index.html`. We denylist `/api/` from navigation fallback so API endpoints return JSON when opened directly. After deployment, hard refresh to update the SW.
+
+## Token Counter
+- Location: `src/components/TokenCounter.jsx`
+- Route: `/token-counter`
+
+Features:
+- Counts tokens client-side using the pure JavaScript build of `gpt-tokenizer` (no WASM needed).
+- Provides layered CDN fallbacks (jsDelivr → unpkg → esm.run → esm.sh → Skypack) and respects `window.GPT_TOKENIZER_URL` overrides.
+- Displays per-token decoding, token/character totals, clipboard export, and a regression test suite covering diverse scripts.
+
+Notes:
+- The tokenizer module is loaded via dynamic `import()`. Ensure your deployment allows ESM module loading from the selected CDN.
+- When offline or behind a restrictive CSP, self-host the ESM bundle and set `window.GPT_TOKENIZER_URL` before the app initializes.

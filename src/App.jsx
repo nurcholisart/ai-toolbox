@@ -12,6 +12,7 @@ import FlowerBouquetGenerator from './components/FlowerBouquetGenerator.jsx'
 import InformationVerifier from './components/InformationVerifier.jsx'
 import LockfileScanner from './components/LockfileScanner.jsx'
 import MermaidValidator from './components/MermaidValidator.jsx'
+import TokenCounter from './components/TokenCounter.jsx'
 import Notable from './components/Notable.jsx'
 import ChromaticTuner from './components/ChromaticTuner.jsx'
 import GemfileScanner from './components/GemfileScanner.jsx'
@@ -44,6 +45,7 @@ const tools = [
   { name: 'Gemfile.lock Scanner', description: 'Check Ruby gems for vulnerabilities', link: '/gemfile-scanner' },
   { name: 'go.sum Scanner', description: 'Check Go modules for vulnerabilities', link: '/go-sum-scanner' },
   { name: 'Mermaid Validator', description: 'Validate a Mermaid diagram string', link: '/mermaid-validator' },
+  { name: 'Token Counter', description: 'Count tokens with layered CDN fallbacks', link: '/token-counter' },
   { name: 'Notable', description: 'Local notes with a rich-text editor', link: '/notable' },
   { name: 'Chromatic Tuner', description: 'Tune instruments via microphone', link: '/chromatic-tuner' },
   {
@@ -115,6 +117,7 @@ export default function App() {
   const isGemfileScanner = useMemo(() => basePath === '/gemfile-scanner', [basePath])
   const isGoSumScanner = useMemo(() => basePath === '/go-sum-scanner', [basePath])
   const isMermaidValidator = useMemo(() => basePath === '/mermaid-validator', [basePath])
+  const isTokenCounter = useMemo(() => basePath === '/token-counter', [basePath])
   const isTailwindPalette = useMemo(() => basePath === '/tailwind-palette', [basePath])
   const isHillChart = useMemo(() => basePath === '/hill-chart', [basePath])
   const isShapeUpInfographic = useMemo(() => basePath === '/shape-up', [basePath])
@@ -571,6 +574,35 @@ export default function App() {
           </div>
         </div>
       <MermaidValidator />
+      </div>
+    )
+  }
+
+  if (isTokenCounter) {
+    return (
+      <div className="min-h-screen bg-gray-50">
+        <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 pt-6">
+          <div className="flex items-center justify-between">
+            <a
+              href="/"
+              className="inline-flex items-center gap-2 text-sm bg-white text-black border-2 border-black rounded-lg px-3 py-1 hover:bg-gray-100 shadow-sm"
+            >
+              <IconArrowLeft size={18} stroke={2} />
+              Back to tools
+            </a>
+            <div className="flex items-center gap-2">
+              <InstallPrompt />
+              <a
+                href="/settings"
+                className="inline-flex items-center gap-2 text-sm bg-white text-black border-2 border-black rounded-lg px-3 py-1 hover:bg-gray-100 shadow-sm"
+              >
+                <IconSettings size={16} stroke={2} />
+                Edit Config
+              </a>
+            </div>
+          </div>
+        </div>
+        <TokenCounter />
       </div>
     )
   }
