@@ -141,6 +141,16 @@ Features:
 - Filter by failure mode and lever (Write, Select, Compress, Isolate)
 - Search across card content and copy card text or filtered JSON
 
+## Promptable
+- Location: `src/components/Promptable.jsx`
+- Route: `/promptable`
+
+Features:
+- Manage a personal prompt library with metadata (target model, use case) stored locally.
+- Request Gemini to improve a prompt and preview a monochrome diff before accepting changes.
+- Browse and restore saved versions with inline diffs to track iteration history.
+- Run sample inputs against Gemini, copy results, and optionally archive runs to Notable.
+
 ## Notes
 - PictureMe: This tool is based on the Gemini Canvas template created by the Google team, and they shared details in this X post: https://x.com/GeminiApp/status/1963615829708132611
  - Image editing (Gemini): Client calls use the `gemini-2.5-flash-image-preview:generateContent` endpoint with two parts: a text instruction and the input image as `inlineData` (base64). The response may include an `inlineData` image (PNG). For background removal, instruct Gemini to produce a transparent PNG without cropping, and implement simple retries for `429`.
