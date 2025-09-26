@@ -101,3 +101,6 @@
 
 ### Notes Scope
 This document focuses on repo-wide guidelines and patterns. Tool-specific documentation lives with the component or in README/feature docs.
+
+
+# Finally, Never assume that your code is error-free. Always test and build after you write code!
