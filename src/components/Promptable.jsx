@@ -8,7 +8,6 @@ import {
   IconHistory,
   IconArrowsDiff,
   IconPlayerPlay,
-  IconDownload,
   IconRestore,
   IconSearch,
 } from '@tabler/icons-react'
@@ -18,6 +17,7 @@ import { getApiKey } from '../lib/config.js'
 const STORAGE_KEY = 'promptable:prompts'
 
 const defaultModelOptions = [
+  'gemini-2.5-flash',
   'gemini-2.0-flash',
   'gemini-2.0-pro',
   'gemini-1.5-pro',
@@ -29,7 +29,7 @@ const emptyPrompt = () => ({
   id: crypto.randomUUID(),
   title: 'Untitled prompt',
   content: '',
-  model: 'gemini-2.0-flash',
+  model: 'gemini-2.5-flash',
   useCase: '',
   updated: Date.now(),
   lastTestedAt: null,
@@ -355,7 +355,7 @@ export default function Promptable() {
     }
     setIsTesting(true)
     try {
-      const url = `https://generativelanguage.googleapis.com/v1beta/models/${currentPrompt.model || 'gemini-2.0-flash'}:generateContent?key=${apiKey}`
+      const url = `https://generativelanguage.googleapis.com/v1beta/models/${currentPrompt.model || 'gemini-2.5-flash'}:generateContent?key=${apiKey}`
       const payload = {
         systemInstruction: {
           role: 'system',
@@ -427,36 +427,16 @@ export default function Promptable() {
     }
   }
 
-  const saveTestAsNote = () => {
-    if (!testOutput) return
-    try {
-      const stored = localStorage.getItem('notable:notes')
-      const notes = stored ? JSON.parse(stored) : []
-      const id = crypto.randomUUID()
-      const note = {
-        id,
-        title: `${editorState.title} test ${new Date().toLocaleString()}`,
-        content: `# Prompt test result\n\n**Prompt:** ${editorState.title}\n\n**Sample input**\n\n${testInput}\n\n**Output**\n\n${testOutput}`,
-        updated: Date.now(),
-      }
-      const nextNotes = Array.isArray(notes) && notes.length ? [note, ...notes] : [note]
-      localStorage.setItem('notable:notes', JSON.stringify(nextNotes))
-      window.dispatchEvent(new Event('storage'))
-    } catch (error) {
-      console.error('Failed to save note', error)
-    }
-  }
-
   return (
     <div className='min-h-screen bg-gray-50 py-6'>
-      <div className='mx-auto max-w-5xl px-4 sm:px-6 lg:px-8'>
+      <div className='mx-auto max-w-6xl px-4 sm:px-6 lg:px-8'>
         <div className='bg-white border-2 border-black rounded-xl shadow-md p-6'>
           <header className='flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between'>
             <div>
               <h1 className='text-3xl font-bold text-gray-900'>Promptable</h1>
               <p className='text-gray-600 mt-1'>Create, iterate, and test prompts with Gemini-powered previews.</p>
             </div>
-            <div className='flex flex-wrap gap-2'>
+            <div className='flex flex-col gap-2 sm:flex-row sm:flex-nowrap'>
               <button
                 type='button'
                 onClick={createPrompt}
@@ -669,14 +649,6 @@ export default function Promptable() {
                   >
                     <IconCopy size={16} />
                     Copy result
-                  </button>
-                  <button
-                    type='button'
-                    onClick={saveTestAsNote}
-                    className='inline-flex items-center gap-2 bg-white border-2 border-black text-black rounded-lg px-3 py-2 text-sm hover:bg-gray-100 focus:outline-none'
-                  >
-                    <IconDownload size={16} />
-                    Save result to Notable
                   </button>
                 </div>
                 <div className='border-2 border-black rounded-lg p-3 bg-gray-50 min-h-[180px] whitespace-pre-wrap text-sm text-gray-900'>
