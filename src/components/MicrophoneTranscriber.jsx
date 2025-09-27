@@ -4,8 +4,6 @@ import { marked } from 'marked'
 import { getApiKey } from '../lib/config.js'
 import Disclosure from './Disclosure.jsx'
 
-const MAX_SECONDS = 15 * 60 // 15 minutes
-
 export default function MicrophoneTranscriber() {
   const [apiKey, setApiKey] = useState('')
   const [status, setStatus] = useState('')
@@ -37,7 +35,7 @@ export default function MicrophoneTranscriber() {
   // Set Open Graph / Twitter meta for this route
   useEffect(() => {
     const title = 'Microphone Transcriber — Toolbox'
-    const description = 'Record your voice up to 15 minutes and transcribe to clean GitHub Flavored Markdown with Gemini.'
+    const description = 'Record your voice for as long as you need and transcribe to clean GitHub Flavored Markdown with Gemini.'
     const image = `${window.location.origin}/og/microphone-transcriber.svg`
     const url = `${window.location.origin}/microphone-transcriber`
 
@@ -209,13 +207,7 @@ export default function MicrophoneTranscriber() {
         rafRef.current = requestAnimationFrame(loop)
       } catch {}
       timerRef.current = setInterval(() => {
-        setElapsed((prev) => {
-          const next = prev + 1
-          if (next >= MAX_SECONDS) {
-            stopRecording()
-          }
-          return next
-        })
+        setElapsed((prev) => prev + 1)
       }, 1000)
     } catch (e) {
       setStatus(e?.message || 'Could not access microphone.')
@@ -242,9 +234,24 @@ export default function MicrophoneTranscriber() {
   }
 
   const formatTime = (s) => {
-    const mm = String(Math.floor(s / 60)).padStart(2, '0')
+    const hh = String(Math.floor(s / 3600)).padStart(2, '0')
+    const mm = String(Math.floor((s % 3600) / 60)).padStart(2, '0')
     const ss = String(s % 60).padStart(2, '0')
-    return `${mm}:${ss}`
+    return `${hh}:${mm}:${ss}`
+  }
+
+  const buildSegmentBlobs = (maxSeconds = 15 * 60) => {
+    const chunks = chunksRef.current || []
+    if (!chunks.length) {
+      return audioBlob ? [audioBlob] : []
+    }
+    const maxChunks = Math.max(1, Math.floor(maxSeconds * 1000 / 1000))
+    const segments = []
+    for (let i = 0; i < chunks.length; i += maxChunks) {
+      const slice = chunks.slice(i, i + maxChunks)
+      segments.push(new Blob(slice, { type: mimeType }))
+    }
+    return segments
   }
 
   const blobToBase64 = (blob) => new Promise((resolve, reject) => {
@@ -261,40 +268,51 @@ export default function MicrophoneTranscriber() {
     if (!audioBlob) { setStatus('Record audio first.'); return }
     if (!apiKey) { setStatus('API key not set. Open Settings to add your Gemini key.'); return }
     setIsTranscribing(true)
-    setStatus('Uploading audio…')
+    setStatus('Preparing audio for transcription…')
     setMarkdown('')
     try {
-      const base64 = await blobToBase64(audioBlob)
+      const segments = buildSegmentBlobs()
+      if (!segments.length) throw new Error('Audio data is empty.')
       const model = 'gemini-2.5-flash-preview-05-20'
       const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`
-      const prompt = 'Transcribe this audio into clean, well-structured GitHub Flavored Markdown (GFM). Use paragraphs and lists when helpful. If multiple speakers are detected, label them as "Speaker 1:", "Speaker 2:". Return only the Markdown.'
-      const payload = {
-        contents: [{ parts: [ { text: prompt }, { inlineData: { mimeType, data: base64 } } ] }],
-      }
-      let retries = 3
-      let delay = 1000
-      for (let i = 0; i < retries; i++) {
-        const resp = await fetch(url, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) })
-        if (resp.ok) {
-          const data = await resp.json()
-          const text = data?.candidates?.[0]?.content?.parts?.[0]?.text || ''
-          if (!text) throw new Error('Invalid response format from API.')
-          setMarkdown(text)
-          setActiveTab('markdown')
-          setStatus('Transcription complete.')
-          return
+      const parts = []
+      for (let idx = 0; idx < segments.length; idx++) {
+        const segment = segments[idx]
+        const base64 = await blobToBase64(segment)
+        const segmentPrompt = segments.length === 1
+          ? 'Transcribe this audio into clean, well-structured GitHub Flavored Markdown (GFM). Use paragraphs and lists when helpful. If multiple speakers are detected, label them as "Speaker 1:" and so on. Return only the Markdown.'
+          : `You will receive part ${idx + 1} of ${segments.length} from a longer recording. Transcribe this part into clean, well-structured GitHub Flavored Markdown (GFM). Maintain continuity between parts and label speakers as "Speaker 1:", "Speaker 2:" when helpful. Return only the Markdown for this part.`
+        const payload = {
+          contents: [{ parts: [ { text: segmentPrompt }, { inlineData: { mimeType, data: base64 } } ] }],
         }
-        if (resp.status === 429 || resp.status >= 500) {
-          setStatus('API busy. Retrying…')
-          await new Promise(r => setTimeout(r, delay))
-          delay *= 2
-          continue
+        setStatus(segments.length === 1 ? 'Transcribing audio…' : `Transcribing part ${idx + 1} of ${segments.length}…`)
+        let retries = 3
+        let delay = 1000
+        for (let attempt = 0; attempt < retries; attempt++) {
+          const resp = await fetch(url, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) })
+          if (resp.ok) {
+            const data = await resp.json()
+            const text = data?.candidates?.[0]?.content?.parts?.[0]?.text || ''
+            if (!text) throw new Error('Invalid response format from API.')
+            parts.push(text.trim())
+            break
+          }
+          if (resp.status === 429 || resp.status >= 500) {
+            setStatus('API busy. Retrying…')
+            await new Promise(r => setTimeout(r, delay))
+            delay *= 2
+            if (attempt === retries - 1) throw new Error('API request failed after multiple retries.')
+            continue
+          }
+          let msg = `HTTP error ${resp.status}`
+          try { const err = await resp.json(); msg = err.error?.message || msg } catch {}
+          throw new Error(msg)
         }
-        let msg = `HTTP error ${resp.status}`
-        try { const err = await resp.json(); msg = err.error?.message || msg } catch {}
-        throw new Error(msg)
       }
-      throw new Error('API request failed after multiple retries.')
+      const combined = parts.join('\n\n')
+      setMarkdown(combined)
+      setActiveTab('markdown')
+      setStatus('Transcription complete.')
     } catch (e) {
       setStatus(e?.message || 'An error occurred.')
     } finally {
@@ -350,7 +368,7 @@ export default function MicrophoneTranscriber() {
         <div className="bg-white rounded-xl border-2 border-black shadow-md p-6 sm:p-8">
           <header className="mb-6 text-center">
             <h1 className="text-3xl sm:text-4xl font-bold text-gray-900">Microphone Transcriber</h1>
-            <p className="text-gray-600 mt-2">Record up to 15 minutes, send to Gemini, and get a clean Markdown transcript.</p>
+            <p className="text-gray-600 mt-2">Record without limits, send segments to Gemini, and get a clean Markdown transcript.</p>
           </header>
 
           <section aria-label="Recorder" className="mb-6">
@@ -359,7 +377,7 @@ export default function MicrophoneTranscriber() {
               <div className="text-4xl sm:text-5xl font-bold text-gray-900 tracking-tight">
                 {formatTime(elapsed)}
               </div>
-              <div className="text-sm text-gray-600">Remaining {formatTime(Math.max(0, MAX_SECONDS - elapsed))} of 15:00</div>
+              <div className="text-sm text-gray-600">Elapsed time</div>
 
               {audioUrl && (
                 <div className="w-full max-w-xl">
