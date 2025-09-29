@@ -31,6 +31,39 @@ import MarkdownEditor from './MarkdownEditor'
 marked.setOptions({ gfm: true, breaks: true })
 
 const emptyMarkdown = ''
+
+const normalizeNote = (note) => {
+  const fallback = Date.now()
+  const updated = typeof note.updated === 'number' ? note.updated : fallback
+  const created = typeof note.created === 'number' ? note.created : updated
+  return { ...note, created, updated }
+}
+
+const normalizeNotes = (list) => list.map((note) => normalizeNote(note))
+
+const noteCreatedAt = (note) => {
+  if (typeof note.created === 'number') return note.created
+  if (typeof note.updated === 'number') return note.updated
+  return 0
+}
+
+const sortByCreatedDesc = (list) => [...list].sort((a, b) => noteCreatedAt(b) - noteCreatedAt(a))
+
+const getLatestNoteId = (list) => {
+  const sorted = sortByCreatedDesc(list)
+  return sorted[0]?.id || null
+}
+
+const createEmptyNote = () => {
+  const timestamp = Date.now()
+  return {
+    id: crypto.randomUUID(),
+    title: 'Untitled',
+    content: emptyMarkdown,
+    created: timestamp,
+    updated: timestamp,
+  }
+}
 function Toolbar({ applyWrap, applyLinePrefix, applyBlock, insertLink, insertHr, undo, redo, canUndo, canRedo, undoTitle, redoTitle, isMac }) {
   const baseBtn = 'bg-white border-2 border-black rounded-lg px-2 py-1 text-sm hover:bg-gray-100'
   return (
@@ -118,13 +151,24 @@ function sanitize(html) {
 export default function Notable() {
   const [notes, setNotes] = useState(() => {
     const stored = localStorage.getItem('notable:notes')
-    if (stored) return JSON.parse(stored)
-    const id = crypto.randomUUID()
-    const initial = [{ id, title: 'Untitled', content: emptyMarkdown, updated: Date.now() }]
+    if (stored) {
+      try {
+        const parsed = JSON.parse(stored)
+        const array = Array.isArray(parsed) ? parsed : []
+        const normalized = normalizeNotes(array)
+        if (normalized.length) {
+          localStorage.setItem('notable:notes', JSON.stringify(normalized))
+          return normalized
+        }
+      } catch (err) {
+        console.error(err)
+      }
+    }
+    const initial = [createEmptyNote()]
     localStorage.setItem('notable:notes', JSON.stringify(initial))
     return initial
   })
-  const [currentId, setCurrentId] = useState(notes[0].id)
+  const [currentId, setCurrentId] = useState(() => getLatestNoteId(notes) || notes[0]?.id || '')
   const [filter, setFilter] = useState('')
   const fileRef = useRef(null)
   const notesDialogRef = useRef(null)
@@ -148,11 +192,20 @@ export default function Notable() {
 
   const currentNote = notes.find((n) => n.id === currentId)
 
+  const sortedNotes = useMemo(() => sortByCreatedDesc(notes), [notes])
+
+  const filteredNotes = useMemo(
+    () => sortedNotes.filter((n) => n.title.toLowerCase().includes(filter.toLowerCase())),
+    [sortedNotes, filter],
+  )
+
   const persist = (fn) => {
     setNotes((prev) => {
       const next = fn(prev)
-      localStorage.setItem('notable:notes', JSON.stringify(next))
-      return next
+      const safeNext = Array.isArray(next) ? next : prev
+      const normalized = normalizeNotes(safeNext)
+      localStorage.setItem('notable:notes', JSON.stringify(normalized))
+      return normalized
     })
   }
 
@@ -165,17 +218,23 @@ export default function Notable() {
   }
 
   const createNote = () => {
-    const id = crypto.randomUUID()
-    const note = { id, title: 'Untitled', content: emptyMarkdown, updated: Date.now() }
+    const note = createEmptyNote()
     persist((prev) => [...prev, note])
-    setCurrentId(id)
+    setCurrentId(note.id)
   }
 
   const duplicateNote = (id) => {
     const src = notes.find((n) => n.id === id)
     if (!src) return
     const newId = crypto.randomUUID()
-    const dup = { ...src, id: newId, title: src.title + ' copy', updated: Date.now() }
+    const timestamp = Date.now()
+    const dup = {
+      ...src,
+      id: newId,
+      title: src.title + ' copy',
+      created: timestamp,
+      updated: timestamp,
+    }
     persist((prev) => [...prev, dup])
     setCurrentId(newId)
   }
@@ -184,12 +243,12 @@ export default function Notable() {
     persist((prev) => {
       let list = prev.filter((n) => n.id !== id)
       if (!list.length) {
-        const newId = crypto.randomUUID()
-        const note = { id: newId, title: 'Untitled', content: JSON.stringify(emptyState), updated: Date.now() }
+        const note = createEmptyNote()
         list = [note]
-        setCurrentId(newId)
+        setCurrentId(note.id)
       } else if (currentId === id) {
-        setCurrentId(list[0].id)
+        const latestId = getLatestNoteId(list)
+        if (latestId) setCurrentId(latestId)
       }
       return list
     })
@@ -318,11 +377,6 @@ export default function Notable() {
     // Ensure file ends with a single newline
     return collapsed.join('\n').replace(/\n+$/g, '\n')
   }, [])
-
-  
-
-  const filtered = notes.filter((n) => n.title.toLowerCase().includes(filter.toLowerCase()))
-
   React.useEffect(() => {
     setIsEditingTitle(false)
   }, [currentId])
@@ -614,7 +668,7 @@ export default function Notable() {
             onChange={(e) => setFilter(e.target.value)}
           />
           <ul className='flex flex-col gap-2'>
-            {filtered.map((note) => (
+            {filteredNotes.map((note) => (
               <li
                 key={note.id}
                 className={`flex items-center gap-2 p-2 border-2 rounded-lg ${note.id === currentId ? 'bg-gray-100' : 'bg-white'} border-black`}
