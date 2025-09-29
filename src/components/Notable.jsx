@@ -49,8 +49,16 @@ const noteCreatedAt = (note) => {
 
 const sortByCreatedDesc = (list) => [...list].sort((a, b) => noteCreatedAt(b) - noteCreatedAt(a))
 
-const getLatestNoteId = (list) => {
-  const sorted = sortByCreatedDesc(list)
+const noteUpdatedAt = (note) => {
+  if (typeof note.updated === 'number') return note.updated
+  if (typeof note.created === 'number') return note.created
+  return 0
+}
+
+const sortByUpdatedDesc = (list) => [...list].sort((a, b) => noteUpdatedAt(b) - noteUpdatedAt(a))
+
+const getLatestUpdatedNoteId = (list) => {
+  const sorted = sortByUpdatedDesc(list)
   return sorted[0]?.id || null
 }
 
@@ -168,7 +176,7 @@ export default function Notable() {
     localStorage.setItem('notable:notes', JSON.stringify(initial))
     return initial
   })
-  const [currentId, setCurrentId] = useState(() => getLatestNoteId(notes) || notes[0]?.id || '')
+  const [currentId, setCurrentId] = useState(() => getLatestUpdatedNoteId(notes) || notes[0]?.id || '')
   const [filter, setFilter] = useState('')
   const fileRef = useRef(null)
   const notesDialogRef = useRef(null)
@@ -247,7 +255,7 @@ export default function Notable() {
         list = [note]
         setCurrentId(note.id)
       } else if (currentId === id) {
-        const latestId = getLatestNoteId(list)
+        const latestId = getLatestUpdatedNoteId(list)
         if (latestId) setCurrentId(latestId)
       }
       return list
