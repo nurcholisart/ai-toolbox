@@ -26,6 +26,7 @@ import About from './components/About.jsx'
 import { getApiKey } from './lib/config.js'
 import InstallPrompt from './components/InstallPrompt.jsx'
 import MicrophoneTranscriber from './components/MicrophoneTranscriber.jsx'
+import Quizzes from './components/Quizzes.jsx'
 
 const tools = [
   { name: 'PDF to Markdown', description: 'Convert PDF content into Markdown', link: '/pdf-to-markdown' },
@@ -50,6 +51,7 @@ const tools = [
   { name: 'Notable', description: 'Local notes with a rich-text editor', link: '/notable' },
   { name: 'Promptable', description: 'Iterate on prompts with Gemini previews', link: '/promptable' },
   { name: 'Chromatic Tuner', description: 'Tune instruments via microphone', link: '/chromatic-tuner' },
+  { name: 'Quizzes', description: 'Create embeddable knowledge quizzes', link: '/quizzes' },
   {
     name: 'Propose new tool',
     description: 'Suggest an idea on GitHub',
@@ -126,7 +128,8 @@ export default function App() {
   const isNotable = useMemo(() => basePath === '/notable', [basePath])
   const isPromptable = useMemo(() => basePath === '/promptable', [basePath])
   const isChromaticTuner = useMemo(() => basePath === '/chromatic-tuner', [basePath])
-  
+  const isQuizzes = useMemo(() => basePath === '/quizzes', [basePath])
+
   const isSettings = useMemo(() => basePath === '/settings', [basePath])
   const isAbout = useMemo(() => basePath === '/about', [basePath])
 
@@ -463,6 +466,10 @@ export default function App() {
         <ChromaticTuner />
       </div>
     )
+  }
+
+  if (isQuizzes) {
+    return <Quizzes />
   }
 
   if (isLockfileScanner) {
