@@ -208,6 +208,7 @@ export default function Quizzes() {
   }
 
   const handleQuizChange = (event) => {
+    if (isEmbedded) return
     setSelectedQuizId(event.target.value)
   }
 
@@ -361,21 +362,29 @@ export default function Quizzes() {
 
         <main className="space-y-8">
           <section aria-label="Quiz selection" className="flex flex-col gap-4">
-            <label className="text-sm font-medium uppercase tracking-wide text-gray-600" htmlFor="quiz-selector">
-              Choose a quiz
-            </label>
-            <select
-              id="quiz-selector"
-              value={selectedQuizId}
-              onChange={handleQuizChange}
-              className="w-full rounded-lg border border-gray-300 bg-white px-4 py-3 text-base text-gray-900 focus:border-black focus:outline-none"
-            >
-              {quizCatalog.map((quiz) => (
-                <option key={quiz.id} value={quiz.id} className="text-gray-900">
-                  {quiz.title}
-                </option>
-              ))}
-            </select>
+            {isEmbedded ? (
+              <p className="rounded-lg border border-dashed border-gray-300 bg-gray-50 px-4 py-3 text-sm text-gray-600">
+                Quiz selection is hidden when the experience is embedded. Pass a quiz ID through the URL to choose a course.
+              </p>
+            ) : (
+              <>
+                <label className="text-sm font-medium uppercase tracking-wide text-gray-600" htmlFor="quiz-selector">
+                  Choose a quiz
+                </label>
+                <select
+                  id="quiz-selector"
+                  value={selectedQuizId}
+                  onChange={handleQuizChange}
+                  className="w-full rounded-lg border border-gray-300 bg-white px-4 py-3 text-base text-gray-900 focus:border-black focus:outline-none"
+                >
+                  {quizCatalog.map((quiz) => (
+                    <option key={quiz.id} value={quiz.id} className="text-gray-900">
+                      {quiz.title}
+                    </option>
+                  ))}
+                </select>
+              </>
+            )}
             <p className="text-sm text-gray-600">{selectedQuiz.description}</p>
           </section>
 
