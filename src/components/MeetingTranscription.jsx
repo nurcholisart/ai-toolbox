@@ -29,8 +29,9 @@ export default function MeetingTranscription() {
 
   const abortRef = useRef(null)
   const dropRef = useRef(null)
-  const CORE_URL = '/ffmpeg/esm/ffmpeg-core.js'
-  const WASM_URL = CORE_URL.replace(/\.js$/, '.wasm')
+  // Use absolute URLs to prevent Vite dev server from trying to process them
+  const CORE_URL = useMemo(() => new URL('/ffmpeg/esm/ffmpeg-core.js', window.location.origin).href, [])
+  const WASM_URL = useMemo(() => new URL('/ffmpeg/esm/ffmpeg-core.wasm', window.location.origin).href, [])
 
   useEffect(() => {
     const load = () => setApiKey(getApiKey())
@@ -66,76 +67,55 @@ export default function MeetingTranscription() {
     }
   }, [])
 
-  // Preflight + load FFmpeg core as blob URLs with progress
+  // Load FFmpeg core with smart caching
   useEffect(() => {
     let mounted = true
-    const fetchAsBlobUrl = async (url, onProgress) => {
-      const res = await fetch(url)
-      if (!res.ok) throw new Error(`Failed to download ${url} (status ${res.status})`)
-      const total = Number(res.headers.get('content-length') || 0)
-      if (!res.body || !total || !res.body.getReader) {
-        const blob = await res.blob()
-        return URL.createObjectURL(blob)
-      }
-      const reader = res.body.getReader()
-      const chunks = []
-      let received = 0
-      for (;;) {
-        const { done, value } = await reader.read()
-        if (done) break
-        chunks.push(value)
-        received += value.length
-        onProgress && onProgress(Math.round((received / total) * 100))
-      }
-      const blob = new Blob(chunks, { type: res.headers.get('content-type') || 'application/octet-stream' })
-      return URL.createObjectURL(blob)
+
+    const isCached = async (url) => {
+      if (!('caches' in self)) return false
+      const match = await caches.match(url, { ignoreSearch: true, ignoreVary: true })
+      return !!match
     }
 
-    const preflight = async () => {
+    const loadFfmpeg = async () => {
       try {
-        const resJs = await fetch(CORE_URL, { method: 'HEAD', cache: 'no-store' })
-        const resWasm = await fetch(WASM_URL, { method: 'HEAD', cache: 'no-store' })
-        if (!resJs.ok || !resWasm.ok) throw new Error('FFmpeg core not accessible')
-        if (!mounted) return
-        setHealthOk(true)
-      } catch (e) {
-        if (!mounted) return
-        setHealthOk(false)
-      }
-    }
+        const [coreCached, wasmCached] = await Promise.all([
+          isCached(CORE_URL),
+          isCached(WASM_URL),
+        ])
+        const bothCached = coreCached && wasmCached
 
-    const loadCore = async () => {
-      try {
-        setCorePhase('Downloading core (JS)')
-        setCoreProgress(0)
-        const jsUrl = await fetchAsBlobUrl(CORE_URL, (p) => setCoreProgress(p))
-        setCorePhase('Downloading core (WASM)')
-        setCoreProgress(0)
-        const wasmUrl = await fetchAsBlobUrl(WASM_URL, (p) => setCoreProgress(p))
         const inst = new FFmpeg()
-        inst.on('progress', ({ progress }) => { /* noop or could wire */ })
-        setCorePhase('Loading FFmpeg')
-        await inst.load({ coreURL: jsUrl, wasmURL: wasmUrl })
-        URL.revokeObjectURL(jsUrl)
-        URL.revokeObjectURL(wasmUrl)
+        // Progress listener can be used for conversion steps, but not for initial load now.
+        inst.on('progress', ({ progress }) => { /* noop */ })
+
+        if (bothCached) {
+          setCorePhase('Loading from cache')
+          setCoreProgress(100)
+        } else {
+          setCorePhase('Downloading core')
+          setCoreProgress(0) // Indicates indeterminate loading
+        }
+
+        await inst.load({ coreURL: CORE_URL, wasmURL: WASM_URL })
+
         if (!mounted) return
         setFfmpeg(inst)
         setReady(true)
         setCorePhase('')
         setCoreProgress(0)
+        setHealthOk(true)
       } catch (e) {
         if (!mounted) return
         setHealthOk(false)
+        console.error('FFmpeg load error:', e)
       }
     }
 
-    ;(async () => {
-      await preflight()
-      if (healthOk !== false) await loadCore()
-    })()
+    loadFfmpeg()
 
     return () => { mounted = false }
-  }, [])
+  }, [CORE_URL, WASM_URL])
 
   const updateStatus = (m) => setStatus(m)
 
@@ -385,7 +365,7 @@ export default function MeetingTranscription() {
             {!ready && (
               <div className="inline-flex items-center text-sm text-gray-700">
                 <IconLoader2 className="animate-spin -ml-1 mr-2" size={16} />
-                Loading FFmpeg… {corePhase && `${corePhase} ${coreProgress ? `(${coreProgress}%)` : ''}`}
+                Loading FFmpeg… {corePhase !== 'Loading from cache' && corePhase}
               </div>
             )}
           </div>

@@ -184,8 +184,14 @@ export default defineConfig({
             options: {
               cacheName: 'ffmpeg-assets',
               cacheableResponse: { statuses: [0, 200] },
-              expiration: { maxEntries: 4, maxAgeSeconds: 7 * 24 * 60 * 60 },
-              matchOptions: { ignoreSearch: true },
+              expiration: {
+                maxEntries: 6,
+                maxAgeSeconds: 60 * 60 * 24 * 7, // 7 days
+              },
+              matchOptions: {
+                ignoreVary: true,
+                ignoreSearch: true,
+              },
             },
           },
         ],
