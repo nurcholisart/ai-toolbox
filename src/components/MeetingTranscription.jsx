@@ -150,9 +150,9 @@ export default function MeetingTranscription() {
       updateStatus(`File is too large. Max ${MAX_MB}MB.`)
       return
     }
-    const ok = /\.(mp3|mp4|webm|mov|wav)$/i.test(f.name)
+    const ok = /\.(mp3|mp4|webm|mov|wav|mkv)$/i.test(f.name)
     if (!ok) {
-      updateStatus('Unsupported file. Use mp3, mp4, webm, mov, or wav.')
+      updateStatus('Unsupported file. Use mp3, mp4, webm, mov, wav, or mkv.')
       return
     }
     setFile(f)
@@ -269,7 +269,7 @@ export default function MeetingTranscription() {
 
       const ext = (file.name.split('.').pop() || '').toLowerCase()
       const isAudioMp3 = ext === 'mp3'
-      const isVideoish = /^(mp4|webm|mov|wav)$/.test(ext)
+      const isVideoish = /^(mp4|webm|mov|wav|mkv)$/.test(ext)
 
       let mp3Blob = null
 
@@ -400,7 +400,7 @@ export default function MeetingTranscription() {
                 className="w-full bg-white border-2 border-black rounded-lg px-3 py-2 focus:outline-none"
               >
                 <option value="English">English</option>
-                <option value="Indonesia">Bahasa Indonesia</option>
+                <option value="Indonesian">Indonesian</option>
               </select>
             </div>
             <div className="flex items-end text-sm text-gray-600">
@@ -423,9 +423,9 @@ export default function MeetingTranscription() {
             >
               <IconUpload size={40} stroke={1.5} className="text-gray-500" />
               <p className="mt-4 text-lg text-gray-600">Drag & drop your audio or video here</p>
-              <p className="mt-1 text-sm text-gray-500">mp3, mp4, webm, mov, wav (Max 1GB)</p>
+              <p className="mt-1 text-sm text-gray-500">mp3, mp4, webm, mov, wav, mkv (Max 1GB)</p>
               {fileName && <p className="mt-2 text-sm font-medium text-gray-800">{fileName}</p>}
-              <input id="meeting-file" type="file" accept="audio/*,video/*" className="hidden" onChange={onFileChange} />
+              <input id="meeting-file" type="file" accept="audio/*,video/*,.mkv" className="hidden" onChange={onFileChange} />
             </label>
 
             <button
