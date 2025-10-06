@@ -1,15 +1,8 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react'
-import {
-  IconDownload,
-  IconMinus,
-  IconPlus,
-  IconTrash,
-  IconUpload,
-  IconEye,
-  IconEyeOff,
-} from '@tabler/icons-react'
+import { IconDownload, IconMinus, IconPlus, IconTrash, IconUpload } from '@tabler/icons-react'
 
-const STORAGE_KEY = 'spreadsheet:sheetV1'
+const STORAGE_KEY = 'spreadsheet:sheetV2'
+const LEGACY_STORAGE_KEYS = ['spreadsheet:sheetV1']
 const DEFAULT_ROWS = 8
 const DEFAULT_COLS = 6
 
@@ -27,14 +20,6 @@ const columnNameToIndex = (name) => {
   return name.split('').reduce((acc, char) => acc * 26 + (char.charCodeAt(0) - 64), 0) - 1
 }
 
-const createDefaultState = () => ({
-  rows: DEFAULT_ROWS,
-  cols: DEFAULT_COLS,
-  headerNames: Array.from({ length: DEFAULT_COLS }, (_, index) => columnNameFromIndex(index)),
-  showHeaderNames: true,
-  cells: {},
-})
-
 const parseCellId = (id) => {
   const match = /^([A-Z]+)(\d+)$/.exec(id)
   if (!match) return null
@@ -45,8 +30,36 @@ const parseCellId = (id) => {
   return { colIndex, rowIndex }
 }
 
+const createDefaultState = () => ({
+  rows: DEFAULT_ROWS,
+  cols: DEFAULT_COLS,
+  cells: {},
+})
+
+const sanitizeState = (state) => {
+  if (!state || typeof state !== 'object') return createDefaultState()
+  const rows = Number.isInteger(state.rows) && state.rows > 0 ? state.rows : DEFAULT_ROWS
+  const cols = Number.isInteger(state.cols) && state.cols > 0 ? state.cols : DEFAULT_COLS
+  const cells = {}
+  if (state.cells && typeof state.cells === 'object') {
+    Object.entries(state.cells).forEach(([key, value]) => {
+      if (typeof value === 'string') cells[key] = value
+    })
+  }
+  return { rows, cols, cells }
+}
+
+const deserializeState = (value) => {
+  try {
+    const parsed = JSON.parse(value)
+    return sanitizeState(parsed)
+  } catch (error) {
+    return createDefaultState()
+  }
+}
+
 const evaluateSheet = (sheet) => {
-  const { cells, rows, cols } = sheet
+  const { rows, cols, cells } = sheet
   const cache = new Map()
   const visiting = new Set()
 
@@ -129,32 +142,6 @@ const evaluateSheet = (sheet) => {
   return computedCells
 }
 
-const serializeState = (sheet) => JSON.stringify(sheet)
-
-const deserializeState = (value) => {
-  try {
-    const parsed = JSON.parse(value)
-    if (!parsed || typeof parsed !== 'object') return createDefaultState()
-    const rows = Number.isInteger(parsed.rows) && parsed.rows > 0 ? parsed.rows : DEFAULT_ROWS
-    const cols = Number.isInteger(parsed.cols) && parsed.cols > 0 ? parsed.cols : DEFAULT_COLS
-    const headerNames = Array.from({ length: cols }, (_, index) => {
-      const candidate = Array.isArray(parsed.headerNames) ? parsed.headerNames[index] : undefined
-      if (typeof candidate === 'string' && candidate.length) return candidate
-      return columnNameFromIndex(index)
-    })
-    const showHeaderNames = typeof parsed.showHeaderNames === 'boolean' ? parsed.showHeaderNames : true
-    const cells = {}
-    if (parsed.cells && typeof parsed.cells === 'object') {
-      Object.entries(parsed.cells).forEach(([key, cellValue]) => {
-        if (typeof cellValue === 'string') cells[key] = cellValue
-      })
-    }
-    return { rows, cols, headerNames, showHeaderNames, cells }
-  } catch (error) {
-    return createDefaultState()
-  }
-}
-
 const escapeCsvValue = (value) => {
   if (value === undefined || value === null) return ''
   const stringValue = value.toString()
@@ -201,13 +188,21 @@ const parseCsv = (text) => {
   return rows
 }
 
+const getInitialState = () => {
+  if (typeof window === 'undefined') return createDefaultState()
+  const stored = window.localStorage.getItem(STORAGE_KEY)
+  if (stored) return deserializeState(stored)
+  for (const key of LEGACY_STORAGE_KEYS) {
+    const legacy = window.localStorage.getItem(key)
+    if (legacy) return deserializeState(legacy)
+  }
+  return createDefaultState()
+}
+
+const serializeState = (sheet) => JSON.stringify(sheet)
+
 export default function Spreadsheet() {
-  const [sheet, setSheet] = useState(() => {
-    if (typeof window === 'undefined') return createDefaultState()
-    const stored = window.localStorage.getItem(STORAGE_KEY)
-    if (!stored) return createDefaultState()
-    return deserializeState(stored)
-  })
+  const [sheet, setSheet] = useState(() => getInitialState())
 
   const fileInputRef = useRef(null)
   const resetDialogRef = useRef(null)
@@ -227,8 +222,46 @@ export default function Spreadsheet() {
       } else {
         delete nextCells[id]
       }
+      return { ...prev, cells: nextCells }
+    })
+  }
+
+  const handleCellPaste = (id, event) => {
+    const text = event.clipboardData?.getData('text/plain')
+    if (!text) return
+    const rows = text.split(/\r?\n/).filter((row, index, array) => !(index === array.length - 1 && row === ''))
+    const data = rows.map((row) => row.split('\t'))
+    const isMultiCell = data.length > 1 || data.some((row) => row.length > 1)
+    if (!isMultiCell) return
+
+    const start = parseCellId(id)
+    if (!start) return
+
+    event.preventDefault()
+
+    setSheet((prev) => {
+      const nextCells = { ...prev.cells }
+      let nextRows = prev.rows
+      let nextCols = prev.cols
+
+      data.forEach((rowValues, rowOffset) => {
+        rowValues.forEach((cellValue, colOffset) => {
+          const rowIndex = start.rowIndex + rowOffset
+          const colIndex = start.colIndex + colOffset
+          if (rowIndex >= nextRows) nextRows = rowIndex + 1
+          if (colIndex >= nextCols) nextCols = colIndex + 1
+          const targetId = `${columnNameFromIndex(colIndex)}${rowIndex + 1}`
+          if (cellValue) {
+            nextCells[targetId] = cellValue
+          } else {
+            delete nextCells[targetId]
+          }
+        })
+      })
+
       return {
-        ...prev,
+        rows: nextRows,
+        cols: nextCols,
         cells: nextCells,
       }
     })
@@ -244,16 +277,14 @@ export default function Spreadsheet() {
   const handleRemoveRow = () => {
     setSheet((prev) => {
       if (prev.rows <= 1) return prev
-      const updatedCells = { ...prev.cells }
-      for (let col = 0; col < prev.cols; col += 1) {
-        const id = `${columnNameFromIndex(col)}${prev.rows}`
-        delete updatedCells[id]
-      }
-      return {
-        ...prev,
-        rows: prev.rows - 1,
-        cells: updatedCells,
-      }
+      const nextRows = prev.rows - 1
+      const nextCells = {}
+      Object.entries(prev.cells).forEach(([key, value]) => {
+        const parsed = parseCellId(key)
+        if (!parsed) return
+        if (parsed.rowIndex < nextRows) nextCells[key] = value
+      })
+      return { rows: nextRows, cols: prev.cols, cells: nextCells }
     })
   }
 
@@ -261,43 +292,20 @@ export default function Spreadsheet() {
     setSheet((prev) => ({
       ...prev,
       cols: prev.cols + 1,
-      headerNames: [...prev.headerNames, columnNameFromIndex(prev.cols)],
     }))
   }
 
   const handleRemoveColumn = () => {
     setSheet((prev) => {
       if (prev.cols <= 1) return prev
-      const updatedCells = { ...prev.cells }
-      const newCols = prev.cols - 1
-      for (let row = 0; row < prev.rows; row += 1) {
-        const id = `${columnNameFromIndex(prev.cols - 1)}${row + 1}`
-        delete updatedCells[id]
-      }
-      return {
-        ...prev,
-        cols: newCols,
-        headerNames: prev.headerNames.slice(0, newCols),
-        cells: updatedCells,
-      }
-    })
-  }
-
-  const handleToggleHeaders = () => {
-    setSheet((prev) => ({
-      ...prev,
-      showHeaderNames: !prev.showHeaderNames,
-    }))
-  }
-
-  const handleHeaderChange = (index, value) => {
-    setSheet((prev) => {
-      const nextHeaderNames = [...prev.headerNames]
-      nextHeaderNames[index] = value
-      return {
-        ...prev,
-        headerNames: nextHeaderNames,
-      }
+      const nextCols = prev.cols - 1
+      const nextCells = {}
+      Object.entries(prev.cells).forEach(([key, value]) => {
+        const parsed = parseCellId(key)
+        if (!parsed) return
+        if (parsed.colIndex < nextCols) nextCells[key] = value
+      })
+      return { rows: prev.rows, cols: nextCols, cells: nextCells }
     })
   }
 
@@ -337,14 +345,14 @@ export default function Spreadsheet() {
       rows.forEach((row, rowIndex) => {
         row.forEach((cellValue, colIndex) => {
           const id = `${columnNameFromIndex(colIndex)}${rowIndex + 1}`
-          newCells[id] = cellValue
+          if (cellValue) {
+            newCells[id] = cellValue
+          }
         })
       })
       setSheet({
         rows: rowCount,
         cols: colCount,
-        headerNames: Array.from({ length: colCount }, (_, index) => sheet.headerNames[index] ?? columnNameFromIndex(index)),
-        showHeaderNames: sheet.showHeaderNames,
         cells: newCells,
       })
     }
@@ -358,143 +366,121 @@ export default function Spreadsheet() {
   }
 
   return (
-    <main className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-10">
-      <h1 className="text-3xl font-semibold text-gray-900 mb-6">Spreadsheet</h1>
-      <section className="bg-white border-2 border-black rounded-xl shadow-md p-6 space-y-4">
-        <header className="flex flex-wrap items-center gap-3 justify-between">
-          <div className="flex flex-wrap gap-2">
-            <button
-              type="button"
-              onClick={handleAddRow}
-              className="inline-flex items-center gap-2 bg-black text-white px-3 py-2 rounded-lg hover:bg-gray-800 focus:outline-none focus:ring-2 focus:ring-black"
-            >
-              <IconPlus size={18} />
-              Add row
-            </button>
-            <button
-              type="button"
-              onClick={handleRemoveRow}
-              className="inline-flex items-center gap-2 bg-white text-black border-2 border-black px-3 py-2 rounded-lg hover:bg-gray-100 focus:outline-none focus:ring-2 focus:ring-black"
-            >
-              <IconMinus size={18} />
-              Remove row
-            </button>
-            <button
-              type="button"
-              onClick={handleAddColumn}
-              className="inline-flex items-center gap-2 bg-black text-white px-3 py-2 rounded-lg hover:bg-gray-800 focus:outline-none focus:ring-2 focus:ring-black"
-            >
-              <IconPlus size={18} />
-              Add column
-            </button>
-            <button
-              type="button"
-              onClick={handleRemoveColumn}
-              className="inline-flex items-center gap-2 bg-white text-black border-2 border-black px-3 py-2 rounded-lg hover:bg-gray-100 focus:outline-none focus:ring-2 focus:ring-black"
-            >
-              <IconMinus size={18} />
-              Remove column
-            </button>
-          </div>
-          <div className="flex flex-wrap items-center gap-2">
-            <button
-              type="button"
-              onClick={handleToggleHeaders}
-              className="inline-flex items-center gap-2 bg-white text-black border-2 border-black px-3 py-2 rounded-lg hover:bg-gray-100 focus:outline-none focus:ring-2 focus:ring-black"
-              aria-pressed={sheet.showHeaderNames}
-            >
-              {sheet.showHeaderNames ? <IconEye size={18} /> : <IconEyeOff size={18} />}
-              Toggle header names
-            </button>
-            <button
-              type="button"
-              onClick={handleExportCsv}
-              className="inline-flex items-center gap-2 bg-white text-black border-2 border-black px-3 py-2 rounded-lg hover:bg-gray-100 focus:outline-none focus:ring-2 focus:ring-black"
-            >
-              <IconDownload size={18} />
-              Export CSV
-            </button>
-            <button
-              type="button"
-              onClick={() => fileInputRef.current?.click()}
-              className="inline-flex items-center gap-2 bg-white text-black border-2 border-black px-3 py-2 rounded-lg hover:bg-gray-100 focus:outline-none focus:ring-2 focus:ring-black"
-            >
-              <IconUpload size={18} />
-              Import CSV
-            </button>
-            <button
-              type="button"
-              onClick={() => resetDialogRef.current?.showModal()}
-              className="inline-flex items-center gap-2 bg-white text-black border-2 border-black px-3 py-2 rounded-lg hover:bg-gray-100 focus:outline-none focus:ring-2 focus:ring-black"
-            >
-              <IconTrash size={18} />
-              Clear sheet
-            </button>
-          </div>
-        </header>
-        <p className="text-sm text-gray-600">
-          Use arrow keys to move between cells. Enter a formula starting with <code>=</code> (for example, <code>=A1*2</code>). Column headers can be renamed when header names are visible.
-        </p>
-        <div className="overflow-x-auto">
-          <table className="min-w-full border-2 border-black rounded-lg" role="grid">
-            <thead>
-              <tr>
-                <th className="border-b-2 border-black bg-gray-100 text-left px-3 py-2 text-sm font-medium text-gray-700">&nbsp;</th>
-                {Array.from({ length: sheet.cols }).map((_, colIndex) => (
-                  <th
-                    key={`header-${colIndex}`}
-                    className="border-b-2 border-black bg-gray-100 px-3 py-2 text-sm font-medium text-gray-700"
-                    scope="col"
-                  >
-                    {sheet.showHeaderNames ? (
-                      <input
-                        type="text"
-                        value={sheet.headerNames[colIndex] ?? columnNameFromIndex(colIndex)}
-                        onChange={(event) => handleHeaderChange(colIndex, event.target.value)}
-                        className="w-full bg-white border-2 border-black rounded-lg px-2 py-1 text-sm focus:outline-none focus:ring-2 focus:ring-black"
-                        aria-label={`Header ${columnNameFromIndex(colIndex)}`}
-                      />
-                    ) : (
-                      <span>{columnNameFromIndex(colIndex)}</span>
-                    )}
-                  </th>
-                ))}
-              </tr>
-            </thead>
-            <tbody>
-              {Array.from({ length: sheet.rows }).map((_, rowIndex) => (
-                <tr key={`row-${rowIndex}`} className="odd:bg-white even:bg-gray-50">
-                  <th className="border-b border-black px-3 py-2 text-sm font-medium text-gray-700 text-left" scope="row">
-                    {rowIndex + 1}
-                  </th>
-                  {Array.from({ length: sheet.cols }).map((_, colIndex) => {
-                    const cellId = `${columnNameFromIndex(colIndex)}${rowIndex + 1}`
-                    const display = computed[cellId]
-                    return (
-                      <td key={cellId} className="border-b border-black px-2 py-2 align-top">
-                        <div className="space-y-1">
-                          <input
-                            type="text"
-                            value={sheet.cells[cellId] ?? ''}
-                            onChange={(event) => handleCellChange(cellId, event.target.value)}
-                            aria-label={`Cell ${cellId}`}
-                            className="w-full bg-white border-2 border-black rounded-lg px-2 py-1 text-sm focus:outline-none focus:ring-2 focus:ring-black"
-                          />
-                          {display?.error ? (
-                            <p className="text-xs text-gray-600">{display.error}</p>
-                          ) : (
-                            <p className="text-xs text-gray-600">{display?.value ?? ''}</p>
-                          )}
-                        </div>
-                      </td>
-                    )
-                  })}
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
+    <main className="flex-1 w-full px-4 sm:px-8 py-6 space-y-6">
+      <section className="flex flex-wrap gap-2 items-center">
+        <button
+          type="button"
+          onClick={handleAddRow}
+          className="inline-flex items-center gap-2 rounded-md border border-gray-300 bg-white px-3 py-2 text-sm font-medium text-gray-700 hover:bg-gray-100 focus:outline-none focus:ring-2 focus:ring-black"
+        >
+          <IconPlus size={18} />
+          Add row
+        </button>
+        <button
+          type="button"
+          onClick={handleRemoveRow}
+          className="inline-flex items-center gap-2 rounded-md border border-gray-300 bg-white px-3 py-2 text-sm font-medium text-gray-700 hover:bg-gray-100 focus:outline-none focus:ring-2 focus:ring-black"
+        >
+          <IconMinus size={18} />
+          Remove row
+        </button>
+        <button
+          type="button"
+          onClick={handleAddColumn}
+          className="inline-flex items-center gap-2 rounded-md border border-gray-300 bg-white px-3 py-2 text-sm font-medium text-gray-700 hover:bg-gray-100 focus:outline-none focus:ring-2 focus:ring-black"
+        >
+          <IconPlus size={18} />
+          Add column
+        </button>
+        <button
+          type="button"
+          onClick={handleRemoveColumn}
+          className="inline-flex items-center gap-2 rounded-md border border-gray-300 bg-white px-3 py-2 text-sm font-medium text-gray-700 hover:bg-gray-100 focus:outline-none focus:ring-2 focus:ring-black"
+        >
+          <IconMinus size={18} />
+          Remove column
+        </button>
+        <button
+          type="button"
+          onClick={() => fileInputRef.current?.click()}
+          className="inline-flex items-center gap-2 rounded-md border border-gray-300 bg-white px-3 py-2 text-sm font-medium text-gray-700 hover:bg-gray-100 focus:outline-none focus:ring-2 focus:ring-black"
+        >
+          <IconUpload size={18} />
+          Import CSV
+        </button>
+        <button
+          type="button"
+          onClick={handleExportCsv}
+          className="inline-flex items-center gap-2 rounded-md border border-gray-300 bg-white px-3 py-2 text-sm font-medium text-gray-700 hover:bg-gray-100 focus:outline-none focus:ring-2 focus:ring-black"
+        >
+          <IconDownload size={18} />
+          Export CSV
+        </button>
+        <button
+          type="button"
+          onClick={() => resetDialogRef.current?.showModal()}
+          className="inline-flex items-center gap-2 rounded-md border border-gray-300 bg-white px-3 py-2 text-sm font-medium text-gray-700 hover:bg-gray-100 focus:outline-none focus:ring-2 focus:ring-black"
+        >
+          <IconTrash size={18} />
+          Clear sheet
+        </button>
       </section>
+
+      <p className="text-sm text-gray-600">
+        Use arrow keys to move between cells. Start a formula with <code>=</code> (for example <code>=A1*2</code>). Paste multiple
+        cells from other spreadsheets and the grid will expand automatically.
+      </p>
+
+      <div className="overflow-auto rounded-lg border border-gray-200 bg-white">
+        <table className="w-full border-collapse text-sm" role="grid">
+          <thead className="bg-gray-50">
+            <tr>
+              <th className="w-12 border border-gray-200 px-3 py-2 text-left text-xs font-medium text-gray-500">&nbsp;</th>
+              {Array.from({ length: sheet.cols }).map((_, colIndex) => (
+                <th
+                  key={`header-${colIndex}`}
+                  className="min-w-[6rem] border border-gray-200 px-3 py-2 text-center text-xs font-medium uppercase tracking-wide text-gray-600"
+                  scope="col"
+                >
+                  {columnNameFromIndex(colIndex)}
+                </th>
+              ))}
+            </tr>
+          </thead>
+          <tbody>
+            {Array.from({ length: sheet.rows }).map((_, rowIndex) => (
+              <tr key={`row-${rowIndex}`} className="even:bg-gray-50/50">
+                <th className="border border-gray-200 px-3 py-2 text-left text-xs font-medium text-gray-500" scope="row">
+                  {rowIndex + 1}
+                </th>
+                {Array.from({ length: sheet.cols }).map((_, colIndex) => {
+                  const cellId = `${columnNameFromIndex(colIndex)}${rowIndex + 1}`
+                  const display = computed[cellId]
+                  return (
+                    <td key={cellId} className="border border-gray-200 p-0 align-top">
+                      <div className="flex flex-col">
+                        <input
+                          type="text"
+                          value={sheet.cells[cellId] ?? ''}
+                          onChange={(event) => handleCellChange(cellId, event.target.value)}
+                          onPaste={(event) => handleCellPaste(cellId, event)}
+                          aria-label={`Cell ${cellId}`}
+                          className="w-full bg-transparent px-2 py-1 text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-black"
+                        />
+                        {display?.error ? (
+                          <span className="px-2 pb-1 text-xs text-gray-500">{display.error}</span>
+                        ) : (
+                          <span className="px-2 pb-1 text-xs text-gray-500">{display?.value ?? ''}</span>
+                        )}
+                      </div>
+                    </td>
+                  )
+                })}
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
 
       <input
         ref={fileInputRef}
@@ -505,12 +491,9 @@ export default function Spreadsheet() {
         aria-hidden="true"
       />
 
-      <dialog
-        ref={resetDialogRef}
-        className="rounded-xl border-2 border-black p-6 max-w-sm w-full"
-      >
+      <dialog ref={resetDialogRef} className="max-w-sm w-full rounded-lg border border-gray-300 p-6">
         <form method="dialog" className="space-y-4">
-          <h2 className="text-xl font-semibold text-gray-900">Reset sheet?</h2>
+          <h2 className="text-lg font-semibold text-gray-900">Reset sheet?</h2>
           <p className="text-sm text-gray-700">
             This action clears all cells and restores the default grid. It cannot be undone.
           </p>
@@ -518,14 +501,14 @@ export default function Spreadsheet() {
             <button
               type="button"
               onClick={() => resetDialogRef.current?.close()}
-              className="bg-white border-2 border-black text-black px-3 py-2 rounded-lg hover:bg-gray-100 focus:outline-none focus:ring-2 focus:ring-black"
+              className="rounded-md border border-gray-300 bg-white px-3 py-2 text-sm font-medium text-gray-700 hover:bg-gray-100 focus:outline-none focus:ring-2 focus:ring-black"
             >
               Cancel
             </button>
             <button
               type="button"
               onClick={handleClear}
-              className="bg-black text-white px-3 py-2 rounded-lg hover:bg-gray-800 focus:outline-none focus:ring-2 focus:ring-black"
+              className="rounded-md bg-black px-3 py-2 text-sm font-medium text-white hover:bg-gray-800 focus:outline-none focus:ring-2 focus:ring-black"
             >
               Clear
             </button>

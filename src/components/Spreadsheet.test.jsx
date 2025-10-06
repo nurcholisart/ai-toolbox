@@ -3,7 +3,7 @@ import { cleanup, fireEvent, render, screen, waitFor, within } from '@testing-li
 import { beforeEach, describe, expect, it } from 'vitest'
 import Spreadsheet from './Spreadsheet.jsx'
 
-const STORAGE_KEY = 'spreadsheet:sheetV1'
+const STORAGE_KEY = 'spreadsheet:sheetV2'
 
 describe('Spreadsheet', () => {
   beforeEach(() => {
@@ -51,5 +51,21 @@ describe('Spreadsheet', () => {
     render(<Spreadsheet />)
     const restoredCell = screen.getByLabelText('Cell A1')
     expect(restoredCell).toHaveValue('64')
+  })
+
+  it('pastes multi-cell clipboard data across the grid', () => {
+    render(<Spreadsheet />)
+    const startCell = screen.getByLabelText('Cell B2')
+
+    fireEvent.paste(startCell, {
+      clipboardData: {
+        getData: () => '1\t2\n3\t4',
+      },
+    })
+
+    expect(screen.getByLabelText('Cell B2')).toHaveValue('1')
+    expect(screen.getByLabelText('Cell C2')).toHaveValue('2')
+    expect(screen.getByLabelText('Cell B3')).toHaveValue('3')
+    expect(screen.getByLabelText('Cell C3')).toHaveValue('4')
   })
 })

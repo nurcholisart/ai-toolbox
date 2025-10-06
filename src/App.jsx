@@ -329,27 +329,25 @@ export default function App() {
   if (isSpreadsheet) {
     return (
       <div className="min-h-screen bg-gray-50">
-        <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 pt-6">
-          <div className="flex items-center justify-between">
+        <header className="flex flex-wrap items-center justify-between gap-3 border-b border-gray-200 bg-white px-6 py-4">
+          <a
+            href="/"
+            className="inline-flex items-center gap-2 rounded-md border border-gray-300 bg-white px-3 py-2 text-sm font-medium text-gray-700 hover:bg-gray-100 focus:outline-none focus:ring-2 focus:ring-black"
+          >
+            <IconArrowLeft size={18} stroke={2} />
+            Back to tools
+          </a>
+          <div className="flex items-center gap-2">
+            <InstallPrompt />
             <a
-              href="/"
-              className="inline-flex items-center gap-2 text-sm bg-white text-black border-2 border-black rounded-lg px-3 py-1 hover:bg-gray-100 shadow-sm"
+              href="/settings"
+              className="inline-flex items-center gap-2 rounded-md border border-gray-300 bg-white px-3 py-2 text-sm font-medium text-gray-700 hover:bg-gray-100 focus:outline-none focus:ring-2 focus:ring-black"
             >
-              <IconArrowLeft size={18} stroke={2} />
-              Back to tools
+              <IconSettings size={16} stroke={2} />
+              Edit Config
             </a>
-            <div className="flex items-center gap-2">
-              <InstallPrompt />
-              <a
-                href="/settings"
-                className="inline-flex items-center gap-2 text-sm bg-white text-black border-2 border-black rounded-lg px-3 py-1 hover:bg-gray-100 shadow-sm"
-              >
-                <IconSettings size={16} stroke={2} />
-                Edit Config
-              </a>
-            </div>
           </div>
-        </div>
+        </header>
         <Spreadsheet />
       </div>
     )
