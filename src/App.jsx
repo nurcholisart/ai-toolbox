@@ -27,6 +27,7 @@ import { getApiKey } from './lib/config.js'
 import InstallPrompt from './components/InstallPrompt.jsx'
 import MicrophoneTranscriber from './components/MicrophoneTranscriber.jsx'
 import Quizzes from './components/Quizzes.jsx'
+import Spreadsheet from './components/Spreadsheet.jsx'
 
 const tools = [
   { name: 'PDF to Markdown', description: 'Convert PDF content into Markdown', link: '/pdf-to-markdown' },
@@ -48,6 +49,7 @@ const tools = [
   { name: 'go.sum Scanner', description: 'Check Go modules for vulnerabilities', link: '/go-sum-scanner' },
   { name: 'Mermaid Validator', description: 'Validate a Mermaid diagram string', link: '/mermaid-validator' },
   { name: 'Token Counter', description: 'Count tokens with layered CDN fallbacks', link: '/token-counter' },
+  { name: 'Spreadsheet', description: 'Lightweight in-browser grid', link: '/spreadsheet' },
   { name: 'Notable', description: 'Local notes with a rich-text editor', link: '/notable' },
   { name: 'Promptable', description: 'Iterate on prompts with Gemini previews', link: '/promptable' },
   { name: 'Chromatic Tuner', description: 'Tune instruments via microphone', link: '/chromatic-tuner' },
@@ -125,6 +127,7 @@ export default function App() {
   const isTailwindPalette = useMemo(() => basePath === '/tailwind-palette', [basePath])
   const isHillChart = useMemo(() => basePath === '/hill-chart', [basePath])
   const isShapeUpInfographic = useMemo(() => basePath === '/shape-up', [basePath])
+  const isSpreadsheet = useMemo(() => basePath === '/spreadsheet', [basePath])
   const isNotable = useMemo(() => basePath === '/notable', [basePath])
   const isPromptable = useMemo(() => basePath === '/promptable', [basePath])
   const isChromaticTuner = useMemo(() => basePath === '/chromatic-tuner', [basePath])
@@ -321,6 +324,33 @@ export default function App() {
 
   if (isTailwindPalette) {
     return <TailwindPaletteGenerator />
+  }
+
+  if (isSpreadsheet) {
+    return (
+      <div className="min-h-screen bg-gray-50">
+        <header className="flex flex-wrap items-center justify-between gap-3 border-b border-gray-200 bg-white px-6 py-4">
+          <a
+            href="/"
+            className="inline-flex items-center gap-2 rounded-md border border-gray-300 bg-white px-3 py-2 text-sm font-medium text-gray-700 hover:bg-gray-100 focus:outline-none focus:ring-2 focus:ring-black"
+          >
+            <IconArrowLeft size={18} stroke={2} />
+            Back to tools
+          </a>
+          <div className="flex items-center gap-2">
+            <InstallPrompt />
+            <a
+              href="/settings"
+              className="inline-flex items-center gap-2 rounded-md border border-gray-300 bg-white px-3 py-2 text-sm font-medium text-gray-700 hover:bg-gray-100 focus:outline-none focus:ring-2 focus:ring-black"
+            >
+              <IconSettings size={16} stroke={2} />
+              Edit Config
+            </a>
+          </div>
+        </header>
+        <Spreadsheet />
+      </div>
+    )
   }
 
   if (isContextCards) {
