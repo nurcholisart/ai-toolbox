@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react'
-import { IconDownload, IconMinus, IconPlus, IconTrash, IconUpload } from '@tabler/icons-react'
+import { IconDownload, IconPlus, IconTrash, IconUpload } from '@tabler/icons-react'
 
 const STORAGE_KEY = 'spreadsheet:sheetV2'
 const LEGACY_STORAGE_KEYS = ['spreadsheet:sheetV1']
@@ -274,20 +274,6 @@ export default function Spreadsheet() {
     }))
   }
 
-  const handleRemoveRow = () => {
-    setSheet((prev) => {
-      if (prev.rows <= 1) return prev
-      const nextRows = prev.rows - 1
-      const nextCells = {}
-      Object.entries(prev.cells).forEach(([key, value]) => {
-        const parsed = parseCellId(key)
-        if (!parsed) return
-        if (parsed.rowIndex < nextRows) nextCells[key] = value
-      })
-      return { rows: nextRows, cols: prev.cols, cells: nextCells }
-    })
-  }
-
   const handleAddColumn = () => {
     setSheet((prev) => ({
       ...prev,
@@ -295,7 +281,25 @@ export default function Spreadsheet() {
     }))
   }
 
-  const handleRemoveColumn = () => {
+  const handleRemoveRowAt = (targetIndex) => {
+    setSheet((prev) => {
+      if (prev.rows <= 1) return prev
+      const nextRows = prev.rows - 1
+      const nextCells = {}
+      Object.entries(prev.cells).forEach(([key, value]) => {
+        const parsed = parseCellId(key)
+        if (!parsed) return
+        if (parsed.rowIndex === targetIndex) return
+        const nextRowIndex = parsed.rowIndex > targetIndex ? parsed.rowIndex - 1 : parsed.rowIndex
+        if (nextRowIndex >= nextRows) return
+        const id = `${columnNameFromIndex(parsed.colIndex)}${nextRowIndex + 1}`
+        nextCells[id] = value
+      })
+      return { rows: nextRows, cols: prev.cols, cells: nextCells }
+    })
+  }
+
+  const handleRemoveColumnAt = (targetIndex) => {
     setSheet((prev) => {
       if (prev.cols <= 1) return prev
       const nextCols = prev.cols - 1
@@ -303,7 +307,11 @@ export default function Spreadsheet() {
       Object.entries(prev.cells).forEach(([key, value]) => {
         const parsed = parseCellId(key)
         if (!parsed) return
-        if (parsed.colIndex < nextCols) nextCells[key] = value
+        if (parsed.colIndex === targetIndex) return
+        const nextColIndex = parsed.colIndex > targetIndex ? parsed.colIndex - 1 : parsed.colIndex
+        if (nextColIndex >= nextCols) return
+        const id = `${columnNameFromIndex(nextColIndex)}${parsed.rowIndex + 1}`
+        nextCells[id] = value
       })
       return { rows: prev.rows, cols: nextCols, cells: nextCells }
     })
@@ -365,41 +373,51 @@ export default function Spreadsheet() {
     resetDialogRef.current?.close()
   }
 
+  const [contextMenu, setContextMenu] = useState(null)
+
+  useEffect(() => {
+    if (!contextMenu) return undefined
+    const handleEscape = (event) => {
+      if (event.key === 'Escape') setContextMenu(null)
+    }
+    window.addEventListener('keydown', handleEscape)
+    return () => {
+      window.removeEventListener('keydown', handleEscape)
+    }
+  }, [contextMenu])
+
+  const openContextMenu = (event, payload) => {
+    event.preventDefault()
+    event.stopPropagation()
+    setContextMenu({ ...payload, x: event.clientX, y: event.clientY })
+  }
+
+  const closeContextMenu = () => setContextMenu(null)
+
+  const handleDeleteFromContext = () => {
+    if (!contextMenu) return
+    if (contextMenu.type === 'row') {
+      handleRemoveRowAt(contextMenu.index)
+    } else if (contextMenu.type === 'column') {
+      handleRemoveColumnAt(contextMenu.index)
+    }
+    closeContextMenu()
+  }
+
+  useEffect(() => {
+    if (!contextMenu) return undefined
+    const handleClick = () => setContextMenu(null)
+    window.addEventListener('click', handleClick)
+    window.addEventListener('contextmenu', handleClick)
+    return () => {
+      window.removeEventListener('click', handleClick)
+      window.removeEventListener('contextmenu', handleClick)
+    }
+  }, [contextMenu])
+
   return (
     <main className="flex-1 w-full px-4 sm:px-8 py-6 space-y-6">
-      <section className="flex flex-wrap gap-2 items-center">
-        <button
-          type="button"
-          onClick={handleAddRow}
-          className="inline-flex items-center gap-2 rounded-md border border-gray-300 bg-white px-3 py-2 text-sm font-medium text-gray-700 hover:bg-gray-100 focus:outline-none focus:ring-2 focus:ring-black"
-        >
-          <IconPlus size={18} />
-          Add row
-        </button>
-        <button
-          type="button"
-          onClick={handleRemoveRow}
-          className="inline-flex items-center gap-2 rounded-md border border-gray-300 bg-white px-3 py-2 text-sm font-medium text-gray-700 hover:bg-gray-100 focus:outline-none focus:ring-2 focus:ring-black"
-        >
-          <IconMinus size={18} />
-          Remove row
-        </button>
-        <button
-          type="button"
-          onClick={handleAddColumn}
-          className="inline-flex items-center gap-2 rounded-md border border-gray-300 bg-white px-3 py-2 text-sm font-medium text-gray-700 hover:bg-gray-100 focus:outline-none focus:ring-2 focus:ring-black"
-        >
-          <IconPlus size={18} />
-          Add column
-        </button>
-        <button
-          type="button"
-          onClick={handleRemoveColumn}
-          className="inline-flex items-center gap-2 rounded-md border border-gray-300 bg-white px-3 py-2 text-sm font-medium text-gray-700 hover:bg-gray-100 focus:outline-none focus:ring-2 focus:ring-black"
-        >
-          <IconMinus size={18} />
-          Remove column
-        </button>
+      <div className="flex flex-wrap gap-2">
         <button
           type="button"
           onClick={() => fileInputRef.current?.click()}
@@ -424,14 +442,14 @@ export default function Spreadsheet() {
           <IconTrash size={18} />
           Clear sheet
         </button>
-      </section>
+      </div>
 
       <p className="text-sm text-gray-600">
         Use arrow keys to move between cells. Start a formula with <code>=</code> (for example <code>=A1*2</code>). Paste multiple
-        cells from other spreadsheets and the grid will expand automatically.
+        cells from other spreadsheets and the grid will expand automatically. Right-click row or column headers to delete them.
       </p>
 
-      <div className="overflow-auto rounded-lg border border-gray-200 bg-white">
+      <div className="relative overflow-auto rounded-lg border border-gray-200 bg-white">
         <table className="w-full border-collapse text-sm" role="grid">
           <thead className="bg-gray-50">
             <tr>
@@ -441,6 +459,7 @@ export default function Spreadsheet() {
                   key={`header-${colIndex}`}
                   className="min-w-[6rem] border border-gray-200 px-3 py-2 text-center text-xs font-medium uppercase tracking-wide text-gray-600"
                   scope="col"
+                  onContextMenu={(event) => openContextMenu(event, { type: 'column', index: colIndex })}
                 >
                   {columnNameFromIndex(colIndex)}
                 </th>
@@ -450,7 +469,11 @@ export default function Spreadsheet() {
           <tbody>
             {Array.from({ length: sheet.rows }).map((_, rowIndex) => (
               <tr key={`row-${rowIndex}`} className="even:bg-gray-50/50">
-                <th className="border border-gray-200 px-3 py-2 text-left text-xs font-medium text-gray-500" scope="row">
+                <th
+                  className="border border-gray-200 px-3 py-2 text-left text-xs font-medium text-gray-500"
+                  scope="row"
+                  onContextMenu={(event) => openContextMenu(event, { type: 'row', index: rowIndex })}
+                >
                   {rowIndex + 1}
                 </th>
                 {Array.from({ length: sheet.cols }).map((_, colIndex) => {
@@ -480,6 +503,22 @@ export default function Spreadsheet() {
             ))}
           </tbody>
         </table>
+        <button
+          type="button"
+          onClick={handleAddColumn}
+          className="absolute top-2 right-2 inline-flex items-center gap-1 rounded-md border border-gray-300 bg-white px-2 py-1 text-xs font-medium text-gray-700 hover:bg-gray-100 focus:outline-none focus:ring-2 focus:ring-black"
+        >
+          <IconPlus size={14} />
+          Column
+        </button>
+        <button
+          type="button"
+          onClick={handleAddRow}
+          className="absolute bottom-2 left-2 inline-flex items-center gap-1 rounded-md border border-gray-300 bg-white px-2 py-1 text-xs font-medium text-gray-700 hover:bg-gray-100 focus:outline-none focus:ring-2 focus:ring-black"
+        >
+          <IconPlus size={14} />
+          Row
+        </button>
       </div>
 
       <input
@@ -515,6 +554,29 @@ export default function Spreadsheet() {
           </div>
         </form>
       </dialog>
+
+      {contextMenu ? (
+        <dialog
+          open
+          className="fixed z-50 min-w-[160px] rounded-md border border-gray-300 bg-white p-2 text-sm text-gray-700 shadow-lg"
+          style={{ top: contextMenu.y, left: contextMenu.x }}
+          onClick={(event) => event.stopPropagation()}
+        >
+          <form method="dialog" className="space-y-1">
+            <p className="px-2 py-1 text-xs uppercase tracking-wide text-gray-500">
+              {contextMenu.type === 'row' ? `Row ${contextMenu.index + 1}` : `Column ${columnNameFromIndex(contextMenu.index)}`}
+            </p>
+            <button
+              type="button"
+              onClick={handleDeleteFromContext}
+              className="flex w-full items-center justify-between rounded px-2 py-1 text-left hover:bg-gray-100"
+            >
+              Delete
+              <span className="text-xs text-gray-500">⌫</span>
+            </button>
+          </form>
+        </dialog>
+      ) : null}
     </main>
   )
 }

@@ -233,6 +233,6 @@ Notes:
 - Route: `/spreadsheet`
 
 Features:
-- Lightweight grid with inline cell editing, resizable rows/columns, and fixed spreadsheet-style headers.
+- Lightweight grid with inline cell editing, in-grid row/column add buttons, and fixed spreadsheet-style headers.
 - Formula support using `=` syntax with `A1` references, cycle detection, and inline error feedback.
-- CSV import/export helpers, multi-cell paste support, persistent localStorage state (`spreadsheet:sheetV2`), and keyboard navigation tips.
+- CSV import/export helpers, multi-cell paste support, persistent localStorage state (`spreadsheet:sheetV2`), right-click removal for rows/columns, and keyboard navigation tips.

@@ -68,4 +68,36 @@ describe('Spreadsheet', () => {
     expect(screen.getByLabelText('Cell B3')).toHaveValue('3')
     expect(screen.getByLabelText('Cell C3')).toHaveValue('4')
   })
+
+  it('adds rows and columns from in-grid buttons', () => {
+    render(<Spreadsheet />)
+
+    fireEvent.click(screen.getByRole('button', { name: /row/i }))
+    fireEvent.click(screen.getByRole('button', { name: /column/i }))
+
+    expect(screen.getByLabelText('Cell A9')).toBeInTheDocument()
+    expect(screen.getByLabelText('Cell G1')).toBeInTheDocument()
+  })
+
+  it('removes a row via the context menu', () => {
+    render(<Spreadsheet />)
+
+    const rowHeader = screen.getByText('1')
+    fireEvent.contextMenu(rowHeader, { clientX: 10, clientY: 10 })
+
+    fireEvent.click(screen.getByRole('button', { name: /delete/i }))
+
+    expect(screen.queryByLabelText('Cell A8')).not.toBeInTheDocument()
+  })
+
+  it('removes a column via the context menu', () => {
+    render(<Spreadsheet />)
+
+    const columnHeader = screen.getByText('A')
+    fireEvent.contextMenu(columnHeader, { clientX: 12, clientY: 12 })
+
+    fireEvent.click(screen.getByRole('button', { name: /delete/i }))
+
+    expect(screen.queryByLabelText('Cell F1')).not.toBeInTheDocument()
+  })
 })
