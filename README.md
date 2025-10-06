@@ -227,3 +227,12 @@ Features:
 Notes:
 - The tokenizer module is loaded via dynamic `import()`. Ensure your deployment allows ESM module loading from the selected CDN.
 - When offline or behind a restrictive CSP, self-host the ESM bundle and set `window.GPT_TOKENIZER_URL` before the app initializes.
+
+## Spreadsheet
+- Location: `src/components/Spreadsheet.jsx`
+- Route: `/spreadsheet`
+
+Features:
+- Lightweight grid with inline cell editing, resizable rows/columns, and optional column header names.
+- Formula support using `=` syntax with `A1` references, cycle detection, and inline error feedback.
+- CSV import/export helpers, persistent localStorage state (`spreadsheet:sheetV1`), and keyboard navigation tips.
