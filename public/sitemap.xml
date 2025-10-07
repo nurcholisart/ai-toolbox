@@ -28,6 +28,7 @@
   <url><loc>https://toolbox.nurcholis.art/promptable</loc><changefreq>weekly</changefreq><priority>0.5</priority></url>
   <url><loc>https://toolbox.nurcholis.art/chromatic-tuner</loc><changefreq>weekly</changefreq><priority>0.5</priority></url>
   <url><loc>https://toolbox.nurcholis.art/quizzes</loc><changefreq>weekly</changefreq><priority>0.5</priority></url>
+  <url><loc>https://toolbox.nurcholis.art/tools/query-explorer</loc><changefreq>weekly</changefreq><priority>0.6</priority></url>
   <url><loc>https://toolbox.nurcholis.art/settings</loc><changefreq>monthly</changefreq><priority>0.2</priority></url>
   <url><loc>https://toolbox.nurcholis.art/about</loc><changefreq>monthly</changefreq><priority>0.3</priority></url>
 </urlset>
