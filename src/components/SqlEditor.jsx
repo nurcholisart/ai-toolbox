@@ -1,21 +1,33 @@
-import React, { useEffect, useImperativeHandle, useRef, forwardRef } from 'react'
-import { EditorState, Compartment } from '@codemirror/state'
-import { EditorView, drawSelection, keymap, highlightActiveLine, placeholder as cmPlaceholder } from '@codemirror/view'
+import React, { forwardRef, useEffect, useImperativeHandle, useRef } from 'react'
+import { Compartment, EditorState } from '@codemirror/state'
+import {
+  EditorView,
+  drawSelection,
+  highlightActiveLine,
+  highlightActiveLineGutter,
+  keymap,
+  lineNumbers,
+  placeholder as cmPlaceholder,
+} from '@codemirror/view'
 import { defaultKeymap, history, historyKeymap, indentWithTab } from '@codemirror/commands'
-import { sql } from '@codemirror/lang-sql'
 import { bracketMatching, indentOnInput, syntaxHighlighting } from '@codemirror/language'
+import { sql } from '@codemirror/lang-sql'
 import { tags, tagHighlighter } from '@lezer/highlight'
+import { indentationMarkers } from '@replit/codemirror-indentation-markers'
 
 const SqlEditor = forwardRef(function SqlEditor({
   value = '',
   onChange,
   onRun,
   onRunSelection,
-  placeholder = 'Write a SQL query...'
+  placeholder = 'Write a SQL query...',
+  onSelectionChange,
+  wrap = false,
 }, ref) {
   const containerRef = useRef(null)
   const viewRef = useRef(null)
   const dialectCompartment = useRef(new Compartment())
+  const wrapCompartment = useRef(new Compartment())
   const lastValueRef = useRef(value)
 
   const getSelection = () => {
@@ -26,7 +38,10 @@ const SqlEditor = forwardRef(function SqlEditor({
     return view.state.sliceDoc(sel.from, sel.to)
   }
 
-  const getValue = () => viewRef.current ? viewRef.current.state.doc.toString() : ''
+  const getValue = () => {
+    const view = viewRef.current
+    return view ? view.state.doc.toString() : ''
+  }
 
   const focus = () => {
     if (!viewRef.current) return
@@ -41,16 +56,35 @@ const SqlEditor = forwardRef(function SqlEditor({
 
   useEffect(() => {
     if (!containerRef.current) return
+
+    const updateListener = EditorView.updateListener.of((vu) => {
+      if (vu.docChanged) {
+        const nextValue = vu.state.doc.toString()
+        lastValueRef.current = nextValue
+        onChange && onChange(nextValue)
+      }
+      if (vu.selectionSet && onSelectionChange) {
+        onSelectionChange(getSelection())
+      }
+    })
+
     const extensions = [
       history(),
       drawSelection(),
       indentOnInput(),
       bracketMatching(),
       highlightActiveLine(),
-      EditorView.theme({
+      highlightActiveLineGutter(),
+      lineNumbers(),
+      indentationMarkers(),
+      EditorState.tabSize.of(2),
+      EditorView.baseTheme({
         '&': { fontFamily: 'var(--font-mono, ui-monospace, SFMono-Regular)', fontSize: '0.9rem' },
-        '.cm-placeholder': { color: '#9ca3af' },
         '.cm-content': { padding: '0.75rem' },
+        '.cm-placeholder': { color: '#9ca3af' },
+        '.cm-activeLine': { backgroundColor: '#f5f5f5' },
+        '.cm-gutters': { backgroundColor: '#f9fafb', borderRight: '1px solid #111827' },
+        '.cm-activeLineGutter': { backgroundColor: '#f3f4f6' },
       }),
       syntaxHighlighting(tagHighlighter([
         { tag: tags.keyword, class: 'cm-sql-keyword' },
@@ -64,7 +98,7 @@ const SqlEditor = forwardRef(function SqlEditor({
         {
           key: 'Mod-Enter',
           run: () => {
-            onRun && onRun()
+            if (onRun) onRun()
             return true
           },
         },
@@ -79,13 +113,8 @@ const SqlEditor = forwardRef(function SqlEditor({
       ]),
       dialectCompartment.current.of(sql()),
       cmPlaceholder(placeholder),
-      EditorView.lineWrapping,
-      EditorView.updateListener.of((vu) => {
-        if (!vu.docChanged) return
-        const nextValue = vu.state.doc.toString()
-        lastValueRef.current = nextValue
-        onChange && onChange(nextValue)
-      }),
+      wrapCompartment.current.of(wrap ? EditorView.lineWrapping : []),
+      updateListener,
     ]
 
     const startState = EditorState.create({
@@ -98,17 +127,19 @@ const SqlEditor = forwardRef(function SqlEditor({
       parent: containerRef.current,
       attributes: {
         'aria-label': 'SQL editor',
-        'role': 'textbox',
+        role: 'textbox',
         'aria-multiline': 'true',
       },
     })
 
     viewRef.current = view
+    if (onSelectionChange) onSelectionChange('')
+
     return () => {
       view.destroy()
       viewRef.current = null
     }
-  }, [])
+  }, [onChange, onRun, onRunSelection, onSelectionChange, placeholder])
 
   useEffect(() => {
     const view = viewRef.current
@@ -122,9 +153,17 @@ const SqlEditor = forwardRef(function SqlEditor({
     }
   }, [value])
 
+  useEffect(() => {
+    const view = viewRef.current
+    if (!view) return
+    view.dispatch({
+      effects: wrapCompartment.current.reconfigure(wrap ? EditorView.lineWrapping : []),
+    })
+  }, [wrap])
+
   return (
-    <div className='border-2 border-black rounded-lg bg-white overflow-hidden' data-placeholder={placeholder}>
-      <div ref={containerRef} className='cm-sql h-72' />
+    <div className='rounded-lg border-2 border-black bg-white'>
+      <div ref={containerRef} className='cm-sql h-72 overflow-hidden' />
     </div>
   )
 })

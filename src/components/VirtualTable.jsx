@@ -25,7 +25,7 @@ function VirtualTable({ columns, data, emptyMessage = 'No rows to display', heig
   return (
     <div
       ref={containerRef}
-      className='border-2 border-black rounded-lg bg-white overflow-auto'
+      className='overflow-auto rounded-lg border-2 border-black bg-white'
       style={{ height }}
       role='region'
       aria-live='polite'
@@ -62,7 +62,10 @@ function VirtualTable({ columns, data, emptyMessage = 'No rows to display', heig
             return (
               <tr key={row.id} className='border-b border-gray-200 last:border-b-0'>
                 {row.getVisibleCells().map((cell) => (
-                  <td key={cell.id} className='px-3 py-2 border-r last:border-r-0 border-gray-200 align-top'>
+                  <td
+                    key={cell.id}
+                    className='align-top border-r border-gray-200 px-3 py-2 text-gray-800 last:border-r-0'
+                  >
                     {flexRender(cell.column.columnDef.cell, cell.getContext())}
                   </td>
                 ))}
