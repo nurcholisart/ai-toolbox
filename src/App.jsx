@@ -27,6 +27,7 @@ import { getApiKey } from './lib/config.js'
 import InstallPrompt from './components/InstallPrompt.jsx'
 import MicrophoneTranscriber from './components/MicrophoneTranscriber.jsx'
 import Quizzes from './components/Quizzes.jsx'
+import QueryExplorer from './components/QueryExplorer.jsx'
 
 const tools = [
   { name: 'PDF to Markdown', description: 'Convert PDF content into Markdown', link: '/pdf-to-markdown' },
@@ -52,6 +53,7 @@ const tools = [
   { name: 'Promptable', description: 'Iterate on prompts with Gemini previews', link: '/promptable' },
   { name: 'Chromatic Tuner', description: 'Tune instruments via microphone', link: '/chromatic-tuner' },
   { name: 'Quizzes', description: 'Create embeddable knowledge quizzes', link: '/quizzes' },
+  { name: 'Query Explorer', description: 'Run SQL on CSV, NDJSON, or Parquet entirely offline', link: '/tools/query-explorer' },
   {
     name: 'Propose new tool',
     description: 'Suggest an idea on GitHub',
@@ -129,6 +131,7 @@ export default function App() {
   const isPromptable = useMemo(() => basePath === '/promptable', [basePath])
   const isChromaticTuner = useMemo(() => basePath === '/chromatic-tuner', [basePath])
   const isQuizzes = useMemo(() => basePath === '/quizzes', [basePath])
+  const isQueryExplorer = useMemo(() => basePath === '/tools/query-explorer', [basePath])
 
   const isSettings = useMemo(() => basePath === '/settings', [basePath])
   const isAbout = useMemo(() => basePath === '/about', [basePath])
@@ -470,6 +473,10 @@ export default function App() {
 
   if (isQuizzes) {
     return <Quizzes />
+  }
+
+  if (isQueryExplorer) {
+    return <QueryExplorer />
   }
 
   if (isLockfileScanner) {

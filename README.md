@@ -116,6 +116,21 @@ Share link format:
 Note:
 - Older Base64URL links are still supported and render as usual.
 
+## Query Explorer
+- Location: `src/components/QueryExplorer.jsx`
+- Route: `/query-explorer`
+
+Features:
+- DuckDB WASM sandbox with CSV, JSON Lines, and Parquet ingestion. Uploads persist in IndexedDB unless private mode is enabled.
+- VSCode-inspired layout: a collapsible left sidebar for file uploads/defaults, schema inspector, query history, and notifications; SQL editor dominates the main pane with results directly underneath.
+- Column inspector mirrors the selected dataset schema (name + type) and updates as selections change.
+- Query history entries can be pinned (persisted) or cleared for the current session. Selecting a history item loads it into the editor.
+- Result panel supports CSV, NDJSON, and Parquet exports via the inline actions above the result grid.
+
+Notes:
+- Upload defaults (delimiter, encoding, null string, header, etc.) are configurable from the sidebar before importing additional CSV/TSV files.
+- Dataset previews show the first 100 rows; use the refresh action to re-run the preview after file replacement or cache restores.
+
 ## Lockfile Scanner
 - Location: `src/components/LockfileScanner.jsx`
 - Route: `/lockfile-scanner`
