@@ -124,12 +124,15 @@ Features:
 - DuckDB WASM sandbox with CSV, JSON Lines, and Parquet ingestion. Uploads persist in IndexedDB unless private mode is enabled.
 - VSCode-inspired layout: a collapsible left sidebar for file uploads/defaults, schema inspector, query history, and notifications; SQL editor dominates the main pane with results directly underneath.
 - Column inspector mirrors the selected dataset schema (name + type) and updates as selections change.
-- Query history entries can be pinned (persisted) or cleared for the current session. Selecting a history item loads it into the editor.
+- Query history keeps the most recent statements with single-click restore/clear actions—no pinning.
 - Result panel supports CSV, NDJSON, and Parquet exports via the inline actions above the result grid.
+- SQL editor provides DuckDB-aware autocomplete (tables, columns, functions, keywords, snippets) when `enableSqlAutocomplete` is enabled.
 
 Notes:
 - Upload defaults (delimiter, encoding, null string, header, etc.) are configurable from the sidebar before importing additional CSV/TSV files.
 - Dataset previews show the first 100 rows; use the refresh action to re-run the preview after file replacement or cache restores.
+- Schema metadata is cached in memory with `{ tables, columnsByTable, tableLookup, functions, keywords, aliases }` and refreshes after DuckDB init, dataset uploads/removals, or cache restores. Use the “Refresh schema” buttons in the editor toolbar or Columns panel to force a refresh if the indicator reports staleness.
+- Disable completions by flipping `enableSqlAutocomplete` inside `QueryExplorer.jsx`—the editor falls back to keywords and functions only.
 
 ## Lockfile Scanner
 - Location: `src/components/LockfileScanner.jsx`

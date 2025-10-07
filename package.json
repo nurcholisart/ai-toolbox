@@ -12,6 +12,7 @@
     "coverage": "vitest run --coverage"
   },
   "dependencies": {
+    "@codemirror/autocomplete": "^6.17.2",
     "@codemirror/commands": "^6.8.1",
     "@codemirror/lang-markdown": "^6.3.4",
     "@codemirror/lang-sql": "^6.5.5",

@@ -22,6 +22,7 @@ import {
   IconArrowUp,
   IconTable,
 } from '@tabler/icons-react'
+import { keymap as cmKeymap } from '@codemirror/view'
 import * as duckdb from '@duckdb/duckdb-wasm'
 import { tableFromIPC } from 'apache-arrow'
 import duckdbMvp from '@duckdb/duckdb-wasm/dist/duckdb-mvp.wasm?url'
@@ -113,6 +114,306 @@ const flattenSchema = (schema) => schema.map((field) => ({
 }))
 
 const MANUAL_QUERY_HINT = '-- Press Cmd/Ctrl + Enter to run the full query. Shift + Cmd/Ctrl + Enter runs the current selection.'
+
+const DEFAULT_FEATURE_FLAGS = {
+  enableSqlAutocomplete: true,
+}
+
+const SQL_KEYWORDS = [
+  'SELECT',
+  'FROM',
+  'WHERE',
+  'GROUP BY',
+  'ORDER BY',
+  'HAVING',
+  'LIMIT',
+  'OFFSET',
+  'JOIN',
+  'LEFT JOIN',
+  'RIGHT JOIN',
+  'FULL JOIN',
+  'INNER JOIN',
+  'OUTER JOIN',
+  'CROSS JOIN',
+  'ON',
+  'USING',
+  'WITH',
+  'INSERT INTO',
+  'CREATE TABLE',
+  'CREATE VIEW',
+  'DROP TABLE',
+  'DROP VIEW',
+  'UPDATE',
+  'DELETE',
+  'VALUES',
+  'UNION',
+  'EXCEPT',
+  'INTERSECT',
+  'CASE',
+  'WHEN',
+  'THEN',
+  'ELSE',
+  'END',
+]
+
+const DUCKDB_FUNCTIONS = [
+  {
+    name: 'date_trunc',
+    snippet: 'date_trunc(${1:unit}, ${2:timestamp_expression})',
+    detail: 'date_trunc(unit, timestamp)',
+    documentation: 'Truncate the given timestamp to the specified unit such as hour, day, or month.',
+  },
+  {
+    name: 'extract',
+    snippet: 'extract(${1:field} FROM ${2:source})',
+    detail: 'extract(field FROM source)',
+    documentation: 'Extract a component such as year or month from a date, time, or interval.',
+  },
+  {
+    name: 'json_extract',
+    snippet: "json_extract(${1:json}, '${2:path}')",
+    detail: "json_extract(json, 'path')",
+    documentation: 'Return a JSON value located at the given path using JSON pointer syntax.',
+  },
+  {
+    name: 'quantile',
+    snippet: 'quantile(${1:expression}, ${2:quantile})',
+    detail: 'quantile(expression, q)',
+    documentation: 'Compute the approximate quantile of an expression using the t-digest algorithm.',
+  },
+  {
+    name: 'avg',
+    snippet: 'avg(${1:expression})',
+    detail: 'avg(expression)',
+    documentation: 'Return the arithmetic mean of the given numeric expression.',
+  },
+  {
+    name: 'count',
+    snippet: 'count(${1:expression})',
+    detail: 'count(expression)',
+    documentation: 'Count the number of input rows, or non-null values if an expression is provided.',
+  },
+  {
+    name: 'sum',
+    snippet: 'sum(${1:expression})',
+    detail: 'sum(expression)',
+    documentation: 'Return the sum of the values of the given numeric expression.',
+  },
+  {
+    name: 'min',
+    snippet: 'min(${1:expression})',
+    detail: 'min(expression)',
+    documentation: 'Return the smallest value from the input expression.',
+  },
+  {
+    name: 'max',
+    snippet: 'max(${1:expression})',
+    detail: 'max(expression)',
+    documentation: 'Return the largest value from the input expression.',
+  },
+  {
+    name: 'stddev_pop',
+    snippet: 'stddev_pop(${1:expression})',
+    detail: 'stddev_pop(expression)',
+    documentation: 'Calculate the population standard deviation of the input expression.',
+  },
+]
+
+const stripQuotes = (value) => {
+  if (typeof value !== 'string') return value
+  if ((value.startsWith('"') && value.endsWith('"')) || (value.startsWith('`') && value.endsWith('`'))) {
+    return value.slice(1, -1)
+  }
+  return value
+}
+
+const needsQuoting = (value) => {
+  if (!value) return false
+  return !/^[a-z_][a-z0-9_]*$/.test(value)
+}
+
+const normalizeIdentifierForLookup = (value) => {
+  if (!value) return ''
+  const plain = stripQuotes(value)
+  return plain.replace(/[^a-z0-9]+/gi, '_').replace(/_{2,}/g, '_').replace(/^_|_$/g, '').toLowerCase()
+}
+
+const buildSearchKeys = (value, schema = null) => {
+  const plain = stripQuotes(value)
+  const snake = plain.replace(/[^a-z0-9]+/gi, '_').replace(/_{2,}/g, '_').replace(/^_|_$/g, '')
+  const keys = new Set([plain, plain.toLowerCase(), snake.toLowerCase()])
+  if (schema) {
+    keys.add(`${schema}.${plain}`.toLowerCase())
+    keys.add(`${schema}_${snake}`.toLowerCase())
+  }
+  return Array.from(keys)
+}
+
+const computeFuzzyScore = (query, target) => {
+  if (!query) return 0
+  if (!target) return -Infinity
+  if (target.startsWith(query)) {
+    return 200 - target.length
+  }
+  let score = 0
+  let lastIndex = -1
+  const lowerTarget = target.toLowerCase()
+  for (let i = 0; i < query.length; i += 1) {
+    const ch = query[i]
+    const idx = lowerTarget.indexOf(ch, lastIndex + 1)
+    if (idx === -1) return -Infinity
+    const distance = idx - lastIndex
+    score += Math.max(1, 6 - distance)
+    lastIndex = idx
+  }
+  return score
+}
+
+const limitOptions = (options, limit = 50) => options.slice(0, limit)
+
+const resolveTableKey = (rawName, lookup) => {
+  if (!rawName) return null
+  const plain = stripQuotes(rawName)
+  const direct = lookup[normalizeIdentifierForLookup(plain)]
+  if (direct) return direct
+  if (plain.includes('.')) {
+    const [schema, table] = plain.split('.')
+    const schemaKey = normalizeIdentifierForLookup(schema)
+    const tableKey = normalizeIdentifierForLookup(table)
+    const combined = lookup[`${schemaKey}.${tableKey}`]
+    if (combined) return combined
+    const schemaCombined = lookup[normalizeIdentifierForLookup(`${schema}.${table}`)]
+    if (schemaCombined) return schemaCombined
+  }
+  const fallback = plain.split('.').pop()
+  if (!fallback) return null
+  return lookup[normalizeIdentifierForLookup(fallback)] ?? null
+}
+
+const splitSqlStatements = (sql) => {
+  const statements = []
+  if (!sql) return statements
+  let start = 0
+  let inSingle = false
+  let inDouble = false
+  for (let i = 0; i < sql.length; i += 1) {
+    const ch = sql[i]
+    const prev = sql[i - 1]
+    if (ch === "'" && !inDouble) {
+      const escaped = prev === "'"
+      if (!escaped) inSingle = !inSingle
+    } else if (ch === '"' && !inSingle) {
+      const escaped = prev === '"'
+      if (!escaped) inDouble = !inDouble
+    } else if (ch === ';' && !inSingle && !inDouble) {
+      statements.push({ start, end: i + 1 })
+      start = i + 1
+    }
+  }
+  if (start < sql.length) {
+    statements.push({ start, end: sql.length })
+  }
+  return statements
+}
+
+const findStatementRange = (sql, cursor) => {
+  const segments = splitSqlStatements(sql)
+  if (segments.length === 0) {
+    return { start: 0, end: sql.length }
+  }
+  return segments.find((segment) => cursor >= segment.start && cursor <= segment.end) || segments[segments.length - 1]
+}
+
+const findLastClause = (text) => {
+  if (!text) return null
+  const lower = text.toLowerCase()
+  const clauses = [
+    'select',
+    'where',
+    'group by',
+    'order by',
+    'having',
+    'on',
+    'using',
+    'from',
+    'join',
+    'update',
+    'into',
+  ]
+  let best = null
+  let bestIndex = -1
+  clauses.forEach((clause) => {
+    const idx = lower.lastIndexOf(clause)
+    if (idx > bestIndex) {
+      best = clause
+      bestIndex = idx
+    }
+  })
+  return best
+}
+
+const extractAliasContext = (sql, cursor, schemaState) => {
+  if (!sql) {
+    return {
+      aliases: {},
+      tablesInScope: [],
+      lastTableKey: null,
+      statementRange: { start: 0, end: 0 },
+      beforeCursor: '',
+    }
+  }
+  const range = findStatementRange(sql, cursor)
+  const statementText = sql.slice(range.start, range.end)
+  const beforeCursor = sql.slice(range.start, cursor)
+  const aliasMap = {}
+  const tablesInScope = []
+  let lastTableKey = null
+  const tableRegex = /\b(from|join|update|into)\s+((?:"[^"]+"|`[^`]+`|\[[^\]]+\]|[a-zA-Z_][\w$\.]*)?)(?:\s+(?:as\s+)?([a-zA-Z_][\w$]*))?/gi
+  let match
+  while ((match = tableRegex.exec(statementText))) {
+    const tableRaw = (match[2] || '').trim()
+    const aliasRaw = match[3]
+    const tableKey = resolveTableKey(tableRaw, schemaState.tableLookup) || resolveTableKey(aliasRaw, schemaState.tableLookup)
+    if (tableKey && !tablesInScope.includes(tableKey)) {
+      tablesInScope.push(tableKey)
+      lastTableKey = tableKey
+    }
+    if (aliasRaw) {
+      aliasMap[normalizeIdentifierForLookup(aliasRaw)] = {
+        target: tableKey,
+        source: tableRaw || aliasRaw,
+        type: 'table',
+      }
+    }
+  }
+  const cteRegex = /\bwith\s+([a-zA-Z_][\w$]*)\s+as\s*\(/gi
+  while ((match = cteRegex.exec(statementText))) {
+    const alias = match[1]
+    aliasMap[normalizeIdentifierForLookup(alias)] = {
+      target: null,
+      source: alias,
+      type: 'cte',
+    }
+  }
+  const subqueryRegex = /\)\s+([a-zA-Z_][\w$]*)/gi
+  while ((match = subqueryRegex.exec(statementText))) {
+    const alias = match[1]
+    if (!aliasMap[normalizeIdentifierForLookup(alias)]) {
+      aliasMap[normalizeIdentifierForLookup(alias)] = {
+        target: null,
+        source: alias,
+        type: 'subquery',
+      }
+    }
+  }
+  return {
+    aliases: aliasMap,
+    tablesInScope,
+    lastTableKey,
+    statementRange: range,
+    beforeCursor,
+  }
+}
 
 const createIndexedDb = async () => {
   return openDB(DB_NAME, DB_VERSION, {
@@ -230,6 +531,7 @@ const QueryExplorer = ({ onDatasetsChanged, onQueryExecuted }) => {
   const [messages, setMessages] = useState([])
   const [wrapEnabled, setWrapEnabled] = useState(false)
   const [selectionText, setSelectionText] = useState('')
+  const [cursorState, setCursorState] = useState({ head: 0, anchor: 0 })
   const [columnSearch, setColumnSearch] = useState('')
   const [openColumnGroups, setOpenColumnGroups] = useState({})
   const [columnPageByType, setColumnPageByType] = useState({})
@@ -256,6 +558,51 @@ const QueryExplorer = ({ onDatasetsChanged, onQueryExecuted }) => {
   const columnsPanelRef = useRef(null)
   const datasetReadyMessageIds = useRef(new Set())
   const lastSuccessfulQueryRef = useRef('')
+  const featureFlags = useMemo(() => DEFAULT_FEATURE_FLAGS, [])
+  const [schemaCache, setSchemaCache] = useState(() => ({
+    status: 'idle',
+    stale: false,
+    error: null,
+    tables: [],
+    columnsByTable: {},
+    tableLookup: {},
+    aliases: {},
+    functions: DUCKDB_FUNCTIONS.map((fn) => ({ ...fn, searchKeys: buildSearchKeys(fn.name) })),
+    keywords: SQL_KEYWORDS.map((keyword) => ({
+      name: keyword,
+      searchKeys: buildSearchKeys(keyword),
+    })),
+    lastFingerprint: null,
+  }))
+  const [schemaScope, setSchemaScope] = useState({ tablesInScope: [], lastTableKey: null, statementRange: null })
+  const [editorExtraExtensions, setEditorExtraExtensions] = useState([])
+  const schemaCacheRef = useRef(schemaCache)
+  const schemaScopeRef = useRef(schemaScope)
+  const cursorStateRef = useRef(cursorState)
+  const schemaRefreshTimerRef = useRef(null)
+  const autocompleteModulesRef = useRef(null)
+  const completionSourceRef = useRef(() => null)
+  const functionCompletionCacheRef = useRef(new Map())
+  const keywordOptionCacheRef = useRef(new Map())
+  const aliasDebounceRef = useRef(null)
+  const ensureAutocomplete = useCallback(async () => {
+    if (!featureFlags.enableSqlAutocomplete) return
+    if (autocompleteModulesRef.current) return
+    const mod = await import('@codemirror/autocomplete')
+    autocompleteModulesRef.current = mod
+    setEditorExtraExtensions((prev) => {
+      if (prev.length > 0) return prev
+      const dynamicSource = (context) => completionSourceRef.current(context)
+      return [
+        mod.autocompletion({
+          override: [dynamicSource],
+          activateOnTyping: true,
+          closeOnBlur: false,
+        }),
+        cmKeymap.of(mod.completionKeymap),
+      ]
+    })
+  }, [featureFlags.enableSqlAutocomplete])
 
   const onDatasetsChangedRef = useRef(onDatasetsChanged)
   const onQueryExecutedRef = useRef(onQueryExecuted)
@@ -272,6 +619,14 @@ const QueryExplorer = ({ onDatasetsChanged, onQueryExecuted }) => {
 
   const totalDatasetSize = useMemo(() => datasets.reduce((acc, ds) => acc + (ds.approxSize || 0), 0), [datasets])
 
+  const datasetFingerprint = useMemo(() => {
+    if (datasets.length === 0) return 'empty'
+    return datasets
+      .map((ds) => `${ds.viewName}:${ds.schema?.length ?? 0}:${ds.createdAt instanceof Date ? ds.createdAt.getTime() : 0}`)
+      .sort()
+      .join('|')
+  }, [datasets])
+
   const addMessage = useCallback((content, tone = 'info') => {
     const entry = { id: ensureUuid(), content, tone }
     setMessages((prev) => [...prev, entry])
@@ -282,6 +637,138 @@ const QueryExplorer = ({ onDatasetsChanged, onQueryExecuted }) => {
     datasetReadyMessageIds.current.delete(id)
     setMessages((prev) => prev.filter((msg) => msg.id !== id))
   }, [])
+
+  const refreshSchemaMetadata = useCallback(
+    async ({ reason = 'auto', silent = false } = {}) => {
+      if (!featureFlags.enableSqlAutocomplete) return
+      if (!duckState.conn) return
+      if (schemaRefreshTimerRef.current) {
+        window.clearTimeout(schemaRefreshTimerRef.current)
+        schemaRefreshTimerRef.current = null
+      }
+      setSchemaCache((prev) => ({
+        ...prev,
+        status: silent ? prev.status : 'loading',
+        stale: false,
+        error: silent ? prev.error : null,
+      }))
+      try {
+        const tablesResult = await duckState.conn.query(`
+          SELECT table_schema, table_name, table_type
+          FROM information_schema.tables
+          WHERE table_schema NOT IN ('information_schema', 'pg_catalog')
+          ORDER BY table_schema, table_name
+        `)
+        const columnsResult = await duckState.conn.query(`
+          SELECT table_schema, table_name, column_name, data_type, is_nullable
+          FROM information_schema.columns
+          WHERE table_schema NOT IN ('information_schema', 'pg_catalog')
+          ORDER BY table_schema, ordinal_position
+        `)
+        const tableRows = tablesResult.toArray()
+        const columnRows = columnsResult.toArray()
+        const tableLookup = {}
+        const columnsByTable = {}
+        const tables = tableRows.map((row) => {
+          const schemaName = stripQuotes(row.table_schema || 'main')
+          const tableName = stripQuotes(row.table_name)
+          const normalizedSchema = normalizeIdentifierForLookup(schemaName) || 'main'
+          const normalizedTable = normalizeIdentifierForLookup(tableName)
+          const key = `${normalizedSchema}.${normalizedTable}`
+          const requiresSchema = normalizedSchema !== 'main'
+          const quotedSchema = needsQuoting(schemaName) ? quoteIdentifier(schemaName) : schemaName
+          const quotedTable = needsQuoting(tableName) ? quoteIdentifier(tableName) : tableName
+          const applyName = requiresSchema ? `${quotedSchema}.${quotedTable}` : quotedTable
+          const displayName = requiresSchema ? `${schemaName}.${tableName}` : tableName
+          buildSearchKeys(tableName, requiresSchema ? schemaName : null).forEach((searchKey) => {
+            tableLookup[normalizeIdentifierForLookup(searchKey)] = key
+          })
+          tableLookup[`${normalizedSchema}.${normalizedTable}`] = key
+          columnsByTable[key] = []
+          const tableType = String(row.table_type || '').toLowerCase().includes('view') ? 'view' : 'table'
+          return {
+            key,
+            schema: schemaName,
+            name: tableName,
+            displayName,
+            apply: applyName,
+            type: tableType,
+            searchKeys: buildSearchKeys(tableName, requiresSchema ? schemaName : null),
+          }
+        })
+        columnRows.forEach((row) => {
+          const schemaName = stripQuotes(row.table_schema || 'main')
+          const tableName = stripQuotes(row.table_name)
+          const normalizedSchema = normalizeIdentifierForLookup(schemaName) || 'main'
+          const normalizedTable = normalizeIdentifierForLookup(tableName)
+          const key = `${normalizedSchema}.${normalizedTable}`
+          if (!columnsByTable[key]) return
+          const columnName = stripQuotes(row.column_name)
+          const quotedColumn = needsQuoting(columnName) ? quoteIdentifier(columnName) : columnName
+          columnsByTable[key].push({
+            name: columnName,
+            quoted: quotedColumn,
+            apply: quotedColumn,
+            type: row.data_type,
+            nullable: typeof row.is_nullable === 'string' ? row.is_nullable.toLowerCase() !== 'no' : row.is_nullable !== false,
+            searchKeys: buildSearchKeys(columnName),
+            lower: columnName.toLowerCase(),
+          })
+        })
+        Object.values(columnsByTable).forEach((cols) => {
+          cols.sort((a, b) => a.name.localeCompare(b.name))
+        })
+        setSchemaCache((prev) => ({
+          ...prev,
+          status: 'ready',
+          stale: false,
+          error: null,
+          tables,
+          columnsByTable,
+          tableLookup,
+          aliases: {},
+          lastFingerprint: datasetFingerprint,
+        }))
+      } catch (error) {
+        console.error('Schema metadata refresh failed', reason, error)
+        setSchemaCache((prev) => ({
+          ...prev,
+          status: 'error',
+          stale: true,
+          error: error?.message || 'Failed to refresh schema metadata.',
+        }))
+      }
+    },
+    [datasetFingerprint, duckState.conn, featureFlags.enableSqlAutocomplete],
+  )
+
+  const scheduleSchemaRefresh = useCallback(
+    (reason = 'auto', { immediate = false, force = false, silent = false } = {}) => {
+      if (!featureFlags.enableSqlAutocomplete) return
+      if (!duckState.conn) return
+      const fingerprintMatches = schemaCacheRef.current.lastFingerprint === datasetFingerprint
+      if (!force && !immediate && fingerprintMatches && schemaCacheRef.current.status === 'ready') {
+        return
+      }
+      if (schemaRefreshTimerRef.current) {
+        window.clearTimeout(schemaRefreshTimerRef.current)
+        schemaRefreshTimerRef.current = null
+      }
+      if (immediate) {
+        refreshSchemaMetadata({ reason, silent })
+        return
+      }
+      setSchemaCache((prev) => ({
+        ...prev,
+        stale: true,
+      }))
+      schemaRefreshTimerRef.current = window.setTimeout(() => {
+        schemaRefreshTimerRef.current = null
+        refreshSchemaMetadata({ reason, silent })
+      }, 400)
+    },
+    [datasetFingerprint, duckState.conn, featureFlags.enableSqlAutocomplete, refreshSchemaMetadata],
+  )
 
   useEffect(() => {
     let cancelled = false
@@ -317,8 +804,318 @@ const QueryExplorer = ({ onDatasetsChanged, onQueryExecuted }) => {
   }, [addMessage])
 
   useEffect(() => {
+    if (!featureFlags.enableSqlAutocomplete) return
+    if (!duckState.conn) return
+    scheduleSchemaRefresh('init', { immediate: true, silent: true })
+  }, [duckState.conn, featureFlags.enableSqlAutocomplete, scheduleSchemaRefresh])
+
+  useEffect(() => {
+    if (!featureFlags.enableSqlAutocomplete) return
+    if (!duckState.conn) return
+    scheduleSchemaRefresh('fingerprint', { silent: true })
+  }, [datasetFingerprint, duckState.conn, featureFlags.enableSqlAutocomplete, scheduleSchemaRefresh])
+
+  useEffect(() => {
+    if (!featureFlags.enableSqlAutocomplete) {
+      setEditorExtraExtensions([])
+    }
+  }, [featureFlags.enableSqlAutocomplete])
+
+  useEffect(() => {
+    completionSourceRef.current = (context) => {
+      if (!featureFlags.enableSqlAutocomplete) return null
+      const modules = autocompleteModulesRef.current
+      if (!modules) return null
+      const schemaState = schemaCacheRef.current
+      if (!schemaState) return null
+      const scopeState = schemaScopeRef.current
+      const doc = context.state.doc
+      const pos = context.pos
+      const snippet = doc.sliceString(Math.max(0, pos - 200), pos)
+      const dotMatch = snippet.match(/([A-Za-z_][\w$]*|"[^"]+")\.([A-Za-z_0-9$]*)$/)
+      const wordMatch = context.matchBefore(/[\w$]+/)
+      let from = wordMatch ? wordMatch.from : pos
+      let typed = wordMatch ? wordMatch.text : ''
+
+      const unique = new Map()
+      const addOption = (option) => {
+        if (!option) return
+        const key = `${option.section || 'default'}::${option.label}::${option.apply || option.label}`
+        const existing = unique.get(key)
+        if (!existing || (option.boost || 0) > (existing.boost || 0)) {
+          unique.set(key, option)
+        }
+      }
+
+      const buildColumnOptions = (columns, baseBoost, infoLabel, filterQuery) => {
+        if (!columns || columns.length === 0) return
+        const q = (filterQuery ?? '').toLowerCase()
+        columns.forEach((column) => {
+          let score = 0
+          if (q) {
+            const best = column.searchKeys.reduce((acc, key) => {
+              const candidate = computeFuzzyScore(q, key)
+              return candidate > acc ? candidate : acc
+            }, -Infinity)
+            if (best === -Infinity) return
+            score = best
+          }
+          addOption({
+            label: column.name,
+            apply: column.apply,
+            type: 'property',
+            detail: column.type,
+            section: 'Columns',
+            info: infoLabel ? `${infoLabel} · ${column.type}` : column.type,
+            boost: baseBoost + score,
+          })
+        })
+      }
+
+      const buildTableOptions = (filterQuery, baseBoost) => {
+        const q = filterQuery.toLowerCase()
+        schemaState.tables.forEach((table) => {
+          let score = 0
+          if (q) {
+            const best = table.searchKeys.reduce((acc, key) => {
+              const candidate = computeFuzzyScore(q, key)
+              return candidate > acc ? candidate : acc
+            }, -Infinity)
+            if (best === -Infinity) return
+            score = best
+          }
+          addOption({
+            label: table.displayName,
+            apply: table.apply,
+            type: table.type === 'view' ? 'class' : 'namespace',
+            detail: table.type === 'view' ? 'View' : 'Table',
+            section: 'Tables/Views',
+            boost: baseBoost + score,
+          })
+        })
+      }
+
+      const buildFunctionOptions = (filterQuery) => {
+        const q = filterQuery.toLowerCase()
+        schemaState.functions.forEach((fn) => {
+          let base = functionCompletionCacheRef.current.get(fn.name)
+          if (!base) {
+            base = modules.snippetCompletion(fn.snippet, {
+              label: fn.name,
+              detail: fn.detail,
+              type: 'function',
+              section: 'Functions',
+              info: fn.documentation,
+            })
+            functionCompletionCacheRef.current.set(fn.name, base)
+          }
+          let score = 0
+          if (q) {
+            const best = fn.searchKeys.reduce((acc, key) => {
+              const candidate = computeFuzzyScore(q, key)
+              return candidate > acc ? candidate : acc
+            }, -Infinity)
+            if (best === -Infinity) return
+            score = best
+          }
+          addOption({ ...base, boost: 400 + score })
+        })
+      }
+
+      const buildKeywordOptions = (filterQuery) => {
+        const q = filterQuery.toLowerCase()
+        schemaState.keywords.forEach((keyword) => {
+          let base = keywordOptionCacheRef.current.get(keyword.name)
+          if (!base) {
+            base = {
+              label: keyword.name,
+              apply: `${keyword.name} `,
+              type: 'keyword',
+              detail: 'Keyword',
+              section: 'Keywords',
+            }
+            keywordOptionCacheRef.current.set(keyword.name, base)
+          }
+          let score = 0
+          if (q) {
+            const best = keyword.searchKeys.reduce((acc, key) => {
+              const candidate = computeFuzzyScore(q, key)
+              return candidate > acc ? candidate : acc
+            }, -Infinity)
+            if (best === -Infinity) return
+            score = best
+          }
+          addOption({ ...base, boost: 200 + score })
+        })
+      }
+
+      const columnsByTable = schemaState.columnsByTable || {}
+      const tablesInScope = scopeState.tablesInScope || []
+
+      if (dotMatch) {
+        const aliasRaw = dotMatch[1]
+        const partial = dotMatch[2]
+        const aliasKey = normalizeIdentifierForLookup(aliasRaw)
+        const aliasEntry = schemaState.aliases[aliasKey]
+        let sourceKey = aliasEntry?.target
+        if (!sourceKey) {
+          sourceKey = resolveTableKey(aliasRaw, schemaState.tableLookup)
+        }
+        if (!sourceKey && scopeState.lastTableKey) {
+          sourceKey = scopeState.lastTableKey
+        }
+        const columns = sourceKey ? columnsByTable[sourceKey] || [] : []
+        const infoLabel = aliasEntry?.source || stripQuotes(aliasRaw)
+        if (columns.length > 0) {
+          addOption({
+            label: '*',
+            apply: '*',
+            type: 'keyword',
+            detail: 'All columns',
+            section: 'Columns',
+            boost: 950,
+          })
+          buildColumnOptions(columns, 940, infoLabel, partial)
+          const options = limitOptions(Array.from(unique.values()).sort((a, b) => (b.boost || 0) - (a.boost || 0)))
+          return {
+            from: pos - partial.length,
+            options,
+          }
+        }
+      }
+
+      const statementStart = scopeState.statementRange?.start ?? 0
+      const beforeCursor = doc.sliceString(statementStart, pos)
+      const clauseMatch = beforeCursor.match(/\b(from|join|update|into)\s+([^\s]*)$/i)
+      if (clauseMatch) {
+        const partial = clauseMatch[2] || ''
+        from = pos - partial.length
+        buildTableOptions(partial, 880)
+        const options = limitOptions(Array.from(unique.values()).sort((a, b) => (b.boost || 0) - (a.boost || 0)))
+        return { from, options }
+      }
+
+      const clause = findLastClause(beforeCursor)
+
+      if (clause === 'on' || clause === 'using') {
+        if (tablesInScope.length >= 2) {
+          const [first, ...rest] = tablesInScope
+          let intersection = new Map((columnsByTable[first] || []).map((col) => [col.lower, col]))
+          rest.forEach((key) => {
+            const current = new Map((columnsByTable[key] || []).map((col) => [col.lower, col]))
+            intersection = new Map([...intersection].filter(([name]) => current.has(name)))
+          })
+          buildColumnOptions(Array.from(intersection.values()), 930, 'Join match', typed)
+        }
+        tablesInScope.forEach((key) => {
+          buildColumnOptions(columnsByTable[key], 820, null, typed)
+        })
+        buildFunctionOptions(typed)
+        buildKeywordOptions(typed)
+        const options = limitOptions(Array.from(unique.values()).sort((a, b) => (b.boost || 0) - (a.boost || 0)))
+        return options.length > 0 ? { from, options } : null
+      }
+
+      if (['select', 'where', 'group by', 'order by', 'having'].includes(clause || '')) {
+        Object.entries(schemaState.aliases).forEach(([aliasKey, aliasEntry]) => {
+          if (!aliasEntry.target) return
+          buildColumnOptions(columnsByTable[aliasEntry.target], 920, aliasEntry.source || aliasKey, typed)
+        })
+        if (scopeState.lastTableKey) {
+          buildColumnOptions(columnsByTable[scopeState.lastTableKey], 880, null, typed)
+        }
+        tablesInScope.forEach((key) => {
+          if (key === scopeState.lastTableKey) return
+          buildColumnOptions(columnsByTable[key], 840, null, typed)
+        })
+        buildFunctionOptions(typed)
+        buildKeywordOptions(typed)
+        const options = limitOptions(Array.from(unique.values()).sort((a, b) => (b.boost || 0) - (a.boost || 0)))
+        return options.length > 0 ? { from, options } : null
+      }
+
+      if (schemaState.tables.length > 0) {
+        Object.entries(schemaState.aliases).forEach(([aliasKey, aliasEntry]) => {
+          if (!aliasEntry.target) return
+          buildColumnOptions(columnsByTable[aliasEntry.target], 820, aliasEntry.source || aliasKey, typed)
+        })
+        if (scopeState.lastTableKey) {
+          buildColumnOptions(columnsByTable[scopeState.lastTableKey], 800, null, typed)
+        }
+        buildFunctionOptions(typed)
+        buildKeywordOptions(typed)
+        buildTableOptions(typed, 780)
+      } else {
+        buildFunctionOptions(typed)
+        buildKeywordOptions(typed)
+      }
+
+      const options = limitOptions(Array.from(unique.values()).sort((a, b) => (b.boost || 0) - (a.boost || 0)))
+      if (options.length === 0) return null
+      return { from, options }
+    }
+  }, [featureFlags.enableSqlAutocomplete])
+
+  useEffect(() => {
     duckStateRef.current = duckState
   }, [duckState])
+
+  useEffect(() => {
+    schemaCacheRef.current = schemaCache
+  }, [schemaCache])
+
+  useEffect(() => {
+    schemaScopeRef.current = schemaScope
+  }, [schemaScope])
+
+  useEffect(() => {
+    cursorStateRef.current = cursorState
+  }, [cursorState])
+
+  useEffect(() => {
+    if (!featureFlags.enableSqlAutocomplete) return
+    if (aliasDebounceRef.current) {
+      window.clearTimeout(aliasDebounceRef.current)
+      aliasDebounceRef.current = null
+    }
+    aliasDebounceRef.current = window.setTimeout(() => {
+      aliasDebounceRef.current = null
+      const analysis = extractAliasContext(query, cursorStateRef.current.head, schemaCacheRef.current)
+      setSchemaCache((prev) => {
+        const prevKeys = Object.keys(prev.aliases)
+        const nextKeys = Object.keys(analysis.aliases)
+        const sameLength = prevKeys.length === nextKeys.length
+        const sameEntries = sameLength
+          && nextKeys.every((key) => {
+            const prevEntry = prev.aliases[key]
+            const nextEntry = analysis.aliases[key]
+            if (!prevEntry && !nextEntry) return true
+            if (!prevEntry || !nextEntry) return false
+            return prevEntry.target === nextEntry.target && prevEntry.type === nextEntry.type
+          })
+        if (sameEntries) return prev
+        return { ...prev, aliases: analysis.aliases }
+      })
+      setSchemaScope((prev) => {
+        const sameRange =
+          prev.statementRange?.start === analysis.statementRange.start
+          && prev.statementRange?.end === analysis.statementRange.end
+        const sameTables =
+          prev.tablesInScope.length === analysis.tablesInScope.length
+          && prev.tablesInScope.every((value, idx) => value === analysis.tablesInScope[idx])
+        if (sameRange && sameTables && prev.lastTableKey === analysis.lastTableKey && prev.beforeCursor === analysis.beforeCursor) {
+          return prev
+        }
+        return analysis
+      })
+    }, 220)
+    return () => {
+      if (aliasDebounceRef.current) {
+        window.clearTimeout(aliasDebounceRef.current)
+        aliasDebounceRef.current = null
+      }
+    }
+  }, [cursorState, featureFlags.enableSqlAutocomplete, query])
 
   useEffect(() => {
     return () => {
@@ -326,6 +1123,10 @@ const QueryExplorer = ({ onDatasetsChanged, onQueryExecuted }) => {
       if (current.conn) current.conn.close().catch(() => {})
       if (current.db) current.db.terminate().catch(() => {})
       if (current.worker) current.worker.terminate()
+      if (schemaRefreshTimerRef.current) {
+        window.clearTimeout(schemaRefreshTimerRef.current)
+        schemaRefreshTimerRef.current = null
+      }
     }
   }, [])
 
@@ -382,13 +1183,16 @@ const QueryExplorer = ({ onDatasetsChanged, onQueryExecuted }) => {
       if (loadedDatasets.length > 0) {
         addMessage('Datasets restored from local cache.', 'success')
       }
+      if (loadedDatasets.length > 0) {
+        scheduleSchemaRefresh('cache-load', { immediate: true, silent: true })
+      }
     } catch (error) {
       console.error('Cache load error', error)
       addMessage('Failed to restore cached datasets.', 'error')
     } finally {
       setLoadingFromCache(false)
     }
-  }, [addMessage, cacheEnabled, duckState.conn, duckState.db, ensureDb])
+  }, [addMessage, cacheEnabled, duckState.conn, duckState.db, ensureDb, scheduleSchemaRefresh])
 
   useEffect(() => {
     loadCache()
@@ -499,6 +1303,16 @@ const QueryExplorer = ({ onDatasetsChanged, onQueryExecuted }) => {
   }, [queryStatus])
 
   const queryError = queryStatus.state === 'error' ? queryStatus : null
+  const schemaRefreshing = schemaCache.status === 'loading'
+  const schemaError = schemaCache.status === 'error'
+  const schemaOutdated = schemaCache.stale
+  const schemaStatusLabel = schemaRefreshing
+    ? 'Refreshing schema…'
+    : schemaError
+      ? 'Schema error — Retry'
+      : schemaOutdated
+        ? 'Schema outdated — Refresh'
+        : 'Schema ready'
 
   useEffect(() => {
     if (queryStatus.state !== 'error' && errorCopyStatus !== 'idle') {
@@ -634,13 +1448,14 @@ const QueryExplorer = ({ onDatasetsChanged, onQueryExecuted }) => {
         persistDataset(descriptor, buffer, viewSql)
         const readyId = addMessage(`${file.name} is ready as view ${viewName}.`, 'success')
         datasetReadyMessageIds.current.add(readyId)
+        scheduleSchemaRefresh('upload')
       } catch (error) {
         console.error('Failed to ingest file', error)
         reservedNamesRef.current.delete(viewName)
         addMessage(`Failed to ingest ${file.name}: ${error.message}`, 'error')
       }
     }
-  }, [addMessage, csvOptions, duckState.conn, duckState.db, memoryLimitMb, persistDataset, totalDatasetSize])
+  }, [addMessage, csvOptions, duckState.conn, duckState.db, memoryLimitMb, persistDataset, scheduleSchemaRefresh, totalDatasetSize])
 
   const handleFileInput = useCallback((event) => {
     const files = event.target.files
@@ -667,9 +1482,13 @@ const QueryExplorer = ({ onDatasetsChanged, onQueryExecuted }) => {
         return remaining[0]?.id ?? null
       })
     }
-  }, [duckState.conn, duckState.db, datasets, removeDatasetFromCache, selectedDatasetId])
+    scheduleSchemaRefresh('remove', { silent: true })
+  }, [datasets, duckState.conn, duckState.db, removeDatasetFromCache, scheduleSchemaRefresh, selectedDatasetId])
 
   const sqlEditorRef = useRef(null)
+  const handleEditorFocus = useCallback(() => {
+    ensureAutocomplete()
+  }, [ensureAutocomplete])
 
   const exportResult = useCallback(async (format) => {
     if (!result || !duckState.db || !duckState.conn) {
@@ -848,6 +1667,14 @@ const QueryExplorer = ({ onDatasetsChanged, onQueryExecuted }) => {
   const handleSelectionChange = useCallback((value) => {
     setSelectionText(value)
   }, [])
+
+  const handleCursorChange = useCallback((selection) => {
+    setCursorState(selection)
+  }, [])
+
+  const handleSchemaRefreshClick = useCallback(() => {
+    scheduleSchemaRefresh('manual', { immediate: true, force: true })
+  }, [scheduleSchemaRefresh])
 
   const formatQuery = useCallback(() => {
     if (!query.trim()) return
@@ -1227,6 +2054,24 @@ const QueryExplorer = ({ onDatasetsChanged, onQueryExecuted }) => {
                       <IconTextWrap size={16} />
                       Wrap
                     </button>
+                    {featureFlags.enableSqlAutocomplete && (
+                      <button
+                        type='button'
+                        onClick={handleSchemaRefreshClick}
+                        className={`inline-flex h-9 items-center gap-2 rounded-lg border-2 px-3 text-xs ${
+                          schemaError
+                            ? 'border-black bg-white text-gray-900 hover:bg-gray-100'
+                            : schemaRefreshing
+                              ? 'border-black bg-gray-100 text-gray-700'
+                              : 'border-black bg-white text-gray-900 hover:bg-gray-100'
+                        } focus:outline-none focus-visible:ring-2 focus-visible:ring-black`}
+                        disabled={schemaRefreshing}
+                        aria-live='polite'
+                      >
+                        <IconRefresh size={16} className={schemaRefreshing ? 'animate-spin' : ''} />
+                        {schemaStatusLabel}
+                      </button>
+                    )}
                   </div>
                   {hasSelection && (
                     <button
@@ -1249,7 +2094,10 @@ const QueryExplorer = ({ onDatasetsChanged, onQueryExecuted }) => {
                     onRun={() => runQuery()}
                     onRunSelection={runSelection}
                     onSelectionChange={handleSelectionChange}
+                    onCursorChange={handleCursorChange}
+                    onFocus={handleEditorFocus}
                     wrap={wrapEnabled}
+                    extraExtensions={editorExtraExtensions}
                   />
                 </div>
               </section>
@@ -1396,6 +2244,20 @@ const QueryExplorer = ({ onDatasetsChanged, onQueryExecuted }) => {
                           className='w-full rounded-lg border-2 border-black bg-white py-1.5 pl-8 pr-2 text-xs text-gray-900 focus:outline-none focus-visible:ring-2 focus-visible:ring-black'
                         />
                       </label>
+                      {featureFlags.enableSqlAutocomplete && (
+                        <div className='flex items-center justify-between gap-2'>
+                          <button
+                            type='button'
+                            onClick={handleSchemaRefreshClick}
+                            className='inline-flex h-8 items-center gap-2 rounded-lg border-2 border-black bg-white px-2 text-xs text-gray-900 hover:bg-gray-100 focus:outline-none focus-visible:ring-2 focus-visible:ring-black disabled:cursor-not-allowed disabled:opacity-60'
+                            disabled={schemaRefreshing}
+                          >
+                            <IconRefresh size={14} className={schemaRefreshing ? 'animate-spin' : ''} />
+                            Refresh schema
+                          </button>
+                          <span className='text-[11px] text-gray-500'>{schemaStatusLabel}</span>
+                        </div>
+                      )}
                     </div>
                     <div
                       ref={columnsPanelRef}

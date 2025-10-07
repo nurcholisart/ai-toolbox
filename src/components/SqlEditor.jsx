@@ -22,13 +22,17 @@ const SqlEditor = forwardRef(function SqlEditor({
   onRunSelection,
   placeholder = 'Write a SQL query...',
   onSelectionChange,
+  onCursorChange,
+  onFocus,
   wrap = false,
+  extraExtensions = [],
 }, ref) {
   const containerRef = useRef(null)
   const viewRef = useRef(null)
   const dialectCompartment = useRef(new Compartment())
   const wrapCompartment = useRef(new Compartment())
   const lastValueRef = useRef(value)
+  const extrasCompartment = useRef(new Compartment())
 
   const getSelection = () => {
     const view = viewRef.current
@@ -48,10 +52,18 @@ const SqlEditor = forwardRef(function SqlEditor({
     viewRef.current.focus()
   }
 
+  const getCursor = () => {
+    const view = viewRef.current
+    if (!view) return { head: 0, anchor: 0 }
+    const selection = view.state.selection.main
+    return { head: selection.head, anchor: selection.anchor }
+  }
+
   useImperativeHandle(ref, () => ({
     getSelection,
     getValue,
     focus,
+    getCursor,
   }), [])
 
   useEffect(() => {
@@ -63,8 +75,12 @@ const SqlEditor = forwardRef(function SqlEditor({
         lastValueRef.current = nextValue
         onChange && onChange(nextValue)
       }
-      if (vu.selectionSet && onSelectionChange) {
-        onSelectionChange(getSelection())
+      if (vu.selectionSet) {
+        if (onSelectionChange) onSelectionChange(getSelection())
+        if (onCursorChange) {
+          const main = vu.state.selection.main
+          onCursorChange({ head: main.head, anchor: main.anchor })
+        }
       }
     })
 
@@ -114,7 +130,13 @@ const SqlEditor = forwardRef(function SqlEditor({
       dialectCompartment.current.of(sql()),
       cmPlaceholder(placeholder),
       wrapCompartment.current.of(wrap ? EditorView.lineWrapping : []),
+      extrasCompartment.current.of(extraExtensions),
       updateListener,
+      EditorView.domEventHandlers({
+        focus: () => {
+          if (onFocus) onFocus()
+        },
+      }),
     ]
 
     const startState = EditorState.create({
@@ -139,7 +161,7 @@ const SqlEditor = forwardRef(function SqlEditor({
       view.destroy()
       viewRef.current = null
     }
-  }, [onChange, onRun, onRunSelection, onSelectionChange, placeholder])
+  }, [extraExtensions, onChange, onCursorChange, onFocus, onRun, onRunSelection, onSelectionChange, placeholder])
 
   useEffect(() => {
     const view = viewRef.current
@@ -160,6 +182,14 @@ const SqlEditor = forwardRef(function SqlEditor({
       effects: wrapCompartment.current.reconfigure(wrap ? EditorView.lineWrapping : []),
     })
   }, [wrap])
+
+  useEffect(() => {
+    const view = viewRef.current
+    if (!view) return
+    view.dispatch({
+      effects: extrasCompartment.current.reconfigure(extraExtensions),
+    })
+  }, [extraExtensions])
 
   return (
     <div className='rounded-lg border-2 border-black bg-white'>
