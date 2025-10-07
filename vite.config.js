@@ -199,4 +199,7 @@ export default defineConfig({
     // Avoid pre-bundling ffmpeg packages; it breaks worker resolution
     exclude: ['@ffmpeg/ffmpeg', '@ffmpeg/util'],
   },
+  server: {
+    allowedHosts: ["tunnel.nurcholis.art"]
+  }
 })

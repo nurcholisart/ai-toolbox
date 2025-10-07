@@ -15,6 +15,9 @@ import {
   IconRefresh,
   IconClipboard,
   IconClock,
+  IconChevronDown,
+  IconChevronRight,
+  IconColumns3,
 } from '@tabler/icons-react'
 import * as duckdb from '@duckdb/duckdb-wasm'
 import { tableFromIPC } from 'apache-arrow'
@@ -71,6 +74,12 @@ const formatDateTimeJakarta = (date) => {
 const quoteIdentifier = (value) => `"${value.replace(/"/g, '""')}"`
 
 const sqlLiteral = (value) => `'${String(value).replace(/'/g, "''")}'`
+
+const jsonBigIntReplacer = (_, value) => {
+  return typeof value === 'bigint' ? value.toString() : value
+}
+
+const safeJsonStringify = (value) => JSON.stringify(value, jsonBigIntReplacer)
 
 const normalizeName = (input, registry) => {
   const baseName = input
@@ -130,7 +139,7 @@ const deriveNdjson = (text) => {
         if (typeof entry !== 'object' || entry === null || Array.isArray(entry)) {
           throw new Error(`Element at index ${idx} is not a JSON object.`)
         }
-        return JSON.stringify(entry)
+        return safeJsonStringify(entry)
       }).join('\n')
       return { ndjson, converted: true }
     } catch (error) {
@@ -154,18 +163,18 @@ const deriveNdjson = (text) => {
 const formatValue = (value) => {
   if (value === null || value === undefined) return <span className='text-gray-500'>NULL</span>
   if (value instanceof Uint8Array) return `0x${Array.from(value).map((x) => x.toString(16).padStart(2, '0')).join('')}`
-  if (Array.isArray(value)) return JSON.stringify(value)
-  if (typeof value === 'object') return JSON.stringify(value)
+  if (Array.isArray(value)) return safeJsonStringify(value)
+  if (typeof value === 'object') return safeJsonStringify(value)
   return String(value)
 }
 
 const QueryExplorer = ({ onDatasetsChanged, onQueryExecuted }) => {
-  const [duckState, setDuckState] = useState({ db: null, conn: null, worker: null })
+  const duckStateRef = useRef({ db: null, conn: null, worker: null })
+  const [duckState, setDuckState] = useState(duckStateRef.current)
   const [initError, setInitError] = useState(null)
   const [initializing, setInitializing] = useState(true)
   const [datasets, setDatasets] = useState([])
   const [selectedDatasetId, setSelectedDatasetId] = useState(null)
-  const [preview, setPreview] = useState({ loading: false, rows: [], columns: [] })
   const [query, setQuery] = useState(`${MANUAL_QUERY_HINT}\n\nSELECT * FROM example LIMIT 100;`)
   const [queryStatus, setQueryStatus] = useState({ state: 'idle' })
   const [result, setResult] = useState(null)
@@ -174,6 +183,12 @@ const QueryExplorer = ({ onDatasetsChanged, onQueryExecuted }) => {
   const [loadingFromCache, setLoadingFromCache] = useState(false)
   const [memoryLimitMb, setMemoryLimitMb] = useState(DEFAULT_MEMORY_LIMIT_MB)
   const [messages, setMessages] = useState([])
+  const [sidebarSections, setSidebarSections] = useState({
+    uploads: true,
+    columns: true,
+    history: true,
+    notifications: true,
+  })
   const [csvOptions, setCsvOptions] = useState({
     delimiter: ',',
     header: true,
@@ -210,13 +225,6 @@ const QueryExplorer = ({ onDatasetsChanged, onQueryExecuted }) => {
     setMessages((prev) => prev.filter((msg) => msg.id !== id))
   }, [])
 
-  const resetEngine = useCallback(async () => {
-    if (duckState.conn) await duckState.conn.close().catch(() => {})
-    if (duckState.db) await duckState.db.terminate().catch(() => {})
-    if (duckState.worker) duckState.worker.terminate()
-    setDuckState({ db: null, conn: null, worker: null })
-  }, [duckState])
-
   useEffect(() => {
     let cancelled = false
     const init = async () => {
@@ -251,10 +259,17 @@ const QueryExplorer = ({ onDatasetsChanged, onQueryExecuted }) => {
   }, [addMessage])
 
   useEffect(() => {
+    duckStateRef.current = duckState
+  }, [duckState])
+
+  useEffect(() => {
     return () => {
-      resetEngine()
+      const current = duckStateRef.current
+      if (current.conn) current.conn.close().catch(() => {})
+      if (current.db) current.db.terminate().catch(() => {})
+      if (current.worker) current.worker.terminate()
     }
-  }, [resetEngine])
+  }, [])
 
   const loadCache = useCallback(async () => {
     if (!cacheEnabled) return
@@ -330,6 +345,14 @@ const QueryExplorer = ({ onDatasetsChanged, onQueryExecuted }) => {
       })))
     }
   }, [datasets])
+
+  const toggleSidebarSection = useCallback((key) => {
+    setSidebarSections((prev) => ({ ...prev, [key]: !prev[key] }))
+  }, [])
+
+  const selectedDataset = useMemo(() => {
+    return datasets.find((item) => item.id === selectedDatasetId) ?? null
+  }, [datasets, selectedDatasetId])
 
   const persistDataset = useCallback(async (dataset, buffer, viewSql) => {
     if (!cacheEnabled) return
@@ -493,30 +516,6 @@ const QueryExplorer = ({ onDatasetsChanged, onQueryExecuted }) => {
     }
   }, [duckState.conn, duckState.db, datasets, removeDatasetFromCache, selectedDatasetId])
 
-  const refreshPreview = useCallback(async (datasetId) => {
-    const dataset = datasets.find((item) => item.id === datasetId)
-    if (!dataset) return
-    setPreview((prevState) => ({ ...prevState, loading: true }))
-    try {
-      const table = await duckState.conn.query(`SELECT * FROM ${quoteIdentifier(dataset.viewName)} LIMIT 100`)
-      const rows = table.toArray().map((row) => ({ ...row }))
-      const columns = table.schema.fields.map((field) => ({
-        header: field.name,
-        accessorKey: field.name,
-        cell: ({ getValue }) => formatValue(getValue()),
-      }))
-      setPreview({ loading: false, rows, columns })
-    } catch (error) {
-      console.error('Failed to load preview', error)
-      setPreview({ loading: false, rows: [], columns: [] })
-      addMessage(`Failed to preview ${dataset.viewName}: ${error.message}`, 'error')
-    }
-  }, [addMessage, datasets, duckState.conn])
-
-  useEffect(() => {
-    if (selectedDatasetId) refreshPreview(selectedDatasetId)
-  }, [refreshPreview, selectedDatasetId])
-
   const sqlEditorRef = useRef(null)
 
   const exportResult = useCallback(async (format) => {
@@ -531,7 +530,7 @@ const QueryExplorer = ({ onDatasetsChanged, onQueryExecuted }) => {
         const rows = result.rows.map((row) => result.columns.map((col) => {
           const value = row[col.accessorKey]
           if (value === null || value === undefined) return ''
-          const stringValue = typeof value === 'object' ? JSON.stringify(value) : String(value)
+          const stringValue = typeof value === 'object' ? safeJsonStringify(value) : String(value)
           if (stringValue.includes(',') || stringValue.includes('"') || stringValue.includes('\n')) {
             return `"${stringValue.replace(/"/g, '""')}"`
           }
@@ -545,7 +544,7 @@ const QueryExplorer = ({ onDatasetsChanged, onQueryExecuted }) => {
         link.click()
         URL.revokeObjectURL(link.href)
       } else if (format === 'ndjson') {
-        const ndjson = result.rows.map((row) => JSON.stringify(row)).join('\n')
+        const ndjson = result.rows.map((row) => safeJsonStringify(row)).join('\n')
         const blob = new Blob([ndjson], { type: 'application/x-ndjson' })
         const link = document.createElement('a')
         link.href = URL.createObjectURL(blob)
@@ -611,7 +610,7 @@ const QueryExplorer = ({ onDatasetsChanged, onQueryExecuted }) => {
         cell: ({ getValue }) => formatValue(getValue()),
       }))
       const rowCount = table.numRows
-      const sample = rows.slice(0, Math.min(rowCount, 1000)).map((row) => textEncoder.encode(JSON.stringify(row)).length)
+      const sample = rows.slice(0, Math.min(rowCount, 1000)).map((row) => textEncoder.encode(safeJsonStringify(row)).length)
       const avg = sample.length ? sample.reduce((a, b) => a + b, 0) / sample.length : 0
       const memoryApprox = Math.round(avg * rowCount)
       const finishedAt = new Date()
@@ -719,100 +718,335 @@ const QueryExplorer = ({ onDatasetsChanged, onQueryExecuted }) => {
   const degraded = !!initError
 
   return (
-    <div className='min-h-screen bg-gray-50'>
-      <div className='max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 pt-6'>
-        <div className='flex items-center justify-between'>
-          <a
-            href='/'
-            className='inline-flex items-center gap-2 text-sm bg-white text-black border-2 border-black rounded-lg px-3 py-1 hover:bg-gray-100 shadow-sm'
-          >
-            <IconArrowLeft size={18} stroke={2} />
-            Back to tools
-          </a>
+    <div className='min-h-screen bg-gray-100 text-gray-900'>
+      <header className='border-b-2 border-black bg-white'>
+        <div className='flex flex-col gap-3 px-6 py-4 lg:flex-row lg:items-start lg:justify-between'>
+          <div className='flex items-start gap-3'>
+            <a
+              href='/'
+              className='inline-flex items-center gap-2 rounded-lg border-2 border-black bg-white px-3 py-2 text-sm text-gray-900 hover:bg-gray-100'
+            >
+              <IconArrowLeft size={18} stroke={2} />
+              Back to tools
+            </a>
+            <div>
+              <h1 className='text-2xl font-semibold text-gray-900'>Query Explorer</h1>
+              <p className='mt-1 text-xs text-gray-600'>Run analytical SQL queries entirely in your browser against CSV, JSON Lines, or Parquet datasets.</p>
+            </div>
+          </div>
           <div className='flex items-center gap-2'>
             <InstallPrompt />
             <a
               href='/settings'
-              className='inline-flex items-center gap-2 text-sm bg-white text-black border-2 border-black rounded-lg px-3 py-1 hover:bg-gray-100 shadow-sm'
+              className='inline-flex items-center gap-2 rounded-lg border-2 border-black bg-white px-3 py-2 text-sm text-gray-900 hover:bg-gray-100'
             >
               <IconSettings size={16} stroke={2} />
               Edit Config
             </a>
           </div>
         </div>
-      </div>
-      <main className='max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 pb-12'>
-        <header className='mt-8 mb-6'>
-          <h1 className='text-3xl font-semibold text-black'>Query Explorer</h1>
-          <p className='mt-2 text-sm text-gray-600 max-w-3xl'>Run analytical SQL queries entirely in your browser against CSV, JSON Lines, or Parquet datasets. Upload files, inspect inferred schemas, and join datasets without sending data to any server.</p>
-        </header>
-
-        {degraded && (
-          <div className='bg-white border-2 border-black rounded-xl shadow-md p-4 mb-6'>
-            <div className='flex items-start gap-3'>
-              <IconAlertCircle size={20} />
-              <div>
-                <h2 className='text-lg font-semibold'>DuckDB is unavailable</h2>
-                <p className='text-sm text-gray-600 mt-1'>The WebAssembly database engine could not be initialised. Reload the page to retry. No partial state has been kept.</p>
-                <button
-                  type='button'
-                  onClick={() => window.location.reload()}
-                  className='mt-3 inline-flex items-center gap-2 bg-black text-white px-3 py-2 rounded-lg hover:bg-gray-800 focus:outline-none focus:ring-2 focus:ring-black'
-                >
-                  <IconRefresh size={16} />
-                  Reload tab
-                </button>
-              </div>
-            </div>
-          </div>
-        )}
-
-        {!degraded && (
-          <section className='grid lg:grid-cols-3 gap-6 items-start'>
-            <div className='lg:col-span-2 space-y-6'>
-              <div className='bg-white border-2 border-black rounded-xl shadow-md p-4'>
-                <div className='flex flex-wrap items-center justify-between gap-3'>
+      </header>
+      <div className='grid gap-6 px-6 py-6 lg:[grid-template-columns:320px_minmax(0,1fr)]'>
+        <main className='min-w-0 overflow-x-auto pb-12 lg:col-start-2'>
+          <div className='space-y-6 lg:min-w-[960px]'>
+            {degraded ? (
+              <section className='rounded-lg border-2 border-black bg-white p-6'>
+                <div className='flex items-start gap-3'>
+                  <IconAlertCircle size={20} />
                   <div>
-                    <h2 className='text-lg font-semibold flex items-center gap-2'>
-                      <IconDatabaseImport size={18} />
+                    <h2 className='text-lg font-semibold text-gray-900'>DuckDB is unavailable</h2>
+                    <p className='mt-2 text-sm text-gray-600'>The WebAssembly database engine could not be initialised. Reload the page to retry. No partial state has been kept.</p>
+                    <button
+                      type='button'
+                      onClick={() => window.location.reload()}
+                      className='mt-4 inline-flex items-center gap-2 rounded-lg border-2 border-black bg-black px-3 py-2 text-sm font-medium text-white hover:bg-gray-200 focus:outline-none focus:ring-2 focus:ring-black'
+                    >
+                      <IconRefresh size={16} />
+                      Reload tab
+                    </button>
+                  </div>
+                </div>
+              </section>
+            ) : (
+              <>
+                <section className='overflow-hidden rounded-lg border-2 border-black bg-white'>
+                  <div className='flex flex-wrap items-center justify-between gap-3 border-b-2 border-black px-4 py-3'>
+                    <h2 className='flex items-center gap-2 text-sm font-semibold uppercase tracking-wide text-gray-700'>
+                      <IconDatabaseImport size={16} />
                       Datasets
                     </h2>
-                    <p className='text-xs text-gray-600 mt-1'>Upload CSV, NDJSON/JSON Lines, or Parquet files. Each file becomes a read-only view.</p>
+                    <div className='flex flex-wrap items-center gap-3 text-xs text-gray-600'>
+                      <span>Total size {formatBytes(totalDatasetSize)}</span>
+                      <span>Memory budget {memoryLimitMb} MB</span>
+                    </div>
                   </div>
-                  <label className='inline-flex items-center gap-2 bg-black text-white px-3 py-2 rounded-lg cursor-pointer hover:bg-gray-800 focus:outline-none focus:ring-2 focus:ring-black'>
-                    <IconDatabaseImport size={16} />
-                    <span>Upload file</span>
-                    <input type='file' className='hidden' multiple accept='.csv,.tsv,.txt,.ndjson,.jsonl,.json,.parquet' onChange={handleFileInput} />
-                  </label>
-                </div>
-                <div className='mt-4 flex flex-wrap items-center gap-4 text-xs text-gray-600'>
-                  <div>Total datasets size: <span className='font-semibold text-black'>{formatBytes(totalDatasetSize)}</span></div>
-                  <div>Memory budget: <span className='font-semibold text-black'>{memoryLimitMb} MB</span></div>
-                  <div className='flex items-center gap-2'>
-                    <label htmlFor='memoryLimit' className='sr-only'>Memory limit</label>
-                    <input
-                      id='memoryLimit'
-                      type='number'
-                      min={64}
-                      step={64}
-                      value={memoryLimitMb}
-                      onChange={(event) => setMemoryLimitMb(Number(event.target.value))}
-                      className='w-24 bg-white border-2 border-black rounded-lg px-2 py-1'
+                  <div className='space-y-4 px-4 py-4'>
+                    {loadingFromCache && (
+                      <p className='text-sm text-gray-600'>Restoring cached datasets...</p>
+                    )}
+                    {datasets.length === 0 && (
+                      <p className='rounded-md border-2 border-dashed border-black px-4 py-3 text-sm text-gray-600'>
+                        No datasets yet. Use the upload panel to register a file.
+                      </p>
+                    )}
+                    {datasets.length > 0 && (
+                      <ul className='space-y-3' role='list'>
+                        {datasets.map((dataset) => {
+                          const isActive = selectedDatasetId === dataset.id
+                          return (
+                            <li key={dataset.id}>
+                              <article
+                                className={`rounded-lg border-2 px-3 py-3 transition-colors ${
+                                  isActive ? 'border-black bg-gray-200' : 'border-black bg-white hover:bg-gray-100'
+                                }`}
+                              >
+                                <div className='flex flex-wrap items-start justify-between gap-3'>
+                                  <button
+                                    type='button'
+                                    className='text-left'
+                                    onClick={() => setSelectedDatasetId(dataset.id)}
+                                    aria-pressed={isActive}
+                                  >
+                                    <h3 className='text-sm font-semibold text-gray-900'>{dataset.viewName}</h3>
+                                    <p className='mt-1 text-xs text-gray-600'>
+                                      {dataset.sourceFileName} · {formatBytes(dataset.approxSize)} · {formatDateTimeJakarta(dataset.createdAt)}
+                                    </p>
+                                  </button>
+                                  <div className='flex items-center gap-2'>
+                                    <span className='rounded-full border-2 border-black px-2 py-0.5 text-[11px] uppercase text-gray-700'>{dataset.type}</span>
+                                    <button
+                                      type='button'
+                                      onClick={() => copySelectStatement(dataset.viewName)}
+                                      className='inline-flex items-center gap-1 rounded-md border-2 border-black px-2 py-1 text-xs text-gray-900 hover:bg-gray-100'
+                                    >
+                                      <IconClipboard size={14} />
+                                      Copy
+                                    </button>
+                                    <button
+                                      type='button'
+                                      onClick={() => removeDataset(dataset)}
+                                      className='inline-flex items-center gap-1 rounded-md border-2 border-black px-2 py-1 text-xs text-gray-900 hover:bg-gray-100'
+                                    >
+                                      <IconTrash size={14} />
+                                      Remove
+                                    </button>
+                                  </div>
+                                </div>
+                              </article>
+                            </li>
+                          )
+                        })}
+                      </ul>
+                    )}
+                    {datasets.length > 0 && !selectedDatasetId && (
+                      <p className='rounded-md border-2 border-dashed border-black px-4 py-3 text-xs text-gray-600'>
+                        Select a dataset to inspect its schema.
+                      </p>
+                    )}
+                  </div>
+                </section>
+
+                <section className='overflow-hidden rounded-lg border-2 border-black bg-white'>
+                  <div className='flex flex-wrap items-center justify-between gap-3 border-b-2 border-black px-4 py-3'>
+                    <h2 className='flex items-center gap-2 text-sm font-semibold uppercase tracking-wide text-gray-700'>
+                      <IconPlayerPlay size={16} />
+                      SQL Query
+                    </h2>
+                    <div className='flex flex-wrap items-center gap-2'>
+                      <button
+                        type='button'
+                        onClick={() => runQuery()}
+                        className='inline-flex items-center gap-2 rounded-md border-2 border-black bg-gray-100 px-3 py-2 text-sm font-medium text-gray-900 hover:bg-white disabled:cursor-not-allowed disabled:opacity-50'
+                        disabled={queryStatus.state === 'running'}
+                      >
+                        <IconPlayerPlay size={16} />
+                        Run
+                      </button>
+                      <button
+                        type='button'
+                        onClick={runSelection}
+                        className='inline-flex items-center gap-2 rounded-md border-2 border-black bg-gray-100 px-3 py-2 text-sm text-gray-900 hover:bg-gray-200 disabled:cursor-not-allowed disabled:opacity-50'
+                        disabled={queryStatus.state === 'running'}
+                      >
+                        <IconPlayerPlay size={16} />
+                        Run selection
+                      </button>
+                    </div>
+                  </div>
+                  <p className='px-4 pt-4 text-xs text-gray-600'>
+                    Editor supports keyboard shortcuts. Press Cmd/Ctrl + Enter to execute the entire query or Shift + Cmd/Ctrl + Enter for the selection.
+                  </p>
+                  <div className='px-4 pb-4'>
+                    <SqlEditor
+                      ref={sqlEditorRef}
+                      value={query}
+                      onChange={setQuery}
+                      onRun={() => runQuery()}
+                      onRunSelection={runSelection}
                     />
-                    <span>MB</span>
+                  </div>
+                </section>
+
+                <section className='overflow-hidden rounded-lg border-2 border-black bg-white'>
+                  <div className='flex flex-wrap items-center justify-between gap-3 border-b-2 border-black px-4 py-3'>
+                    <h2 className='flex items-center gap-2 text-sm font-semibold uppercase tracking-wide text-gray-700'>
+                      <IconPlayerPlay size={16} />
+                      Query result
+                    </h2>
+                    {result && (
+                      <div className='flex flex-wrap items-center gap-2'>
+                        <button
+                          type='button'
+                          onClick={() => exportResult('csv')}
+                          className='inline-flex items-center gap-2 rounded-md border-2 border-black px-3 py-1.5 text-xs text-gray-900 hover:bg-gray-100 disabled:cursor-not-allowed disabled:opacity-50'
+                          disabled={queryStatus.state !== 'success'}
+                        >
+                          <IconDownload size={14} />
+                          CSV
+                        </button>
+                        <button
+                          type='button'
+                          onClick={() => exportResult('ndjson')}
+                          className='inline-flex items-center gap-2 rounded-md border-2 border-black px-3 py-1.5 text-xs text-gray-900 hover:bg-gray-100 disabled:cursor-not-allowed disabled:opacity-50'
+                          disabled={queryStatus.state !== 'success'}
+                        >
+                          <IconDownload size={14} />
+                          NDJSON
+                        </button>
+                        <button
+                          type='button'
+                          onClick={() => exportResult('parquet')}
+                          className='inline-flex items-center gap-2 rounded-md border-2 border-black px-3 py-1.5 text-xs text-gray-900 hover:bg-gray-100 disabled:cursor-not-allowed disabled:opacity-50'
+                          disabled={queryStatus.state !== 'success'}
+                        >
+                          <IconDownload size={14} />
+                          Parquet
+                        </button>
+                      </div>
+                    )}
+                  </div>
+                  <div className='space-y-4 px-4 py-4'>
+                    <div>
+                      <h3 className='flex items-center gap-2 text-xs font-semibold uppercase tracking-wide text-gray-700'>
+                        <IconClock size={16} />
+                        Execution status
+                      </h3>
+                      {queryStatus.state === 'idle' && <p className='mt-2 text-sm text-gray-600'>Waiting for a query.</p>}
+                      {queryStatus.state === 'running' && queryStatus.startedAt && (
+                        <p className='mt-2 text-sm text-gray-600'>Query running... started at {formatDateTimeJakarta(queryStatus.startedAt)}</p>
+                      )}
+                      {queryStatus.state === 'success' && (
+                        <dl className='mt-3 grid grid-cols-2 gap-3 text-xs text-gray-700 md:grid-cols-4'>
+                          <div>
+                            <dt className='text-gray-500'>Started</dt>
+                            <dd className='font-semibold text-gray-900'>{formatDateTimeJakarta(queryStatus.startedAt)}</dd>
+                          </div>
+                          <div>
+                            <dt className='text-gray-500'>Finished</dt>
+                            <dd className='font-semibold text-gray-900'>{formatDateTimeJakarta(queryStatus.finishedAt)}</dd>
+                          </div>
+                          <div>
+                            <dt className='text-gray-500'>Parse time</dt>
+                            <dd className='font-semibold text-gray-900'>{queryStatus.parseMs.toFixed(2)} ms</dd>
+                          </div>
+                          <div>
+                            <dt className='text-gray-500'>Execution time</dt>
+                            <dd className='font-semibold text-gray-900'>{queryStatus.execMs.toFixed(2)} ms</dd>
+                          </div>
+                          <div>
+                            <dt className='text-gray-500'>Rows</dt>
+                            <dd className='font-semibold text-gray-900'>{queryStatus.rowCount.toLocaleString('en-US')}</dd>
+                          </div>
+                          <div>
+                            <dt className='text-gray-500'>Memory approx</dt>
+                            <dd className='font-semibold text-gray-900'>{formatBytes(queryStatus.memoryApprox)}</dd>
+                          </div>
+                        </dl>
+                      )}
+                      {queryStatus.state === 'error' && queryStatus.finishedAt && (
+                        <div className='mt-3 rounded-md border-2 border-black bg-gray-100 px-3 py-3 text-sm text-gray-700'>
+                          <p>Query failed at {formatDateTimeJakarta(queryStatus.finishedAt)}.</p>
+                          <p className='mt-1'>Message: {queryStatus.message}</p>
+                          {typeof queryStatus.line === 'number' && (
+                            <p className='mt-1'>Line {queryStatus.line}, column {queryStatus.column}</p>
+                          )}
+                        </div>
+                      )}
+                    </div>
+                    {result ? (
+                      <VirtualTable columns={result.columns} data={result.rows} height={360} />
+                    ) : (
+                      <p className='text-sm text-gray-600'>Run a query to view results.</p>
+                    )}
+                  </div>
+                </section>
+              </>
+            )}
+          </div>
+        </main>
+        <aside className='space-y-4 lg:col-start-1 lg:row-start-1'>
+          <section className='overflow-hidden rounded-lg border-2 border-black bg-white'>
+            <button
+              type='button'
+              onClick={() => toggleSidebarSection('uploads')}
+              className='flex w-full items-center justify-between gap-2 px-4 py-3 text-sm font-semibold uppercase tracking-wide text-gray-700 hover:bg-gray-100'
+            >
+              <span className='flex items-center gap-2'>
+                <IconDatabaseImport size={16} />
+                Files
+              </span>
+              {sidebarSections.uploads ? <IconChevronDown size={16} /> : <IconChevronRight size={16} />}
+            </button>
+            {sidebarSections.uploads && (
+              <div className='space-y-4 px-4 pb-4 pt-3 text-xs text-gray-600'>
+                <p>Upload files to make them available as read-only DuckDB views.</p>
+                <label className='flex w-full cursor-pointer items-center justify-center gap-2 rounded-md border-2 border-black bg-gray-100 px-3 py-2 text-sm font-medium text-gray-900 hover:bg-white'>
+                  <IconDatabaseImport size={16} />
+                  <span>Upload files</span>
+                  <input
+                    type='file'
+                    className='hidden'
+                    multiple
+                    accept='.csv,.tsv,.txt,.ndjson,.jsonl,.json,.parquet'
+                    onChange={handleFileInput}
+                  />
+                </label>
+                <div className='space-y-3'>
+                  <div className='flex justify-between text-gray-700'>
+                    <span>Total size</span>
+                    <span className='font-semibold text-gray-900'>{formatBytes(totalDatasetSize)}</span>
+                  </div>
+                  <div className='flex items-center justify-between gap-2 text-gray-700'>
+                    <label htmlFor='memoryLimit' className='text-gray-700'>Memory budget</label>
+                    <div className='flex items-center gap-2'>
+                      <input
+                        id='memoryLimit'
+                        type='number'
+                        min={64}
+                        step={64}
+                        value={memoryLimitMb}
+                        onChange={(event) => setMemoryLimitMb(Number(event.target.value))}
+                        className='w-24 rounded-md border-2 border-black bg-gray-100 px-2 py-1 text-right text-gray-900'
+                      />
+                      <span>MB</span>
+                    </div>
                   </div>
                   <button
                     type='button'
                     onClick={toggleCache}
-                    className={`inline-flex items-center gap-2 px-3 py-1 rounded-lg border-2 border-black ${cacheEnabled ? 'bg-white hover:bg-gray-100' : 'bg-black text-white hover:bg-gray-800'}`}
+                    className={`inline-flex w-full items-center justify-center gap-2 rounded-md border-2 px-3 py-2 text-xs font-medium ${
+                      cacheEnabled
+                        ? 'border-black bg-gray-100 text-gray-900 hover:bg-gray-200'
+                        : 'border-black bg-white text-gray-900 hover:bg-gray-100'
+                    }`}
                   >
                     {cacheEnabled ? <IconCloudOff size={16} /> : <IconRestore size={16} />}
                     {cacheEnabled ? 'Enable private mode' : 'Re-enable cache'}
                   </button>
                 </div>
-                <details className='mt-4 border border-dashed border-gray-300 rounded-lg p-3'>
-                  <summary className='text-sm font-semibold cursor-pointer'>Advanced CSV options</summary>
-                  <div className='mt-3 grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs'>
+                <details className='rounded-md border-2 border-dashed border-black px-3 py-2 text-gray-700'>
+                  <summary className='cursor-pointer text-sm font-semibold text-gray-700'>Advanced CSV options</summary>
+                  <div className='mt-3 grid grid-cols-1 gap-3'>
                     <label className='flex flex-col gap-1'>
                       <span>Delimiter</span>
                       <input
@@ -820,7 +1054,7 @@ const QueryExplorer = ({ onDatasetsChanged, onQueryExecuted }) => {
                         maxLength={1}
                         value={csvOptions.delimiter}
                         onChange={(event) => setCsvOptions((prev) => ({ ...prev, delimiter: event.target.value || ',' }))}
-                        className='bg-white border-2 border-black rounded-lg px-2 py-1'
+                        className='rounded-md border-2 border-black bg-gray-100 px-2 py-1 text-gray-900'
                       />
                     </label>
                     <label className='flex flex-col gap-1'>
@@ -829,7 +1063,7 @@ const QueryExplorer = ({ onDatasetsChanged, onQueryExecuted }) => {
                         type='text'
                         value={csvOptions.encoding}
                         onChange={(event) => setCsvOptions((prev) => ({ ...prev, encoding: event.target.value || 'utf-8' }))}
-                        className='bg-white border-2 border-black rounded-lg px-2 py-1'
+                        className='rounded-md border-2 border-black bg-gray-100 px-2 py-1 text-gray-900'
                       />
                     </label>
                     <label className='flex flex-col gap-1'>
@@ -839,7 +1073,7 @@ const QueryExplorer = ({ onDatasetsChanged, onQueryExecuted }) => {
                         maxLength={1}
                         value={csvOptions.quote}
                         onChange={(event) => setCsvOptions((prev) => ({ ...prev, quote: event.target.value || '"' }))}
-                        className='bg-white border-2 border-black rounded-lg px-2 py-1'
+                        className='rounded-md border-2 border-black bg-gray-100 px-2 py-1 text-gray-900'
                       />
                     </label>
                     <label className='flex flex-col gap-1'>
@@ -849,7 +1083,7 @@ const QueryExplorer = ({ onDatasetsChanged, onQueryExecuted }) => {
                         maxLength={1}
                         value={csvOptions.escape}
                         onChange={(event) => setCsvOptions((prev) => ({ ...prev, escape: event.target.value || prev.quote }))}
-                        className='bg-white border-2 border-black rounded-lg px-2 py-1'
+                        className='rounded-md border-2 border-black bg-gray-100 px-2 py-1 text-gray-900'
                       />
                     </label>
                     <label className='flex items-center gap-2'>
@@ -857,211 +1091,106 @@ const QueryExplorer = ({ onDatasetsChanged, onQueryExecuted }) => {
                         type='checkbox'
                         checked={csvOptions.header}
                         onChange={(event) => setCsvOptions((prev) => ({ ...prev, header: event.target.checked }))}
-                        className='h-4 w-4 border-2 border-black rounded'
+                        className='h-4 w-4 border-2 border-black bg-gray-100 text-gray-900'
                       />
                       <span>Header row present</span>
                     </label>
                     <label className='flex flex-col gap-1'>
-                      <span>Null strings</span>
+                      <span>Null string</span>
                       <input
                         type='text'
                         value={csvOptions.nullstr}
                         onChange={(event) => setCsvOptions((prev) => ({ ...prev, nullstr: event.target.value }))}
-                        className='bg-white border-2 border-black rounded-lg px-2 py-1'
+                        className='rounded-md border-2 border-black bg-gray-100 px-2 py-1 text-gray-900'
                       />
                     </label>
                   </div>
-                  <p className='mt-2 text-xs text-gray-600'>These defaults apply to future CSV uploads. TSV files automatically use tab delimiters.</p>
+                  <p className='mt-2 text-xs text-gray-500'>These defaults apply to future CSV uploads. TSV files automatically use tab delimiters.</p>
                 </details>
-                <div className='mt-4'>
-                  {loadingFromCache && (
-                    <p className='text-sm text-gray-600 mb-3'>Restoring cached datasets...</p>
-                  )}
-                  {datasets.length === 0 && (
-                    <p className='text-sm text-gray-600 border border-dashed border-gray-400 rounded-lg p-4'>No datasets yet. Upload a file to get started.</p>
-                  )}
-                  {datasets.length > 0 && (
-                    <ul className='space-y-3' role='list'>
-                      {datasets.map((dataset) => (
-                        <li key={dataset.id}>
-                          <article
-                            className={`border-2 rounded-lg p-3 flex flex-col gap-3 ${selectedDatasetId === dataset.id ? 'border-black bg-gray-100' : 'border-black bg-white'}`}
-                          >
-                            <div className='flex flex-wrap items-center justify-between gap-3'>
-                              <button
-                                type='button'
-                                className='text-left'
-                                onClick={() => setSelectedDatasetId(dataset.id)}
-                                aria-pressed={selectedDatasetId === dataset.id}
-                              >
-                                <h3 className='font-semibold text-black'>{dataset.viewName}</h3>
-                                <p className='text-xs text-gray-600'>{dataset.sourceFileName} · {formatBytes(dataset.approxSize)} · {formatDateTimeJakarta(dataset.createdAt)}</p>
-                              </button>
-                              <div className='flex items-center gap-2'>
-                                <button
-                                  type='button'
-                                  onClick={() => copySelectStatement(dataset.viewName)}
-                                  className='inline-flex items-center gap-1 bg-white border-2 border-black rounded-lg px-2 py-1 text-xs hover:bg-gray-100'
-                                >
-                                  <IconClipboard size={14} />
-                                  Copy SELECT
-                                </button>
-                                <button
-                                  type='button'
-                                  onClick={() => removeDataset(dataset)}
-                                  className='inline-flex items-center gap-1 bg-white border-2 border-black rounded-lg px-2 py-1 text-xs hover:bg-gray-100'
-                                >
-                                  <IconTrash size={14} />
-                                  Remove
-                                </button>
-                              </div>
-                            </div>
-                            <div className='overflow-x-auto'>
-                              <table className='min-w-full border border-black text-xs'>
-                                <thead>
-                                  <tr className='bg-gray-100'>
-                                    <th className='px-2 py-1 border-r border-black text-left'>Column</th>
-                                    <th className='px-2 py-1 border-r border-black text-left'>Type</th>
-                                    <th className='px-2 py-1 text-left'>Nullable</th>
-                                  </tr>
-                                </thead>
-                                <tbody>
-                                  {dataset.schema.map((column) => (
-                                    <tr key={column.name}>
-                                      <td className='px-2 py-1 border-t border-r border-black'>{column.name}</td>
-                                      <td className='px-2 py-1 border-t border-r border-black'>{column.type}</td>
-                                      <td className='px-2 py-1 border-t border-black'>{column.nullable ? 'YES' : 'NO'}</td>
-                                    </tr>
-                                  ))}
-                                </tbody>
-                              </table>
-                            </div>
-                          </article>
+              </div>
+            )}
+          </section>
+
+          <section className='overflow-hidden rounded-lg border-2 border-black bg-white'>
+            <button
+              type='button'
+              onClick={() => toggleSidebarSection('columns')}
+              className='flex w-full items-center justify-between gap-2 px-4 py-3 text-sm font-semibold uppercase tracking-wide text-gray-700 hover:bg-gray-100'
+            >
+              <span className='flex items-center gap-2'>
+                <IconColumns3 size={16} />
+                Columns
+              </span>
+              {sidebarSections.columns ? <IconChevronDown size={16} /> : <IconChevronRight size={16} />}
+            </button>
+            {sidebarSections.columns && (
+              <div className='space-y-3 px-4 pb-4 pt-3 text-xs text-gray-600'>
+                {!selectedDataset && <p>Select a dataset to inspect its columns.</p>}
+                {selectedDataset && (
+                  <>
+                    <p>
+                      Columns for <span className='font-semibold text-gray-900'>{selectedDataset.viewName}</span>.
+                    </p>
+                    <ul className='divide-y divide-gray-300 rounded-md border-2 border-black'>
+                      {selectedDataset.schema.map((column) => (
+                        <li key={column.name} className='flex items-center justify-between gap-3 px-3 py-2 text-sm text-gray-700'>
+                          <span className='font-medium text-gray-900'>{column.name}</span>
+                          <span className='text-xs uppercase text-gray-600'>{column.type}</span>
                         </li>
                       ))}
                     </ul>
-                  )}
-                </div>
+                  </>
+                )}
               </div>
+            )}
+          </section>
 
-              <div className='bg-white border-2 border-black rounded-xl shadow-md p-4'>
+          <section className='overflow-hidden rounded-lg border-2 border-black bg-white'>
+            <button
+              type='button'
+              onClick={() => toggleSidebarSection('history')}
+              className='flex w-full items-center justify-between gap-2 px-4 py-3 text-sm font-semibold uppercase tracking-wide text-gray-700 hover:bg-gray-100'
+            >
+              <span className='flex items-center gap-2'>
+                <IconHistory size={16} />
+                History
+              </span>
+              {sidebarSections.history ? <IconChevronDown size={16} /> : <IconChevronRight size={16} />}
+            </button>
+            {sidebarSections.history && (
+              <div className='space-y-3 px-4 pb-4 pt-3 text-xs text-gray-600'>
                 <div className='flex items-center justify-between'>
-                  <h2 className='text-lg font-semibold flex items-center gap-2'>
-                    <IconPlayerPlay size={18} />
-                    SQL Query
-                  </h2>
-                  <div className='flex items-center gap-2'>
+                  <span>{history.length === 0 ? 'No queries yet.' : `${history.length} entr${history.length === 1 ? 'y' : 'ies'}.`}</span>
+                  {history.some((entry) => !entry.pinned) && (
                     <button
                       type='button'
-                      onClick={() => runQuery()}
-                      className='inline-flex items-center gap-2 bg-black text-white px-3 py-2 rounded-lg hover:bg-gray-800 focus:outline-none focus:ring-2 focus:ring-black'
-                      disabled={queryStatus.state === 'running'}
+                      onClick={clearSessionHistory}
+                      className='inline-flex items-center gap-1 rounded-md border-2 border-black px-2 py-1 text-[11px] text-gray-700 hover:bg-gray-100'
                     >
-                      <IconPlayerPlay size={16} />
-                      Run
+                      Clear session
                     </button>
-                    <button
-                      type='button'
-                      onClick={runSelection}
-                      className='inline-flex items-center gap-2 bg-white border-2 border-black px-3 py-2 rounded-lg hover:bg-gray-100 focus:outline-none focus:ring-2 focus:ring-black'
-                      disabled={queryStatus.state === 'running'}
-                    >
-                      <IconPlayerPlay size={16} />
-                      Run selection
-                    </button>
-                  </div>
-                </div>
-                <p className='text-xs text-gray-600 mt-2'>Editor supports syntax highlighting, auto-indentation, and keyboard shortcuts. Press Cmd/Ctrl + Enter to execute.</p>
-                <div className='mt-4'>
-                  <SqlEditor
-                    ref={sqlEditorRef}
-                    value={query}
-                    onChange={setQuery}
-                    onRun={() => runQuery()}
-                    onRunSelection={runSelection}
-                  />
-                </div>
-                <div className='mt-4 border-t border-gray-200 pt-4'>
-                  <h3 className='font-semibold text-sm flex items-center gap-2'><IconClock size={16} />Execution status</h3>
-                  {queryStatus.state === 'idle' && <p className='text-xs text-gray-600 mt-1'>Waiting for a query.</p>}
-                  {queryStatus.state === 'running' && (
-                    <p className='text-xs text-gray-600 mt-1'>Query running... started at {formatDateTimeJakarta(queryStatus.startedAt)}</p>
-                  )}
-                  {queryStatus.state === 'success' && (
-                    <dl className='grid grid-cols-2 md:grid-cols-4 gap-3 text-xs mt-2'>
-                      <div>
-                        <dt className='text-gray-500'>Started</dt>
-                        <dd className='font-semibold'>{formatDateTimeJakarta(queryStatus.startedAt)}</dd>
-                      </div>
-                      <div>
-                        <dt className='text-gray-500'>Finished</dt>
-                        <dd className='font-semibold'>{formatDateTimeJakarta(queryStatus.finishedAt)}</dd>
-                      </div>
-                      <div>
-                        <dt className='text-gray-500'>Parse time</dt>
-                        <dd className='font-semibold'>{queryStatus.parseMs.toFixed(2)} ms</dd>
-                      </div>
-                      <div>
-                        <dt className='text-gray-500'>Execution time</dt>
-                        <dd className='font-semibold'>{queryStatus.execMs.toFixed(2)} ms</dd>
-                      </div>
-                      <div>
-                        <dt className='text-gray-500'>Rows</dt>
-                        <dd className='font-semibold'>{queryStatus.rowCount.toLocaleString('en-US')}</dd>
-                      </div>
-                      <div>
-                        <dt className='text-gray-500'>Memory approx</dt>
-                        <dd className='font-semibold'>{formatBytes(queryStatus.memoryApprox)}</dd>
-                      </div>
-                    </dl>
-                  )}
-                  {queryStatus.state === 'error' && (
-                    <div className='mt-2 text-xs text-red-600'>
-                      <p>Query failed at {formatDateTimeJakarta(queryStatus.finishedAt)}.</p>
-                      <p className='mt-1'>Message: {queryStatus.message}</p>
-                      {queryStatus.line && (
-                        <p className='mt-1'>Line {queryStatus.line}, column {queryStatus.column}</p>
-                      )}
-                    </div>
                   )}
                 </div>
-              </div>
-
-              <div className='bg-white border-2 border-black rounded-xl shadow-md p-4'>
-                <div className='flex items-center justify-between'>
-                  <h2 className='text-lg font-semibold flex items-center gap-2'>
-                    <IconHistory size={18} />
-                    Query history
-                  </h2>
-                  <button
-                    type='button'
-                    onClick={clearSessionHistory}
-                    className='inline-flex items-center gap-2 bg-white border-2 border-black px-3 py-1 rounded-lg text-xs hover:bg-gray-100'
-                  >
-                    Clear session entries
-                  </button>
-                </div>
-                {history.length === 0 && <p className='text-sm text-gray-600 mt-2'>No history yet.</p>}
                 {history.length > 0 && (
-                  <ul className='mt-3 space-y-2 text-xs'>
+                  <ul className='space-y-2'>
                     {history.map((entry) => (
-                      <li key={entry.id} className='border border-black rounded-lg p-2 bg-gray-50'>
+                      <li key={entry.id} className='rounded-md border-2 border-black bg-gray-100 p-3'>
                         <div className='flex items-start justify-between gap-3'>
                           <button
                             type='button'
-                            className='text-left flex-1'
+                            className='flex-1 text-left text-gray-900 hover:text-gray-700'
                             onClick={() => {
                               setQuery(entry.sql)
                               sqlEditorRef.current?.focus()
                             }}
                           >
-                            <p className='font-semibold text-black truncate'>{entry.sql.slice(0, 120) || 'Empty query'}</p>
-                            <p className='text-gray-600 mt-1'>{formatDateTimeJakarta(new Date(entry.createdAt))}</p>
+                            <p className='truncate text-sm font-semibold text-gray-900'>{entry.sql.slice(0, 160) || 'Empty query'}</p>
+                            <p className='mt-1 text-[11px] text-gray-500'>{formatDateTimeJakarta(new Date(entry.createdAt))}</p>
                           </button>
                           <button
                             type='button'
                             onClick={() => togglePinHistory(entry)}
-                            className='inline-flex items-center gap-1 bg-white border-2 border-black rounded-lg px-2 py-1 hover:bg-gray-100'
+                            className='inline-flex items-center gap-1 rounded-md border-2 border-black px-2 py-1 text-[11px] text-gray-700 hover:bg-gray-200'
                           >
                             {entry.pinned ? <IconPinFilled size={14} /> : <IconPin size={14} />}
                             {entry.pinned ? 'Pinned' : 'Pin'}
@@ -1072,85 +1201,33 @@ const QueryExplorer = ({ onDatasetsChanged, onQueryExecuted }) => {
                   </ul>
                 )}
               </div>
-            </div>
+            )}
+          </section>
 
-            <aside className='space-y-6'>
-              <div className='bg-white border-2 border-black rounded-xl shadow-md p-4'>
-                <h2 className='text-lg font-semibold flex items-center gap-2'>
-                  <IconDatabaseImport size={18} />
-                  Dataset preview
-                </h2>
-                {!selectedDatasetId && <p className='text-sm text-gray-600 mt-2'>Select a dataset to view the first 100 rows.</p>}
-                {selectedDatasetId && (
-                  <div className='mt-3 space-y-3'>
-                    {preview.loading && <p className='text-sm text-gray-600'>Loading preview...</p>}
-                    {!preview.loading && <VirtualTable columns={preview.columns} data={preview.rows} height={320} />}
-                    <button
-                      type='button'
-                      onClick={() => refreshPreview(selectedDatasetId)}
-                      className='inline-flex items-center gap-2 bg-white border-2 border-black px-3 py-2 rounded-lg hover:bg-gray-100'
-                    >
-                      <IconRefresh size={16} />
-                      Refresh preview
-                    </button>
-                  </div>
-                )}
-              </div>
-
-              <div className='bg-white border-2 border-black rounded-xl shadow-md p-4'>
-                <h2 className='text-lg font-semibold flex items-center gap-2'>
-                  <IconPlayerPlay size={18} />
-                  Query result
-                </h2>
-                {!result && <p className='text-sm text-gray-600 mt-2'>Run a query to view results.</p>}
-                {result && (
-                  <div className='mt-3 space-y-3'>
-                    <VirtualTable columns={result.columns} data={result.rows} height={360} />
-                    <div className='flex flex-wrap items-center gap-2'>
-                      <button
-                        type='button'
-                        onClick={() => exportResult('csv')}
-                        className='inline-flex items-center gap-2 bg-white border-2 border-black px-3 py-2 rounded-lg hover:bg-gray-100'
-                      >
-                        <IconDownload size={16} />
-                        Export CSV
-                      </button>
-                      <button
-                        type='button'
-                        onClick={() => exportResult('ndjson')}
-                        className='inline-flex items-center gap-2 bg-white border-2 border-black px-3 py-2 rounded-lg hover:bg-gray-100'
-                      >
-                        <IconDownload size={16} />
-                        Export NDJSON
-                      </button>
-                      <button
-                        type='button'
-                        onClick={() => exportResult('parquet')}
-                        className='inline-flex items-center gap-2 bg-white border-2 border-black px-3 py-2 rounded-lg hover:bg-gray-100'
-                      >
-                        <IconDownload size={16} />
-                        Export Parquet
-                      </button>
-                    </div>
-                  </div>
-                )}
-              </div>
-
-              <div className='bg-white border-2 border-black rounded-xl shadow-md p-4'>
-                <h2 className='text-lg font-semibold flex items-center gap-2'>
-                  <IconAlertCircle size={18} />
-                  Notifications
-                </h2>
-                {messages.length === 0 && <p className='text-sm text-gray-600 mt-2'>No messages.</p>}
+          <section className='overflow-hidden rounded-lg border-2 border-black bg-white'>
+            <button
+              type='button'
+              onClick={() => toggleSidebarSection('notifications')}
+              className='flex w-full items-center justify-between gap-2 px-4 py-3 text-sm font-semibold uppercase tracking-wide text-gray-700 hover:bg-gray-100'
+            >
+              <span className='flex items-center gap-2'>
+                <IconAlertCircle size={16} />
+                Notifications
+              </span>
+              {sidebarSections.notifications ? <IconChevronDown size={16} /> : <IconChevronRight size={16} />}
+            </button>
+            {sidebarSections.notifications && (
+              <div className='space-y-3 px-4 pb-4 pt-3 text-xs text-gray-600'>
+                {messages.length === 0 && <p>No messages.</p>}
                 {messages.length > 0 && (
-                  <ul className='mt-3 space-y-2 text-xs'>
+                  <ul className='space-y-2'>
                     {messages.map((message) => (
-                      <li key={message.id} className='border border-black rounded-lg p-2 bg-gray-50 flex items-start justify-between gap-3'>
+                      <li key={message.id} className='flex items-start justify-between gap-3 rounded-md border-2 border-black bg-gray-100 px-3 py-2 text-sm text-gray-700'>
                         <span>{message.content}</span>
                         <button
                           type='button'
                           onClick={() => removeMessage(message.id)}
-                          className='text-xs text-gray-500 underline'
+                          className='text-[11px] text-gray-600 underline hover:text-gray-700'
                         >
                           Dismiss
                         </button>
@@ -1159,12 +1236,13 @@ const QueryExplorer = ({ onDatasetsChanged, onQueryExecuted }) => {
                   </ul>
                 )}
               </div>
-            </aside>
+            )}
           </section>
-        )}
-      </main>
+        </aside>
+      </div>
     </div>
   )
+
 }
 
 export default QueryExplorer
