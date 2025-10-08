@@ -91,6 +91,7 @@
 ## Notes
 - ffmpeg.wasm usage: In-browser video conversion is supported with `@ffmpeg/ffmpeg`. For 0.12+, prefer the ESM API (`new FFmpeg()`) and serve `@ffmpeg/core` locally (e.g., `/public/ffmpeg/esm/ffmpeg-core.js`). Avoid restrictive iframes/sandboxes that break workers/wasm. With Vite, exclude `@ffmpeg/ffmpeg` and `@ffmpeg/util` from `optimizeDeps` so the worker import (`new URL('./worker.js', import.meta.url)`) resolves correctly.
 - PWA: We use `vite-plugin-pwa` with `registerType: 'autoUpdate'`. The manifest and Workbox config live in `vite.config.js`. Large ffmpeg `.wasm` files are excluded from precache (build size limits); they are fetched on demand. Add runtime caching if needed. Service worker is registered in `src/main.jsx` via `registerSW({ immediate: true })`.
+- Query Explorer ("Query Result" tool) intentionally renders full width without a max-width container. Preserve this behavior for future changes.
 
 ### SEO & Crawling
 - robots.txt: Keep a real text file at `public/robots.txt`. Without it, hosting fallbacks can serve `index.html`, which makes Lighthouse report “robots.txt is not valid”.
