@@ -1812,218 +1812,6 @@ const QueryExplorer = ({ onDatasetsChanged, onQueryExecuted }) => {
             ) : (
               <>
               <section className='rounded-xl border-2 border-black bg-white'>
-                <button
-                  type='button'
-                  onClick={() => setUploadOpen((prev) => !prev)}
-                  className='flex w-full items-center justify-between gap-2 border-b-2 border-black px-4 py-3 text-sm font-semibold uppercase tracking-wide text-gray-700 hover:bg-gray-100'
-                  aria-expanded={uploadOpen}
-                >
-                  <span className='flex items-center gap-2'>
-                    <IconDatabaseImport size={16} />
-                    Upload datasets
-                  </span>
-                  {uploadOpen ? <IconChevronDown size={16} /> : <IconChevronRight size={16} />}
-                </button>
-                {uploadOpen && (
-                  <div className='space-y-4 px-4 pb-4 pt-3 text-sm text-gray-700'>
-                    <p className='text-xs text-gray-600'>Upload files to register them as read-only DuckDB views in your browser.</p>
-                    <label className='flex w-full cursor-pointer items-center justify-center gap-2 rounded-lg border-2 border-black bg-gray-100 px-3 py-2 text-sm font-medium text-gray-900 hover:bg-white focus-within:ring-2 focus-within:ring-black'>
-                      <IconDatabaseImport size={16} />
-                      <span>Choose files</span>
-                      <input
-                        type='file'
-                        className='hidden'
-                        multiple
-                        accept='.csv,.tsv,.txt,.ndjson,.jsonl,.json,.parquet'
-                        onChange={handleFileInput}
-                      />
-                    </label>
-                    <div className='grid gap-3 text-xs text-gray-700 sm:grid-cols-2'>
-                      <div className='flex items-center justify-between gap-2 rounded-lg border border-gray-300 px-3 py-2'>
-                        <span>Total size</span>
-                        <span className='font-semibold text-gray-900'>{formatBytes(totalDatasetSize)}</span>
-                      </div>
-                      <div className='flex items-center justify-between gap-2 rounded-lg border border-gray-300 px-3 py-2'>
-                        <label htmlFor='memoryLimit' className='font-medium text-gray-700'>Memory budget</label>
-                        <div className='flex items-center gap-2'>
-                          <input
-                            id='memoryLimit'
-                            type='number'
-                            min={64}
-                            step={64}
-                            value={memoryLimitMb}
-                            onChange={(event) => setMemoryLimitMb(Number(event.target.value))}
-                            className='h-8 w-20 rounded-md border-2 border-black bg-gray-100 px-2 text-right text-gray-900 focus:outline-none focus-visible:ring-2 focus-visible:ring-black'
-                          />
-                          <span>MB</span>
-                        </div>
-                      </div>
-                    </div>
-                    <button
-                      type='button'
-                      onClick={toggleCache}
-                      className={`inline-flex h-10 w-full items-center justify-center gap-2 rounded-lg border-2 px-3 text-xs font-medium ${
-                        cacheEnabled
-                          ? 'border-black bg-gray-100 text-gray-900 hover:bg-gray-200'
-                          : 'border-black bg-white text-gray-900 hover:bg-gray-100'
-                      } focus:outline-none focus-visible:ring-2 focus-visible:ring-black`}
-                    >
-                      {cacheEnabled ? <IconCloudOff size={16} /> : <IconRestore size={16} />}
-                      {cacheEnabled ? 'Enable private mode' : 'Re-enable cache'}
-                    </button>
-                    <details className='rounded-lg border-2 border-dashed border-black px-3 py-2 text-xs text-gray-700'>
-                      <summary className='cursor-pointer text-sm font-semibold text-gray-700'>Advanced CSV options</summary>
-                      <div className='mt-3 grid grid-cols-1 gap-3 sm:grid-cols-2'>
-                        <label className='flex flex-col gap-1'>
-                          <span>Delimiter</span>
-                          <input
-                            type='text'
-                            maxLength={1}
-                            value={csvOptions.delimiter}
-                            onChange={(event) => setCsvOptions((prev) => ({ ...prev, delimiter: event.target.value || ',' }))}
-                            className='rounded-md border-2 border-black bg-gray-100 px-2 py-1 text-gray-900 focus:outline-none focus-visible:ring-2 focus-visible:ring-black'
-                          />
-                        </label>
-                        <label className='flex flex-col gap-1'>
-                          <span>Encoding</span>
-                          <input
-                            type='text'
-                            value={csvOptions.encoding}
-                            onChange={(event) => setCsvOptions((prev) => ({ ...prev, encoding: event.target.value || 'utf-8' }))}
-                            className='rounded-md border-2 border-black bg-gray-100 px-2 py-1 text-gray-900 focus:outline-none focus-visible:ring-2 focus-visible:ring-black'
-                          />
-                        </label>
-                        <label className='flex flex-col gap-1'>
-                          <span>Quote</span>
-                          <input
-                            type='text'
-                            maxLength={1}
-                            value={csvOptions.quote}
-                            onChange={(event) => setCsvOptions((prev) => ({ ...prev, quote: event.target.value || '"' }))}
-                            className='rounded-md border-2 border-black bg-gray-100 px-2 py-1 text-gray-900 focus:outline-none focus-visible:ring-2 focus-visible:ring-black'
-                          />
-                        </label>
-                        <label className='flex flex-col gap-1'>
-                          <span>Escape</span>
-                          <input
-                            type='text'
-                            maxLength={1}
-                            value={csvOptions.escape}
-                            onChange={(event) => setCsvOptions((prev) => ({ ...prev, escape: event.target.value || csvOptions.quote }))}
-                            className='rounded-md border-2 border-black bg-gray-100 px-2 py-1 text-gray-900 focus:outline-none focus-visible:ring-2 focus-visible:ring-black'
-                          />
-                        </label>
-                        <label className='flex flex-col gap-1'>
-                          <span>Null string</span>
-                          <input
-                            type='text'
-                            value={csvOptions.nullstr}
-                            onChange={(event) => setCsvOptions((prev) => ({ ...prev, nullstr: event.target.value }))}
-                            className='rounded-md border-2 border-black bg-gray-100 px-2 py-1 text-gray-900 focus:outline-none focus-visible:ring-2 focus-visible:ring-black'
-                          />
-                        </label>
-                        <label className='flex items-center gap-2'>
-                          <input
-                            type='checkbox'
-                            checked={csvOptions.header}
-                            onChange={(event) => setCsvOptions((prev) => ({ ...prev, header: event.target.checked }))}
-                            className='h-4 w-4 rounded border-2 border-black text-black focus:ring-black'
-                          />
-                          <span>File includes header row</span>
-                        </label>
-                      </div>
-                    </details>
-                  </div>
-                )}
-              </section>
-
-              <section className='rounded-xl border-2 border-black bg-white'>
-                <div className='border-b-2 border-black px-4 py-3'>
-                  <div className='flex flex-col gap-1'>
-                    <div className='flex flex-wrap items-center justify-between gap-2'>
-                      <h2 className='flex items-center gap-2 text-sm font-semibold uppercase tracking-wide text-gray-700'>
-                        <IconDatabaseImport size={16} />
-                        Datasets
-                      </h2>
-                      <div className='flex flex-wrap items-center gap-3 text-xs text-gray-600'>
-                        <span>{datasets.length} dataset{datasets.length === 1 ? '' : 's'}</span>
-                        <span aria-hidden='true'>•</span>
-                        <span>Total {formatBytes(totalDatasetSize)}</span>
-                        <span aria-hidden='true'>•</span>
-                        <span>Budget {memoryLimitMb} MB</span>
-                      </div>
-                    </div>
-                    {loadingFromCache && <p className='text-xs text-gray-600'>Restoring cached datasets…</p>}
-                  </div>
-                </div>
-                <div className='space-y-4 px-4 py-4'>
-                  {datasets.length === 0 ? (
-                    <p className='rounded-lg border-2 border-dashed border-black px-4 py-3 text-sm text-gray-600'>No datasets yet. Upload a file to register it.</p>
-                  ) : (
-                    <ul className='space-y-3' role='list'>
-                      {datasets.map((dataset) => {
-                        const isActive = selectedDatasetId === dataset.id
-                        const createdLabel = formatDateTimeJakarta(dataset.createdAt)
-                        return (
-                          <li key={dataset.id}>
-                            <article
-                              className={`rounded-xl border-2 px-3 py-3 ${
-                                isActive ? 'border-black bg-gray-200' : 'border-black bg-white hover:bg-gray-100'
-                              } transition-colors`}
-                            >
-                              <div className='flex flex-col gap-2'>
-                                <button
-                                  type='button'
-                                  className='flex w-full items-center justify-between gap-3 text-left'
-                                  onClick={() => setSelectedDatasetId(dataset.id)}
-                                  aria-pressed={isActive}
-                                >
-                                  <h3 className='truncate text-sm font-semibold text-gray-900'>{dataset.viewName}</h3>
-                                  <span className='shrink-0 rounded-full border-2 border-black px-2 py-0.5 text-[11px] uppercase text-gray-700'>{dataset.type}</span>
-                                </button>
-                                <div className='flex flex-wrap items-center justify-between gap-2 text-xs text-gray-700'>
-                                  <div className='flex flex-wrap items-center gap-x-3 gap-y-1 text-gray-600'>
-                                    <span className='truncate' title={dataset.sourceFileName}>{dataset.sourceFileName}</span>
-                                    <span aria-hidden='true'>•</span>
-                                    <span>{createdLabel}</span>
-                                    <span aria-hidden='true'>•</span>
-                                    <span>{formatBytes(dataset.approxSize)}</span>
-                                  </div>
-                                  <div className='flex items-center gap-2'>
-                                    <button
-                                      type='button'
-                                      onClick={() => copySelectStatement(dataset.viewName)}
-                                      className='inline-flex items-center gap-1 rounded-lg border-2 border-black px-2 py-1 hover:bg-gray-100 focus:outline-none focus-visible:ring-2 focus-visible:ring-black'
-                                      aria-label={`Copy SELECT statement for ${dataset.viewName}`}
-                                    >
-                                      <IconClipboard size={14} />
-                                      Copy
-                                    </button>
-                                    <button
-                                      type='button'
-                                      onClick={() => removeDataset(dataset)}
-                                      className='inline-flex items-center gap-1 rounded-lg border-2 border-black px-2 py-1 hover:bg-gray-100 focus:outline-none focus-visible:ring-2 focus-visible:ring-black'
-                                      aria-label={`Remove ${dataset.viewName}`}
-                                    >
-                                      <IconTrash size={14} />
-                                      Remove
-                                    </button>
-                                  </div>
-                                </div>
-                              </div>
-                            </article>
-                          </li>
-                        )
-                      })}
-                    </ul>
-                  )}
-                  {datasets.length > 0 && !selectedDatasetId && (
-                    <p className='rounded-lg border-2 border-dashed border-black px-4 py-3 text-xs text-gray-600'>Select a dataset to inspect its columns.</p>
-                  )}
-                </div>
-              </section>
-
-              <section className='rounded-xl border-2 border-black bg-white'>
                 <div className='flex flex-wrap items-center justify-between gap-2 border-b-2 border-black px-4 py-3'>
                   <h2 className='flex items-center gap-2 text-sm font-semibold uppercase tracking-wide text-gray-700'>
                     <IconPlayerPlay size={16} />
@@ -2204,6 +1992,222 @@ const QueryExplorer = ({ onDatasetsChanged, onQueryExecuted }) => {
           </div>
         </main>
         <aside className='order-2 flex w-full flex-col gap-4 lg:col-start-1 lg:row-start-1'>
+          {!degraded && (
+            <>
+          <section className='rounded-xl border-2 border-black bg-white'>
+            <button
+              type='button'
+              onClick={() => setUploadOpen((prev) => !prev)}
+              className='flex w-full items-center justify-between gap-2 border-b-2 border-black px-4 py-3 text-sm font-semibold uppercase tracking-wide text-gray-700 hover:bg-gray-100'
+              aria-expanded={uploadOpen}
+            >
+              <span className='flex items-center gap-2'>
+                <IconDatabaseImport size={16} />
+                Upload datasets
+              </span>
+              {uploadOpen ? <IconChevronDown size={16} /> : <IconChevronRight size={16} />}
+            </button>
+            {uploadOpen && (
+              <div className='space-y-4 px-4 pb-4 pt-3 text-sm text-gray-700'>
+                <p className='text-xs text-gray-600'>Upload files to register them as read-only DuckDB views in your browser.</p>
+                <label className='flex w-full cursor-pointer items-center justify-center gap-2 rounded-lg border-2 border-black bg-gray-100 px-3 py-2 text-sm font-medium text-gray-900 hover:bg-white focus-within:ring-2 focus-within:ring-black'>
+                  <IconDatabaseImport size={16} />
+                  <span>Choose files</span>
+                  <input
+                    type='file'
+                    className='hidden'
+                    multiple
+                    accept='.csv,.tsv,.txt,.ndjson,.jsonl,.json,.parquet'
+                    onChange={handleFileInput}
+                  />
+                </label>
+                <div className='grid gap-3 text-xs text-gray-700 sm:grid-cols-2'>
+                  <div className='flex items-center justify-between gap-2 rounded-lg border border-gray-300 px-3 py-2'>
+                    <span>Total size</span>
+                    <span className='font-semibold text-gray-900'>{formatBytes(totalDatasetSize)}</span>
+                  </div>
+                  <div className='flex items-center justify-between gap-2 rounded-lg border border-gray-300 px-3 py-2'>
+                    <label htmlFor='memoryLimit' className='font-medium text-gray-700'>Memory budget</label>
+                    <div className='flex items-center gap-2'>
+                      <input
+                        id='memoryLimit'
+                        type='number'
+                        min={64}
+                        step={64}
+                        value={memoryLimitMb}
+                        onChange={(event) => setMemoryLimitMb(Number(event.target.value))}
+                        className='h-8 w-20 rounded-md border-2 border-black bg-gray-100 px-2 text-right text-gray-900 focus:outline-none focus-visible:ring-2 focus-visible:ring-black'
+                      />
+                      <span>MB</span>
+                    </div>
+                  </div>
+                </div>
+                <button
+                  type='button'
+                  onClick={toggleCache}
+                  className={`inline-flex h-10 w-full items-center justify-center gap-2 rounded-lg border-2 px-3 text-xs font-medium ${
+                    cacheEnabled
+                      ? 'border-black bg-gray-100 text-gray-900 hover:bg-gray-200'
+                      : 'border-black bg-white text-gray-900 hover:bg-gray-100'
+                  } focus:outline-none focus-visible:ring-2 focus-visible:ring-black`}
+                >
+                  {cacheEnabled ? <IconCloudOff size={16} /> : <IconRestore size={16} />}
+                  {cacheEnabled ? 'Enable private mode' : 'Re-enable cache'}
+                </button>
+                <details className='rounded-lg border-2 border-dashed border-black px-3 py-2 text-xs text-gray-700'>
+                  <summary className='cursor-pointer text-sm font-semibold text-gray-700'>Advanced CSV options</summary>
+                  <div className='mt-3 grid grid-cols-1 gap-3 sm:grid-cols-2'>
+                    <label className='flex flex-col gap-1'>
+                      <span>Delimiter</span>
+                      <input
+                        type='text'
+                        maxLength={1}
+                        value={csvOptions.delimiter}
+                        onChange={(event) => setCsvOptions((prev) => ({ ...prev, delimiter: event.target.value || ',' }))}
+                        className='rounded-md border-2 border-black bg-gray-100 px-2 py-1 text-gray-900 focus:outline-none focus-visible:ring-2 focus-visible:ring-black'
+                      />
+                    </label>
+                    <label className='flex flex-col gap-1'>
+                      <span>Encoding</span>
+                      <input
+                        type='text'
+                        value={csvOptions.encoding}
+                        onChange={(event) => setCsvOptions((prev) => ({ ...prev, encoding: event.target.value || 'utf-8' }))}
+                        className='rounded-md border-2 border-black bg-gray-100 px-2 py-1 text-gray-900 focus:outline-none focus-visible:ring-2 focus-visible:ring-black'
+                      />
+                    </label>
+                    <label className='flex flex-col gap-1'>
+                      <span>Quote</span>
+                      <input
+                        type='text'
+                        maxLength={1}
+                        value={csvOptions.quote}
+                        onChange={(event) => setCsvOptions((prev) => ({ ...prev, quote: event.target.value || '"' }))}
+                        className='rounded-md border-2 border-black bg-gray-100 px-2 py-1 text-gray-900 focus:outline-none focus-visible:ring-2 focus-visible:ring-black'
+                      />
+                    </label>
+                    <label className='flex flex-col gap-1'>
+                      <span>Escape</span>
+                      <input
+                        type='text'
+                        maxLength={1}
+                        value={csvOptions.escape}
+                        onChange={(event) => setCsvOptions((prev) => ({ ...prev, escape: event.target.value || csvOptions.quote }))}
+                        className='rounded-md border-2 border-black bg-gray-100 px-2 py-1 text-gray-900 focus:outline-none focus-visible:ring-2 focus-visible:ring-black'
+                      />
+                    </label>
+                    <label className='flex flex-col gap-1'>
+                      <span>Null string</span>
+                      <input
+                        type='text'
+                        value={csvOptions.nullstr}
+                        onChange={(event) => setCsvOptions((prev) => ({ ...prev, nullstr: event.target.value }))}
+                        className='rounded-md border-2 border-black bg-gray-100 px-2 py-1 text-gray-900 focus:outline-none focus-visible:ring-2 focus-visible:ring-black'
+                      />
+                    </label>
+                    <label className='flex items-center gap-2'>
+                      <input
+                        type='checkbox'
+                        checked={csvOptions.header}
+                        onChange={(event) => setCsvOptions((prev) => ({ ...prev, header: event.target.checked }))}
+                        className='h-4 w-4 rounded border-2 border-black text-black focus:ring-black'
+                      />
+                      <span>File includes header row</span>
+                    </label>
+                  </div>
+                </details>
+              </div>
+            )}
+          </section>
+
+          <section className='rounded-xl border-2 border-black bg-white'>
+            <div className='border-b-2 border-black px-4 py-3'>
+              <div className='flex flex-col gap-1'>
+                <div className='flex flex-wrap items-center justify-between gap-2'>
+                  <h2 className='flex items-center gap-2 text-sm font-semibold uppercase tracking-wide text-gray-700'>
+                    <IconDatabaseImport size={16} />
+                    Datasets
+                  </h2>
+                  <div className='flex flex-wrap items-center gap-3 text-xs text-gray-600'>
+                    <span>{datasets.length} dataset{datasets.length === 1 ? '' : 's'}</span>
+                    <span aria-hidden='true'>•</span>
+                    <span>Total {formatBytes(totalDatasetSize)}</span>
+                    <span aria-hidden='true'>•</span>
+                    <span>Budget {memoryLimitMb} MB</span>
+                  </div>
+                </div>
+                {loadingFromCache && <p className='text-xs text-gray-600'>Restoring cached datasets…</p>}
+              </div>
+            </div>
+            <div className='space-y-4 px-4 py-4'>
+              {datasets.length === 0 ? (
+                <p className='rounded-lg border-2 border-dashed border-black px-4 py-3 text-sm text-gray-600'>No datasets yet. Upload a file to register it.</p>
+              ) : (
+                <ul className='space-y-3' role='list'>
+                  {datasets.map((dataset) => {
+                    const isActive = selectedDatasetId === dataset.id
+                    const createdLabel = formatDateTimeJakarta(dataset.createdAt)
+                    return (
+                      <li key={dataset.id}>
+                        <article
+                          className={`rounded-xl border-2 px-3 py-3 ${
+                            isActive ? 'border-black bg-gray-200' : 'border-black bg-white hover:bg-gray-100'
+                          } transition-colors`}
+                        >
+                          <div className='flex flex-col gap-2'>
+                            <button
+                              type='button'
+                              className='flex w-full items-center justify-between gap-3 text-left'
+                              onClick={() => setSelectedDatasetId(dataset.id)}
+                              aria-pressed={isActive}
+                            >
+                              <h3 className='truncate text-sm font-semibold text-gray-900'>{dataset.viewName}</h3>
+                              <span className='shrink-0 rounded-full border-2 border-black px-2 py-0.5 text-[11px] uppercase text-gray-700'>{dataset.type}</span>
+                            </button>
+                            <div className='flex flex-wrap items-center justify-between gap-2 text-xs text-gray-700'>
+                              <div className='flex flex-wrap items-center gap-x-3 gap-y-1 text-gray-600'>
+                                <span className='truncate' title={dataset.sourceFileName}>{dataset.sourceFileName}</span>
+                                <span aria-hidden='true'>•</span>
+                                <span>{createdLabel}</span>
+                                <span aria-hidden='true'>•</span>
+                                <span>{formatBytes(dataset.approxSize)}</span>
+                              </div>
+                              <div className='flex items-center gap-2'>
+                                <button
+                                  type='button'
+                                  onClick={() => copySelectStatement(dataset.viewName)}
+                                  className='inline-flex items-center gap-1 rounded-lg border-2 border-black px-2 py-1 hover:bg-gray-100 focus:outline-none focus-visible:ring-2 focus-visible:ring-black'
+                                  aria-label={`Copy SELECT statement for ${dataset.viewName}`}
+                                >
+                                  <IconClipboard size={14} />
+                                  Copy
+                                </button>
+                                <button
+                                  type='button'
+                                  onClick={() => removeDataset(dataset)}
+                                  className='inline-flex items-center gap-1 rounded-lg border-2 border-black px-2 py-1 hover:bg-gray-100 focus:outline-none focus-visible:ring-2 focus-visible:ring-black'
+                                  aria-label={`Remove ${dataset.viewName}`}
+                                >
+                                  <IconTrash size={14} />
+                                  Remove
+                                </button>
+                              </div>
+                            </div>
+                          </div>
+                        </article>
+                      </li>
+                    )
+                  })}
+                </ul>
+              )}
+              {datasets.length > 0 && !selectedDatasetId && (
+                <p className='rounded-lg border-2 border-dashed border-black px-4 py-3 text-xs text-gray-600'>Select a dataset to inspect its columns.</p>
+              )}
+            </div>
+          </section>
+
+            </>
+          )}
           <section className='rounded-xl border-2 border-black bg-white'>
             <button
               type='button'
