@@ -2021,14 +2021,14 @@ const QueryExplorer = ({ onDatasetsChanged, onQueryExecuted }) => {
                     onChange={handleFileInput}
                   />
                 </label>
-                <div className='grid gap-3 text-xs text-gray-700 sm:grid-cols-2'>
+                <div className='space-y-3 text-xs text-gray-700'>
                   <div className='flex items-center justify-between gap-2 rounded-lg border border-gray-300 px-3 py-2'>
                     <span>Total size</span>
                     <span className='font-semibold text-gray-900'>{formatBytes(totalDatasetSize)}</span>
                   </div>
-                  <div className='flex items-center justify-between gap-2 rounded-lg border border-gray-300 px-3 py-2'>
-                    <label htmlFor='memoryLimit' className='font-medium text-gray-700'>Memory budget</label>
-                    <div className='flex items-center gap-2'>
+                  <div className='rounded-lg border border-gray-300 px-3 py-2'>
+                    <label htmlFor='memoryLimit' className='mb-2 block font-medium text-gray-700'>Memory budget</label>
+                    <div className='flex items-center justify-between gap-2'>
                       <input
                         id='memoryLimit'
                         type='number'
@@ -2036,9 +2036,9 @@ const QueryExplorer = ({ onDatasetsChanged, onQueryExecuted }) => {
                         step={64}
                         value={memoryLimitMb}
                         onChange={(event) => setMemoryLimitMb(Number(event.target.value))}
-                        className='h-8 w-20 rounded-md border-2 border-black bg-gray-100 px-2 text-right text-gray-900 focus:outline-none focus-visible:ring-2 focus-visible:ring-black'
+                        className='h-9 w-full rounded-md border-2 border-black bg-gray-100 px-2 text-right text-gray-900 focus:outline-none focus-visible:ring-2 focus-visible:ring-black'
                       />
-                      <span>MB</span>
+                      <span className='text-gray-600'>MB</span>
                     </div>
                   </div>
                 </div>
