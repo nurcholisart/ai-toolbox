@@ -4,7 +4,6 @@ import {
   EditorView,
   drawSelection,
   highlightActiveLine,
-  highlightActiveLineGutter,
   keymap,
   lineNumbers,
   placeholder as cmPlaceholder,
@@ -90,7 +89,6 @@ const SqlEditor = forwardRef(function SqlEditor({
       indentOnInput(),
       bracketMatching(),
       highlightActiveLine(),
-      highlightActiveLineGutter(),
       lineNumbers(),
       indentationMarkers(),
       EditorState.tabSize.of(2),
@@ -103,7 +101,6 @@ const SqlEditor = forwardRef(function SqlEditor({
         '.cm-placeholder': { color: '#9ca3af' },
         '.cm-activeLine': { backgroundColor: '#f5f5f5' },
         '.cm-gutters': { backgroundColor: '#f9fafb', borderRight: '1px solid #111827' },
-        '.cm-activeLineGutter': { backgroundColor: '#f3f4f6' },
       }),
       syntaxHighlighting(tagHighlighter([
         { tag: tags.keyword, class: 'cm-sql-keyword' },
