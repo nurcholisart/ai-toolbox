@@ -22,7 +22,6 @@ import {
   IconArrowUp,
   IconTable,
 } from '@tabler/icons-react'
-import { keymap as cmKeymap } from '@codemirror/view'
 import * as duckdb from '@duckdb/duckdb-wasm'
 import { tableFromIPC } from 'apache-arrow'
 import duckdbMvp from '@duckdb/duckdb-wasm/dist/duckdb-mvp.wasm?url'
@@ -585,23 +584,10 @@ const QueryExplorer = ({ onDatasetsChanged, onQueryExecuted }) => {
   const functionCompletionCacheRef = useRef(new Map())
   const keywordOptionCacheRef = useRef(new Map())
   const aliasDebounceRef = useRef(null)
-  const ensureAutocomplete = useCallback(async () => {
+  const ensureAutocomplete = useCallback(() => {
     if (!featureFlags.enableSqlAutocomplete) return
-    if (autocompleteModulesRef.current) return
-    const mod = await import('@codemirror/autocomplete')
-    autocompleteModulesRef.current = mod
-    setEditorExtraExtensions((prev) => {
-      if (prev.length > 0) return prev
-      const dynamicSource = (context) => completionSourceRef.current(context)
-      return [
-        mod.autocompletion({
-          override: [dynamicSource],
-          activateOnTyping: true,
-          closeOnBlur: false,
-        }),
-        cmKeymap.of(mod.completionKeymap),
-      ]
-    })
+    // Intentionally left blank: schema refresh logic still relies on the feature flag,
+    // but the editor should not attach CodeMirror completion extensions or keymaps.
   }, [featureFlags.enableSqlAutocomplete])
 
   const onDatasetsChangedRef = useRef(onDatasetsChanged)
@@ -1504,7 +1490,7 @@ const QueryExplorer = ({ onDatasetsChanged, onQueryExecuted }) => {
     ensureAutocomplete()
   }, [ensureAutocomplete])
 
-  // Prewarm supaya modul @codemirror/autocomplete & keymap sudah aktif
+  // Autocomplete intentionally disabled; keep invocation to maintain previous control flow expectations.
   useEffect(() => {
     ensureAutocomplete()
   }, [ensureAutocomplete])
