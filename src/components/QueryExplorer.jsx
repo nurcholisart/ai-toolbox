@@ -1167,9 +1167,25 @@ const QueryExplorer = ({ onDatasetsChanged, onQueryExecuted }) => {
           console.warn('Failed to hydrate dataset from cache', error)
         }
       }
-      setDatasets(loadedDatasets)
+      let restoredCount = 0
+      setDatasets((prev) => {
+        if (loadedDatasets.length === 0) return prev
+        if (prev.length === 0) {
+          restoredCount = loadedDatasets.length
+          return loadedDatasets
+        }
+        const existingIds = new Set(prev.map((item) => item.id))
+        const merged = [...prev]
+        loadedDatasets.forEach((item) => {
+          if (!existingIds.has(item.id)) {
+            merged.push(item)
+            restoredCount += 1
+          }
+        })
+        return merged
+      })
       if (loadedDatasets.length > 0) {
-        setSelectedDatasetId(loadedDatasets[0].id)
+        setSelectedDatasetId((prev) => prev ?? loadedDatasets[0].id)
       }
       const initialHistory = storedHistory
         .filter((entry) => entry && entry.sql)
@@ -1180,10 +1196,8 @@ const QueryExplorer = ({ onDatasetsChanged, onQueryExecuted }) => {
       if (initialHistory.length > 0) {
         lastSuccessfulQueryRef.current = initialHistory[0].sql
       }
-      if (loadedDatasets.length > 0) {
+      if (restoredCount > 0) {
         addMessage('Datasets restored from local cache.', 'success')
-      }
-      if (loadedDatasets.length > 0) {
         scheduleSchemaRefresh('cache-load', { immediate: true, silent: true })
       }
     } catch (error) {

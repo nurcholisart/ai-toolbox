@@ -131,6 +131,7 @@ Features:
 Notes:
 - Upload defaults (delimiter, encoding, null string, header, etc.) are configurable from the sidebar before importing additional CSV/TSV files.
 - Dataset previews show the first 100 rows; use the refresh action to re-run the preview after file replacement or cache restores.
+- New uploads made while the cache is still hydrating stay visible; cached datasets merge with any in-flight session state instead of replacing it.
 - Schema metadata is cached in memory with `{ tables, columnsByTable, tableLookup, functions, keywords, aliases }` and refreshes after DuckDB init, dataset uploads/removals, or cache restores. Use the “Refresh schema” buttons in the editor toolbar or Columns panel to force a refresh if the indicator reports staleness.
 - Disable completions by flipping `enableSqlAutocomplete` inside `QueryExplorer.jsx`—the editor falls back to keywords and functions only.
 

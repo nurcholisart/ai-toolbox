@@ -96,7 +96,9 @@ const SqlEditor = forwardRef(function SqlEditor({
       EditorState.tabSize.of(2),
       EditorView.baseTheme({
         '&': { fontFamily: 'var(--font-mono, ui-monospace, SFMono-Regular)', fontSize: '0.9rem' },
-        '.cm-content': { padding: '0.75rem' },
+        '.cm-editor': { height: '100%' },
+        '.cm-scroller': { overflow: 'auto' },
+        '.cm-content': { padding: '0.75rem', minWidth: '100%' },
         '.cm-placeholder': { color: '#9ca3af' },
         '.cm-activeLine': { backgroundColor: '#f5f5f5' },
         '.cm-gutters': { backgroundColor: '#f9fafb', borderRight: '1px solid #111827' },
@@ -192,8 +194,8 @@ const SqlEditor = forwardRef(function SqlEditor({
   }, [extraExtensions])
 
   return (
-    <div className='rounded-lg border-2 border-black bg-white'>
-      <div ref={containerRef} className='cm-sql h-72 overflow-hidden' />
+    <div className='rounded-lg border-2 border-black bg-white overflow-hidden'>
+      <div ref={containerRef} className='cm-sql h-72' />
     </div>
   )
 })
