@@ -1761,7 +1761,7 @@ const QueryExplorer = ({ onDatasetsChanged, onQueryExecuted }) => {
   return (
     <div className='min-h-screen bg-gray-100 text-gray-900'>
       <header className='border-b-2 border-black bg-white'>
-        <div className='mx-auto grid h-20 w-full max-w-6xl grid-cols-[auto_1fr_auto] items-center gap-4 px-4 sm:px-6'>
+        <div className='grid h-20 w-full grid-cols-[auto_1fr_auto] items-center gap-4 px-4 sm:px-6'>
           <div className='flex items-center gap-2'>
             <a
               href='/'
@@ -1788,7 +1788,7 @@ const QueryExplorer = ({ onDatasetsChanged, onQueryExecuted }) => {
           </div>
         </div>
       </header>
-      <div className='mx-auto flex w-full max-w-6xl flex-col gap-6 px-4 py-6 sm:px-6 lg:grid lg:grid-cols-[320px_minmax(0,1fr)] lg:items-start'>
+      <div className='flex w-full flex-col gap-6 px-4 py-6 sm:px-6 lg:grid lg:grid-cols-[320px_minmax(0,1fr)] lg:items-start'>
         <main className='order-1 min-w-0 flex-1 space-y-6 lg:col-start-2'>
           <div className='space-y-6'>
             {degraded ? (
