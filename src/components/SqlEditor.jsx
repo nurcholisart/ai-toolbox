@@ -1,18 +1,10 @@
-import React, { forwardRef, useEffect, useImperativeHandle, useRef } from 'react'
-import { Compartment, EditorState } from '@codemirror/state'
-import {
-  EditorView,
-  drawSelection,
-  highlightActiveLine,
-  keymap,
-  lineNumbers,
-  placeholder as cmPlaceholder,
-} from '@codemirror/view'
-import { defaultKeymap, history, historyKeymap, indentWithTab } from '@codemirror/commands'
-import { bracketMatching, indentOnInput, syntaxHighlighting } from '@codemirror/language'
-import { sql } from '@codemirror/lang-sql'
-import { tags, tagHighlighter } from '@lezer/highlight'
-import { indentationMarkers } from '@replit/codemirror-indentation-markers'
+import React, {
+  forwardRef,
+  useCallback,
+  useEffect,
+  useImperativeHandle,
+  useRef,
+} from 'react'
 
 const SqlEditor = forwardRef(function SqlEditor({
   value = '',
@@ -24,178 +16,138 @@ const SqlEditor = forwardRef(function SqlEditor({
   onCursorChange,
   onFocus,
   wrap = false,
-  extraExtensions = [],
+  extraExtensions: _extraExtensions = [],
 }, ref) {
-  const containerRef = useRef(null)
-  const viewRef = useRef(null)
-  const dialectCompartment = useRef(new Compartment())
-  const wrapCompartment = useRef(new Compartment())
-  const lastValueRef = useRef(value)
-  const extrasCompartment = useRef(new Compartment())
+  const textareaRef = useRef(null)
 
-  const getSelection = () => {
-    const view = viewRef.current
-    if (!view) return ''
-    const sel = view.state.selection.main
-    if (sel.empty) return ''
-    return view.state.sliceDoc(sel.from, sel.to)
-  }
+  const emitSelectionState = useCallback(() => {
+    const textarea = textareaRef.current
+    if (!textarea) return
+    const selectionStart = textarea.selectionStart ?? 0
+    const selectionEnd = textarea.selectionEnd ?? selectionStart
+    const currentValue = textarea.value ?? ''
+    if (onSelectionChange) {
+      const selected = selectionStart === selectionEnd
+        ? ''
+        : currentValue.slice(selectionStart, selectionEnd)
+      onSelectionChange(selected)
+    }
+    if (onCursorChange) {
+      onCursorChange({ head: selectionEnd, anchor: selectionStart })
+    }
+  }, [onCursorChange, onSelectionChange])
 
-  const getValue = () => {
-    const view = viewRef.current
-    return view ? view.state.doc.toString() : ''
-  }
+  const getSelection = useCallback(() => {
+    const textarea = textareaRef.current
+    if (!textarea) return ''
+    const selectionStart = textarea.selectionStart ?? 0
+    const selectionEnd = textarea.selectionEnd ?? selectionStart
+    if (selectionStart === selectionEnd) return ''
+    return textarea.value.slice(selectionStart, selectionEnd)
+  }, [])
 
-  const focus = () => {
-    if (!viewRef.current) return
-    viewRef.current.focus()
-  }
+  const getValue = useCallback(() => {
+    return textareaRef.current ? textareaRef.current.value : ''
+  }, [])
 
-  const getCursor = () => {
-    const view = viewRef.current
-    if (!view) return { head: 0, anchor: 0 }
-    const selection = view.state.selection.main
-    return { head: selection.head, anchor: selection.anchor }
-  }
+  const focus = useCallback(() => {
+    textareaRef.current?.focus()
+  }, [])
+
+  const getCursor = useCallback(() => {
+    const textarea = textareaRef.current
+    if (!textarea) return { head: 0, anchor: 0 }
+    const selectionStart = textarea.selectionStart ?? 0
+    const selectionEnd = textarea.selectionEnd ?? selectionStart
+    return { head: selectionEnd, anchor: selectionStart }
+  }, [])
 
   useImperativeHandle(ref, () => ({
     getSelection,
     getValue,
     focus,
     getCursor,
-  }), [])
+  }), [focus, getCursor, getSelection, getValue])
+
+  const insertTextAtSelection = useCallback((text) => {
+    const textarea = textareaRef.current
+    if (!textarea) return
+    const selectionStart = textarea.selectionStart ?? 0
+    const selectionEnd = textarea.selectionEnd ?? selectionStart
+    const currentValue = textarea.value ?? ''
+    const nextValue = `${currentValue.slice(0, selectionStart)}${text}${currentValue.slice(selectionEnd)}`
+    if (onChange) onChange(nextValue)
+    window.requestAnimationFrame(() => {
+      if (!textareaRef.current) return
+      const nextPos = selectionStart + text.length
+      textareaRef.current.selectionStart = nextPos
+      textareaRef.current.selectionEnd = nextPos
+      emitSelectionState()
+    })
+  }, [emitSelectionState, onChange])
+
+  const handleKeyDown = useCallback((event) => {
+    if (event.key === 'Tab') {
+      event.preventDefault()
+      insertTextAtSelection('  ')
+      return
+    }
+    if (event.key === 'Enter' && (event.metaKey || event.ctrlKey)) {
+      event.preventDefault()
+      if (event.shiftKey) {
+        if (onRunSelection) onRunSelection()
+        else if (onRun) onRun()
+        return
+      }
+      if (onRun) onRun()
+    }
+  }, [insertTextAtSelection, onRun, onRunSelection])
+
+  const handleChange = useCallback((event) => {
+    if (onChange) onChange(event.target.value)
+    window.requestAnimationFrame(() => {
+      emitSelectionState()
+    })
+  }, [emitSelectionState, onChange])
+
+  const handleFocus = useCallback(() => {
+    if (onFocus) onFocus()
+  }, [onFocus])
+
+  const handleSelectionEvent = useCallback(() => {
+    emitSelectionState()
+  }, [emitSelectionState])
 
   useEffect(() => {
-    if (!containerRef.current) return
-
-    const updateListener = EditorView.updateListener.of((vu) => {
-      if (vu.docChanged) {
-        const nextValue = vu.state.doc.toString()
-        lastValueRef.current = nextValue
-        onChange && onChange(nextValue)
-      }
-      if (vu.selectionSet) {
-        if (onSelectionChange) onSelectionChange(getSelection())
-        if (onCursorChange) {
-          const main = vu.state.selection.main
-          onCursorChange({ head: main.head, anchor: main.anchor })
-        }
-      }
-    })
-
-    const extensions = [
-      history(),
-      drawSelection(),
-      indentOnInput(),
-      bracketMatching(),
-      highlightActiveLine(),
-      lineNumbers(),
-      indentationMarkers(),
-      EditorState.tabSize.of(2),
-      EditorView.baseTheme({
-        '&': { fontFamily: 'var(--font-mono, ui-monospace, SFMono-Regular)', fontSize: '0.9rem' },
-        '.cm-editor': { height: '100%' },
-        '.cm-scroller': { overflow: 'auto' },
-        // Jangan paksa lebar konten; ini yang memicu horizontal scroll tidak perlu
-        '.cm-content': { padding: '0.75rem' },
-        '.cm-placeholder': { color: '#9ca3af' },
-        '.cm-activeLine': { backgroundColor: '#f5f5f5' },
-        '.cm-gutters': { backgroundColor: '#f9fafb', borderRight: '1px solid #111827' },
-      }),
-      syntaxHighlighting(tagHighlighter([
-        { tag: tags.keyword, class: 'cm-sql-keyword' },
-        { tag: tags.string, class: 'cm-sql-string' },
-        { tag: tags.number, class: 'cm-sql-number' },
-      ])),
-      keymap.of([
-        indentWithTab,
-        ...defaultKeymap,
-        ...historyKeymap,
-        {
-          key: 'Mod-Enter',
-          run: () => {
-            if (onRun) onRun()
-            return true
-          },
-        },
-        {
-          key: 'Shift-Mod-Enter',
-          run: () => {
-            if (onRunSelection) onRunSelection()
-            else if (onRun) onRun()
-            return true
-          },
-        },
-      ]),
-      dialectCompartment.current.of(sql()),
-      cmPlaceholder(placeholder),
-      wrapCompartment.current.of(wrap ? EditorView.lineWrapping : []),
-      extrasCompartment.current.of(extraExtensions),
-      updateListener,
-      EditorView.domEventHandlers({
-        focus: () => {
-          if (onFocus) onFocus()
-        },
-      }),
-    ]
-
-    const startState = EditorState.create({
-      doc: value,
-      extensions,
-    })
-
-    const view = new EditorView({
-      state: startState,
-      parent: containerRef.current,
-      attributes: {
-        'aria-label': 'SQL editor',
-        role: 'textbox',
-        'aria-multiline': 'true',
-      },
-    })
-
-    viewRef.current = view
     if (onSelectionChange) onSelectionChange('')
-
-    return () => {
-      view.destroy()
-      viewRef.current = null
-    }
-  // Jangan ketergantungan pada extraExtensions di effect pembuat EditorView.
-  // Perubahan ekstensi ditangani lewat Compartment.reconfigure di effect terpisah.
-  }, [onChange, onCursorChange, onFocus, onRun, onRunSelection, onSelectionChange, placeholder])
+  }, [onSelectionChange])
 
   useEffect(() => {
-    const view = viewRef.current
-    if (!view) return
-    const doc = view.state.doc.toString()
-    if (value !== doc && value !== lastValueRef.current) {
-      view.dispatch({
-        changes: { from: 0, to: doc.length, insert: value },
-      })
-      lastValueRef.current = value
-    }
-  }, [value])
+    emitSelectionState()
+  }, [emitSelectionState, value])
 
-  useEffect(() => {
-    const view = viewRef.current
-    if (!view) return
-    view.dispatch({
-      effects: wrapCompartment.current.reconfigure(wrap ? EditorView.lineWrapping : []),
-    })
-  }, [wrap])
-
-  useEffect(() => {
-    const view = viewRef.current
-    if (!view) return
-    view.dispatch({
-      effects: extrasCompartment.current.reconfigure(extraExtensions),
-    })
-  }, [extraExtensions])
+  const whitespaceClass = wrap ? 'whitespace-pre-wrap break-words' : 'whitespace-pre'
 
   return (
     <div className='rounded-lg border-2 border-black bg-white overflow-hidden'>
-      <div ref={containerRef} className='cm-sql h-72' />
+      <textarea
+        ref={textareaRef}
+        value={value}
+        onChange={handleChange}
+        onKeyDown={handleKeyDown}
+        onKeyUp={handleSelectionEvent}
+        onSelect={handleSelectionEvent}
+        onMouseUp={handleSelectionEvent}
+        onFocus={handleFocus}
+        placeholder={placeholder}
+        spellCheck={false}
+        autoComplete='off'
+        autoCorrect='off'
+        autoCapitalize='none'
+        aria-label='SQL editor'
+        className={`h-72 w-full resize-none bg-transparent p-3 font-mono text-sm leading-6 text-gray-900 outline-none ${whitespaceClass} overflow-auto`}
+        wrap={wrap ? 'soft' : 'off'}
+      />
     </div>
   )
 })
