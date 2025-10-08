@@ -176,6 +176,8 @@ export default defineConfig({
         globIgnores: ['**/ffmpeg/**', '**/*.wasm'],
         // Do not serve SPA shell for API navigations
         navigateFallbackDenylist: [/^\/api\//],
+        // Allow precaching the main application chunk that exceeds the default 2 MiB limit
+        maximumFileSizeToCacheInBytes: 5 * 1024 * 1024,
         // Runtime cache ffmpeg assets after first use
         runtimeCaching: [
           {

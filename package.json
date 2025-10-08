@@ -12,6 +12,7 @@
     "coverage": "vitest run --coverage"
   },
   "dependencies": {
+    "@codemirror/autocomplete": "^6.17.2",
     "@codemirror/commands": "^6.8.1",
     "@codemirror/lang-markdown": "^6.3.4",
     "@codemirror/lang-sql": "^6.5.5",
@@ -28,6 +29,7 @@
     "@lexical/markdown": "^0.17.0",
     "@lexical/react": "^0.17.0",
     "@lexical/rich-text": "^0.17.0",
+    "@replit/codemirror-indentation-markers": "^6.5.3",
     "@tabler/icons-react": "^3.34.1",
     "diff-match-patch": "^1.0.5",
     "idb": "^8.0.1",
@@ -39,7 +41,8 @@
     "@tanstack/react-table": "^8.20.1",
     "@tanstack/react-virtual": "^3.0.0-beta.54",
     "react": "^18.3.1",
-    "react-dom": "^18.3.1"
+    "react-dom": "^18.3.1",
+    "sql-formatter": "^15.6.10"
   },
   "devDependencies": {
     "@tailwindcss/typography": "^0.5.16",
