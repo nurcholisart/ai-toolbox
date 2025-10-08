@@ -98,7 +98,8 @@ const SqlEditor = forwardRef(function SqlEditor({
         '&': { fontFamily: 'var(--font-mono, ui-monospace, SFMono-Regular)', fontSize: '0.9rem' },
         '.cm-editor': { height: '100%' },
         '.cm-scroller': { overflow: 'auto' },
-        '.cm-content': { padding: '0.75rem', minWidth: '100%' },
+        // Jangan paksa lebar konten; ini yang memicu horizontal scroll tidak perlu
+        '.cm-content': { padding: '0.75rem' },
         '.cm-placeholder': { color: '#9ca3af' },
         '.cm-activeLine': { backgroundColor: '#f5f5f5' },
         '.cm-gutters': { backgroundColor: '#f9fafb', borderRight: '1px solid #111827' },
@@ -163,7 +164,9 @@ const SqlEditor = forwardRef(function SqlEditor({
       view.destroy()
       viewRef.current = null
     }
-  }, [extraExtensions, onChange, onCursorChange, onFocus, onRun, onRunSelection, onSelectionChange, placeholder])
+  // Jangan ketergantungan pada extraExtensions di effect pembuat EditorView.
+  // Perubahan ekstensi ditangani lewat Compartment.reconfigure di effect terpisah.
+  }, [onChange, onCursorChange, onFocus, onRun, onRunSelection, onSelectionChange, placeholder])
 
   useEffect(() => {
     const view = viewRef.current

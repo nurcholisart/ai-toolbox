@@ -1504,6 +1504,11 @@ const QueryExplorer = ({ onDatasetsChanged, onQueryExecuted }) => {
     ensureAutocomplete()
   }, [ensureAutocomplete])
 
+  // Prewarm supaya modul @codemirror/autocomplete & keymap sudah aktif
+  useEffect(() => {
+    ensureAutocomplete()
+  }, [ensureAutocomplete])
+
   const exportResult = useCallback(async (format) => {
     if (!result || !duckState.db || !duckState.conn) {
       addMessage('No result to export yet.', 'warning')
@@ -2105,7 +2110,7 @@ const QueryExplorer = ({ onDatasetsChanged, onQueryExecuted }) => {
                     ref={sqlEditorRef}
                     value={query}
                     onChange={setQuery}
-                    onRun={() => runQuery()}
+                    onRun={runQuery}
                     onRunSelection={runSelection}
                     onSelectionChange={handleSelectionChange}
                     onCursorChange={handleCursorChange}
