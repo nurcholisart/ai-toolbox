@@ -322,7 +322,7 @@ export default function BreadBoarder() {
   }
 
   return (
-    <div className='min-h-screen bg-gray-100 text-gray-900'>
+    <div className='flex min-h-screen flex-col bg-gray-100 text-gray-900'>
       <header className='border-b-2 border-black bg-white'>
         <div className='flex h-20 items-center justify-between gap-4 px-4 sm:px-6'>
           <div className='flex items-center gap-2'>
@@ -350,12 +350,11 @@ export default function BreadBoarder() {
           </div>
         </div>
       </header>
-      <main className='flex-1 px-4 pb-6 pt-6 sm:px-6'>
-        <div className='mx-auto w-full max-w-[1400px]'>
-          <section aria-label='BreadBoarder canvas' className='rounded-2xl border-2 border-black bg-white p-4'>
-            <div
-              ref={rootRef}
-              className='relative h-[calc(100vh-12rem)] min-h-[500px] w-full overflow-hidden rounded-xl border-2 border-black bg-gray-50'
+      <main className='flex-1 overflow-hidden'>
+        <section aria-label='BreadBoarder canvas' className='h-full w-full'>
+          <div
+            ref={rootRef}
+            className='relative h-full w-full overflow-hidden bg-gray-50'
               tabIndex={0}
               onKeyDown={(e) => {
                 if (e.key === 'Escape' && draftFrom) {
@@ -493,9 +492,8 @@ export default function BreadBoarder() {
                   />
                 </svg>
               </div>
-            </div>
-          </section>
-        </div>
+          </div>
+        </section>
       </main>
     </div>
   )
