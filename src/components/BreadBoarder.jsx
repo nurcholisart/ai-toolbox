@@ -48,6 +48,10 @@ const PADDING = 12
 const PORT_R = 6
 const LEFT_PORT_OFFSET = 8
 
+// Minimap dimensions (single source of truth)
+const MINIMAP_W = 200
+const MINIMAP_H = 120
+
 // ---- Utilities ----------------------------------------------------------
 
 function uid(prefix = 'id') {
@@ -277,10 +281,10 @@ export default function BreadBoarder() {
     setPan({ x: m.x - c.x * newZoom, y: m.y - c.y * newZoom })
   }
 
-  const draftMouseCanvas = useMemo(() => screenToCanvas(mouseScreen.x, mouseScreen.y), [mouseScreen, screenToCanvas])
-
-  const MINIMAP_W = 200
-  const MINIMAP_H = 120
+  const draftMouseCanvas = useMemo(
+    () => screenToCanvas(mouseScreen.x, mouseScreen.y),
+    [mouseScreen, screenToCanvas]
+  )
   const bbox = useMemo(() => {
     if (nodes.length === 0) return { minX: 0, minY: 0, maxX: 1, maxY: 1 }
     const minX = Math.min(...nodes.map((n) => n.x))
