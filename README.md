@@ -135,6 +135,15 @@ Notes:
 - Schema metadata is cached in memory with `{ tables, columnsByTable, tableLookup, functions, keywords, aliases }` and refreshes after DuckDB init, dataset uploads/removals, or cache restores. Use the “Refresh schema” buttons in the editor toolbar or Columns panel to force a refresh if the indicator reports staleness.
 - Disable completions by flipping `enableSqlAutocomplete` inside `QueryExplorer.jsx`—the editor falls back to keywords and functions only.
 
+## BreadBoarder
+- Location: `src/components/BreadBoarder.jsx`
+- Route: `/breadboarder`
+
+Features:
+- Full-page breadboard canvas with zoom, pan, and fit-to-content controls
+- Create "places" with copy/action rows and drag-to-connect ports (right-side sources, left-side targets)
+- Inline rename support, add/remove rows, and minimap navigation for large diagrams
+
 ## Lockfile Scanner
 - Location: `src/components/LockfileScanner.jsx`
 - Route: `/lockfile-scanner`

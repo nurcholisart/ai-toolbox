@@ -21,6 +21,7 @@ import GoSumScanner from './components/GoSumScanner.jsx'
 import TailwindPaletteGenerator from './components/TailwindPaletteGenerator.jsx'
 import HillChart from './components/HillChart.jsx'
 import ShapeUpInfographic from './components/ShapeUpInfographic.jsx'
+import BreadBoarder from './components/BreadBoarder.jsx'
 import Settings from './components/Settings.jsx'
 import About from './components/About.jsx'
 import { getApiKey } from './lib/config.js'
@@ -41,6 +42,7 @@ const tools = [
   { name: 'Flower Bouquet Generator', description: 'Craft a realistic bouquet photo', link: '/flower-bouquet' },
   { name: 'Context Cards', description: 'Mitigate context failure modes', link: '/context-cards' },
   { name: 'Tailwind Palette Generator', description: 'Generate Tailwind-style color palettes', link: '/tailwind-palette' },
+  { name: 'BreadBoarder', description: 'Design product flows with a connectable breadboard canvas', link: '/breadboarder' },
   { name: 'Hill Chart', description: 'Track tasks along a hill', link: '/hill-chart', extraLink: 'https://basecamp.com/hill-charts', extraLinkLabel: 'read more about hill chart' },
   { name: 'Shape Up Infographic', description: 'One-page, printable Shape Up summary', link: '/shape-up' },
   { name: 'Information Verifier', description: 'Verify information truthfulness + citations', link: '/information-verifier' },
@@ -131,6 +133,7 @@ export default function App() {
   const isPromptable = useMemo(() => basePath === '/promptable', [basePath])
   const isChromaticTuner = useMemo(() => basePath === '/chromatic-tuner', [basePath])
   const isQuizzes = useMemo(() => basePath === '/quizzes', [basePath])
+  const isBreadBoarder = useMemo(() => basePath === '/breadboarder', [basePath])
   const isQueryExplorer = useMemo(() => basePath === '/tools/query-explorer', [basePath])
 
   const isSettings = useMemo(() => basePath === '/settings', [basePath])
@@ -473,6 +476,10 @@ export default function App() {
 
   if (isQuizzes) {
     return <Quizzes />
+  }
+
+  if (isBreadBoarder) {
+    return <BreadBoarder />
   }
 
   if (isQueryExplorer) {
