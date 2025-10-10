@@ -350,13 +350,13 @@ export default function BreadBoarder() {
           </div>
         </div>
       </header>
-      <main className='flex-1 overflow-hidden'>
-        <section aria-label='BreadBoarder canvas' className='h-full w-full'>
+      <main className='flex min-h-0 flex-1 overflow-hidden'>
+        <section aria-label='BreadBoarder canvas' className='flex h-full w-full flex-1 min-h-0'>
           <div
             ref={rootRef}
-            className='relative h-full w-full overflow-hidden bg-gray-50'
-              tabIndex={0}
-              onKeyDown={(e) => {
+            className='relative flex-1 h-full min-h-0 w-full overflow-hidden bg-gray-50'
+            tabIndex={0}
+            onKeyDown={(e) => {
                 if (e.key === 'Escape' && draftFrom) {
                   e.preventDefault()
                   cancelDraft()
