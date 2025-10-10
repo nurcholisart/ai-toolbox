@@ -695,7 +695,7 @@ function Section({
   )
 }
 
-(function runPortPointTests() {
+function runPortPointTests() {
   try {
     const sample = { id: 't', x: 100, y: 50, title: 'Place: T', copy: ['a', 'b'], action: ['c'] }
     const pCopy0L = portPoint(sample, 'copy', 0, 'left')
@@ -708,9 +708,9 @@ function Section({
   } catch (e) {
     console.warn('PortPoint tests failed:', e)
   }
-})()
+}
 
-(function runDefensiveEdgeTests() {
+function runDefensiveEdgeTests() {
   try {
     const bad = { id: 'e1', from: null, to: null }
     const idFrom = bad?.from?.nodeId ?? null
@@ -718,9 +718,9 @@ function Section({
   } catch (e) {
     console.warn('Defensive edge test failed:', e)
   }
-})()
+}
 
-(function runDraftFromNullGuardTest() {
+function runDraftFromNullGuardTest() {
   try {
     const draftFrom = null
     const safe = draftFrom ? draftFrom.nodeId : null
@@ -728,4 +728,10 @@ function Section({
   } catch (e) {
     console.warn('DraftFrom null guard test failed:', e)
   }
-})()
+}
+
+if (import.meta.env.DEV) {
+  runPortPointTests()
+  runDefensiveEdgeTests()
+  runDraftFromNullGuardTest()
+}
