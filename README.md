@@ -234,6 +234,19 @@ Notes:
 - Server-side parsing note: Mermaid depends on DOMPurify hooks which expect a browser-like `window`. The API auto-creates a JSDOM window before importing Mermaid to avoid `DOMPurify.addHook is not a function`. Ensure `jsdom` is in `dependencies` (not only `devDependencies`).
 - PWA note: Typing `/api/...` in the address bar is a navigation; the Service Worker could serve `index.html`. We denylist `/api/` from navigation fallback so API endpoints return JSON when opened directly. After deployment, hard refresh to update the SW.
 
+## SSE to JSON
+- Location: `src/components/SSEToJSON.jsx`
+- Route: `/sse-to-json`
+
+Features:
+- Paste raw `text/event-stream` transcripts and parse them into structured event objects.
+- Merge OpenAI Responses API streams into a single response snapshot or inspect the raw events.
+- Copy or download the parsed JSON and run quick smoke tests for the parser/unifier.
+
+Notes:
+- The parser follows the SSE spec (comment lines, blank separators, multi-line `data:` fields) and keeps non-JSON payloads as text.
+- Sample events in the UI demonstrate delta merging for reasoning items.
+
 ## Token Counter
 - Location: `src/components/TokenCounter.jsx`
 - Route: `/token-counter`
