@@ -115,70 +115,67 @@ export default function SSEToJSON() {
       </header>
 
       <section className='bg-white border-2 border-black rounded-xl shadow-md p-6'>
-        <div className='grid gap-6 lg:grid-cols-2'>
+        <div className='flex flex-wrap items-center justify-between gap-3'>
+          <div className='flex flex-wrap items-center gap-3'>
+            <ModeSwitch mode={mode} setMode={setMode} />
+            <OutputShapeSwitch value={outputShape} setValue={setOutputShape} />
+            <button
+              onClick={handleParse}
+              className='inline-flex items-center justify-center rounded-lg bg-black px-4 py-2 text-sm font-medium text-white hover:bg-gray-800 focus:outline-none focus:ring-2 focus:ring-black'
+            >
+              Parse
+            </button>
+            <button
+              onClick={handleCopy}
+              className='inline-flex items-center justify-center rounded-lg border-2 border-black bg-white px-3 py-2 text-sm font-medium text-black hover:bg-gray-100 disabled:opacity-50'
+              disabled={!result}
+            >
+              Copy JSON
+            </button>
+            <button
+              onClick={handleDownload}
+              className='inline-flex items-center justify-center rounded-lg border-2 border-black bg-white px-3 py-2 text-sm font-medium text-black hover:bg-gray-100 disabled:opacity-50'
+              disabled={!result}
+            >
+              Download
+            </button>
+            <button
+              onClick={runTests}
+              className='inline-flex items-center justify-center rounded-lg border-2 border-black bg-white px-3 py-2 text-sm font-medium text-black hover:bg-gray-100'
+            >
+              Run tests
+            </button>
+          </div>
+          <div aria-live='polite' className='text-xs text-gray-700 min-h-[1rem]'>
+            {notice}
+          </div>
+        </div>
+
+        <div className='mt-6 grid gap-6 lg:grid-cols-2'>
           <div className='flex flex-col gap-2'>
             <label className='text-sm font-medium text-black'>SSE input</label>
-            <div className='h-[600px]'>
-              <textarea
-                ref={inputRef}
-                className='h-full w-full resize-none rounded-lg border-2 border-black bg-white p-4 font-mono text-xs leading-5 focus:outline-none focus:ring-0'
-                value={input}
-                onChange={(e) => setInput(e.target.value)}
-                spellCheck={false}
-              />
-            </div>
+            <textarea
+              ref={inputRef}
+              className='min-h-[600px] w-full resize-none rounded-lg border-2 border-black bg-white p-4 font-mono text-xs leading-5 focus:outline-none focus:ring-0'
+              value={input}
+              onChange={(e) => setInput(e.target.value)}
+              spellCheck={false}
+            />
           </div>
 
-          <div className='flex flex-col gap-3'>
-            <div className='flex flex-wrap items-center justify-between gap-3'>
-              <div className='flex flex-wrap items-center gap-3'>
-                <ModeSwitch mode={mode} setMode={setMode} />
-                <OutputShapeSwitch value={outputShape} setValue={setOutputShape} />
-                <button
-                  onClick={handleParse}
-                  className='inline-flex items-center justify-center rounded-lg bg-black px-4 py-2 text-sm font-medium text-white hover:bg-gray-800 focus:outline-none focus:ring-2 focus:ring-black'
-                >
-                  Parse
-                </button>
-                <button
-                  onClick={handleCopy}
-                  className='inline-flex items-center justify-center rounded-lg border-2 border-black bg-white px-3 py-2 text-sm font-medium text-black hover:bg-gray-100 disabled:opacity-50'
-                  disabled={!result}
-                >
-                  Copy JSON
-                </button>
-                <button
-                  onClick={handleDownload}
-                  className='inline-flex items-center justify-center rounded-lg border-2 border-black bg-white px-3 py-2 text-sm font-medium text-black hover:bg-gray-100 disabled:opacity-50'
-                  disabled={!result}
-                >
-                  Download
-                </button>
-                <button
-                  onClick={runTests}
-                  className='inline-flex items-center justify-center rounded-lg border-2 border-black bg-white px-3 py-2 text-sm font-medium text-black hover:bg-gray-100'
-                >
-                  Run tests
-                </button>
+          <div className='flex flex-col gap-2'>
+            <label className='text-sm font-medium text-black'>Output</label>
+            {error ? (
+              <div className='rounded-lg border-2 border-black bg-gray-100 p-3 text-sm text-black'>
+                {error}
               </div>
-              <div aria-live='polite' className='text-xs text-gray-700 min-h-[1rem]'>
-                {notice}
-              </div>
-            </div>
-
-            <div className='flex-1'>
-              {error ? (
-                <div className='mb-2 rounded-lg border-2 border-black bg-gray-100 p-3 text-sm text-black'>
-                  {error}
-                </div>
-              ) : null}
-              <pre
-                ref={outputRef}
-                className='h-[560px] whitespace-pre-wrap rounded-lg border-2 border-black bg-white p-4 font-mono text-xs leading-5 overflow-auto'
-              >
-                {result || '// Result will appear here after parsing'}
-              </pre>
-            </div>
+            ) : null}
+            <pre
+              ref={outputRef}
+              className='min-h-[600px] whitespace-pre-wrap rounded-lg border-2 border-black bg-white p-4 font-mono text-xs leading-5 overflow-auto'
+            >
+              {result || '// Result will appear here after parsing'}
+            </pre>
           </div>
         </div>
       </section>
