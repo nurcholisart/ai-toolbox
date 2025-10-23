@@ -96,6 +96,19 @@ Notes:
 - It requires network access for the Gemini API.
 - Image‑based PDFs (scanned) may produce empty text extraction unless OCR is added (not included).
 
+## Meeting Transcription
+- Location: `src/components/MeetingTranscription.jsx`
+- Route: `/meeting-transcription`
+
+Features:
+- Converts supported audio/video files to MP3 in-browser, splits into up to 15-minute chunks, and transcribes each chunk to GitHub Flavored Markdown.
+- Gemini requests now pin `responseMimeType: 'text/plain'` and low temperature settings for deterministic transcripts and to avoid empty responses.
+- Uses the locally stored Gemini API key and performs all media processing client-side with `@ffmpeg/ffmpeg`.
+
+Notes:
+- Upload limit is 1 GB per file; compress or trim larger recordings before use.
+- If the UI reports “Model returned no text (reason: …)”, the model finished without content—retry with shorter segments or check audio clarity.
+
 ## Information Verifier
 - Location: `src/components/InformationVerifier.jsx`
 - Route: `/information-verifier`
