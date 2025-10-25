@@ -247,6 +247,20 @@ Notes:
 - Server-side parsing note: Mermaid depends on DOMPurify hooks which expect a browser-like `window`. The API auto-creates a JSDOM window before importing Mermaid to avoid `DOMPurify.addHook is not a function`. Ensure `jsdom` is in `dependencies` (not only `devDependencies`).
 - PWA note: Typing `/api/...` in the address bar is a navigation; the Service Worker could serve `index.html`. We denylist `/api/` from navigation fallback so API endpoints return JSON when opened directly. After deployment, hard refresh to update the SW.
 
+## Mermaid Editor
+- Location: `src/components/MermaidEditor.jsx`
+- Route: `/mermaid-editor`
+
+Features:
+- Split layout with a monospace Mermaid editor and live canvas preview, including zoom/pan controls and a sample reset action.
+- Renders diagrams client-side with `mermaid.render` while keeping the last valid SVG in place when syntax errors are detected.
+- Optional Gemini assistant that turns natural language prompts into Mermaid code and inserts the result into the editor.
+
+Notes:
+- The AI assistant uses the Gemini API key saved from the Settings tool and retries failed requests with exponential backoff before surfacing errors.
+- Preview interactions rely on client-side transforms rather than re-rendering the SVG, so large diagrams stay responsive while panning or zooming.
+- Markdown-style code fences are stripped automatically before rendering, and the editor now validates diagrams with `mermaid.parse` before attempting to render so the preview never shows Mermaid's default brown "Syntax error" SVG.
+
 ## SSE to JSON
 - Location: `src/components/SSEToJSON.jsx`
 - Route: `/sse-to-json`
