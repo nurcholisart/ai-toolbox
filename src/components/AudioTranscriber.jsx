@@ -129,12 +129,18 @@ export default function AudioTranscriber() {
       const payload = {
         contents: [
           {
+            role: 'user',
             parts: [
               { text: userPrompt },
               { inlineData: { mimeType, data: base64 } },
             ],
           },
         ],
+        generationConfig: {
+          responseMimeType: 'text/plain',
+          maxOutputTokens: 4096,
+          temperature: 0.2,
+        },
       }
 
       let retries = 3
@@ -148,8 +154,17 @@ export default function AudioTranscriber() {
         })
         if (resp.ok) {
           const result = await resp.json()
-          const text = result.candidates?.[0]?.content?.parts?.[0]?.text || ''
-          if (!text) throw new Error('Invalid response format from API.')
+          const candidate = result.candidates?.[0]
+          const parts = candidate?.content?.parts
+            ?.map((part) => part?.text?.trim())
+            ?.filter(Boolean)
+          const text = parts?.length ? parts.join('\n\n') : ''
+          if (!text) {
+            const block = result.promptFeedback?.blockReason
+            const finish = candidate?.finishReason
+            const detail = block || finish
+            throw new Error(detail ? `Model returned no text (reason: ${detail}).` : 'Model returned no text.')
+          }
           setTranscript(text)
           updateStatus('Transcription complete.')
           return

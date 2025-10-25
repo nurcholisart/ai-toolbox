@@ -283,7 +283,18 @@ export default function MicrophoneTranscriber() {
           ? 'Transcribe this audio into clean, well-structured GitHub Flavored Markdown (GFM). Use paragraphs and lists when helpful. If multiple speakers are detected, label them as "Speaker 1:" and so on. Return only the Markdown.'
           : `You will receive part ${idx + 1} of ${segments.length} from a longer recording. Transcribe this part into clean, well-structured GitHub Flavored Markdown (GFM). Maintain continuity between parts and label speakers as "Speaker 1:", "Speaker 2:" when helpful. Return only the Markdown for this part.`
         const payload = {
-          contents: [{ parts: [ { text: segmentPrompt }, { inlineData: { mimeType, data: base64 } } ] }],
+          contents: [{
+            role: 'user',
+            parts: [
+              { text: segmentPrompt },
+              { inlineData: { mimeType, data: base64 } },
+            ],
+          }],
+          generationConfig: {
+            responseMimeType: 'text/plain',
+            maxOutputTokens: 4096,
+            temperature: 0.2,
+          },
         }
         setStatus(segments.length === 1 ? 'Transcribing audio…' : `Transcribing part ${idx + 1} of ${segments.length}…`)
         let retries = 3
@@ -292,8 +303,17 @@ export default function MicrophoneTranscriber() {
           const resp = await fetch(url, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) })
           if (resp.ok) {
             const data = await resp.json()
-            const text = data?.candidates?.[0]?.content?.parts?.[0]?.text || ''
-            if (!text) throw new Error('Invalid response format from API.')
+            const candidate = data?.candidates?.[0]
+            const textParts = candidate?.content?.parts
+              ?.map((part) => part?.text?.trim())
+              ?.filter(Boolean)
+            const text = textParts?.length ? textParts.join('\n\n') : ''
+            if (!text) {
+              const block = data.promptFeedback?.blockReason
+              const finish = candidate?.finishReason
+              const detail = block || finish
+              throw new Error(detail ? `Model returned no text (reason: ${detail}).` : 'Model returned no text.')
+            }
             parts.push(text.trim())
             break
           }

@@ -114,6 +114,7 @@ export default function PdfToMarkdown() {
     const payload = {
       contents: [
         {
+          role: 'user',
           parts: [
             {
               text: `Please convert the following text to GitHub Flavored Markdown:\n\n---\n\n${text}`,
@@ -122,7 +123,13 @@ export default function PdfToMarkdown() {
         },
       ],
       systemInstruction: {
+        role: 'system',
         parts: [{ text: systemPrompt }],
+      },
+      generationConfig: {
+        responseMimeType: 'text/plain',
+        maxOutputTokens: 4096,
+        temperature: 0.2,
       },
     }
 
@@ -137,8 +144,16 @@ export default function PdfToMarkdown() {
       if (resp.ok) {
         const result = await resp.json()
         const candidate = result.candidates?.[0]
-        const textOut = candidate?.content?.parts?.[0]?.text
-        if (!textOut) throw new Error('Invalid response structure from API.')
+        const textParts = candidate?.content?.parts
+          ?.map((part) => part?.text?.trim())
+          ?.filter(Boolean)
+        const textOut = textParts?.length ? textParts.join('\n\n') : ''
+        if (!textOut) {
+          const block = result.promptFeedback?.blockReason
+          const finish = candidate?.finishReason
+          const detail = block || finish
+          throw new Error(detail ? `Model returned no text (reason: ${detail}).` : 'Model returned no text.')
+        }
         return textOut
       }
       if (resp.status === 429 || resp.status >= 500) {

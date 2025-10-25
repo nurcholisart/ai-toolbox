@@ -208,8 +208,13 @@ export default function InformationVerifier() {
     ].join('\n')
 
     const payloadBase = {
-      contents: [{ parts: [{ text: userPrompt }] }],
-      systemInstruction: { parts: [{ text: systemInstruction }] },
+      contents: [{ role: 'user', parts: [{ text: userPrompt }] }],
+      systemInstruction: { role: 'system', parts: [{ text: systemInstruction }] },
+      generationConfig: {
+        responseMimeType: 'text/plain',
+        maxOutputTokens: 2048,
+        temperature: 0.2,
+      },
     }
 
     // Always use Google Search Grounding tool
@@ -247,7 +252,17 @@ export default function InformationVerifier() {
       }
 
       const data1 = await resp.json();
-      const findingsText = data1?.candidates?.[0]?.content?.parts?.[0]?.text || ''
+      const candidate1 = data1?.candidates?.[0]
+      const findingsParts = candidate1?.content?.parts
+        ?.map((part) => part?.text?.trim())
+        ?.filter(Boolean)
+      const findingsText = findingsParts?.length ? findingsParts.join('\n\n') : ''
+      if (!findingsText) {
+        const block = data1.promptFeedback?.blockReason
+        const finish = candidate1?.finishReason
+        const detail = block || finish
+        throw new Error(detail ? `Model returned no text (reason: ${detail}).` : 'Model returned no text.')
+      }
 
       // 2) Structured formatting without tools (enforce schema)
       setStatus('Refining structured output…')
@@ -273,8 +288,8 @@ export default function InformationVerifier() {
       ].join('\n')
 
       const payloadRefine = {
-        contents: [{ parts: [{ text: userPrompt2 }] }],
-        systemInstruction: { parts: [{ text: systemInstruction2 }] },
+        contents: [{ role: 'user', parts: [{ text: userPrompt2 }] }],
+        systemInstruction: { role: 'system', parts: [{ text: systemInstruction2 }] },
         generationConfig: {
           responseMimeType: 'application/json',
           responseSchema: {
@@ -298,7 +313,9 @@ export default function InformationVerifier() {
             },
             required: ['verdict','reason','citations','checkedAt'],
             propertyOrdering: ['verdict','reason','citations','checkedAt']
-          }
+          },
+          maxOutputTokens: 1024,
+          temperature: 0,
         }
       }
 
@@ -312,7 +329,17 @@ export default function InformationVerifier() {
         throw new Error(msg)
       }
       const data2 = await resp2.json()
-      const text2 = data2?.candidates?.[0]?.content?.parts?.[0]?.text || ''
+      const candidate2 = data2?.candidates?.[0]
+      const textParts2 = candidate2?.content?.parts
+        ?.map((part) => part?.text?.trim())
+        ?.filter(Boolean)
+      const text2 = textParts2?.length ? textParts2.join('\n') : ''
+      if (!text2) {
+        const block = data2.promptFeedback?.blockReason
+        const finish = candidate2?.finishReason
+        const detail = block || finish
+        throw new Error(detail ? `Model returned no text (reason: ${detail}).` : 'Model returned no text.')
+      }
       const parsed2 = extractJson(text2)
       if (!parsed2) throw new Error('Failed to parse structured output.')
 

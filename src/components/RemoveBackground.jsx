@@ -48,6 +48,7 @@ const removeBackground = async ({ apiKey, dataUrl }) => {
   const payloadBody = {
     contents: [
       {
+        role: 'user',
         parts: [
           { text: instruction },
           { inlineData: { mimeType: mime, data: payload } },

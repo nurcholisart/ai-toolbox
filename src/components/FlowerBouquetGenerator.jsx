@@ -62,7 +62,7 @@ const generateImage = async ({ apiKey, prompt }) => {
   const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-image-preview:generateContent?key=${apiKey}`
   const payload = {
     contents: [
-      { parts: [{ text: prompt }] },
+      { role: 'user', parts: [{ text: prompt }] },
     ],
   }
   const data = await fetchWithRetry(url, {
@@ -366,4 +366,3 @@ export default function FlowerBouquetGenerator() {
     </div>
   )
 }
-

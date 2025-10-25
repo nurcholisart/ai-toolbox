@@ -282,6 +282,11 @@ export default function Promptable() {
             ],
           },
         ],
+        generationConfig: {
+          responseMimeType: 'text/plain',
+          maxOutputTokens: 2048,
+          temperature: 0.3,
+        },
       }
       const resp = await fetch(url, {
         method: 'POST',
@@ -298,8 +303,16 @@ export default function Promptable() {
       }
       const data = await resp.json()
       const candidate = data.candidates?.[0]
-      const text = candidate?.content?.parts?.map((part) => part.text).join('').trim()
-      if (!text) throw new Error('Gemini response did not include text content.')
+      const textParts = candidate?.content?.parts
+        ?.map((part) => part?.text?.trim())
+        ?.filter(Boolean)
+      const text = textParts?.length ? textParts.join('\n\n') : ''
+      if (!text) {
+        const block = data.promptFeedback?.blockReason
+        const finish = candidate?.finishReason
+        const detail = block || finish
+        throw new Error(detail ? `Model returned no text (reason: ${detail}).` : 'Model returned no text.')
+      }
       setImprovedDraft(text)
       setDiff(buildDiff(editorState.content, text))
       const dialog = improveDialogRef.current
@@ -410,6 +423,11 @@ export default function Promptable() {
             ],
           },
         ],
+        generationConfig: {
+          responseMimeType: 'text/plain',
+          maxOutputTokens: 2048,
+          temperature: 0.7,
+        },
       }
       const resp = await fetch(url, {
         method: 'POST',
@@ -426,8 +444,16 @@ export default function Promptable() {
       }
       const data = await resp.json()
       const candidate = data.candidates?.[0]
-      const text = candidate?.content?.parts?.map((part) => part.text).join('').trim()
-      if (!text) throw new Error('Gemini response did not include text output.')
+      const textParts = candidate?.content?.parts
+        ?.map((part) => part?.text?.trim())
+        ?.filter(Boolean)
+      const text = textParts?.length ? textParts.join('\n\n') : ''
+      if (!text) {
+        const block = data.promptFeedback?.blockReason
+        const finish = candidate?.finishReason
+        const detail = block || finish
+        throw new Error(detail ? `Model returned no text (reason: ${detail}).` : 'Model returned no text.')
+      }
       setTestOutput(text)
       const testEntry = {
         id: crypto.randomUUID(),

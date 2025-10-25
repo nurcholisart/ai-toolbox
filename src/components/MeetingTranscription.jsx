@@ -217,7 +217,7 @@ export default function MeetingTranscription() {
       ],
       generationConfig: {
         responseMimeType: 'text/plain',
-        maxOutputTokens: 4096,
+        maxOutputTokens: 40960,
         temperature: 0.2,
       },
     }

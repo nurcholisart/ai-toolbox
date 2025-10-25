@@ -69,6 +69,7 @@ const generateImage = async ({ apiKey, prompt, base64Image }) => {
   const payload = {
     contents: [
       {
+        role: 'user',
         parts: [
           { text: prompt },
           { inlineData: { mimeType: 'image/png', data: base64Image } },

@@ -126,7 +126,17 @@ export default function AssessmentRoast() {
 
     try {
       const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-05-20:generateContent?key=${apiKey}`
-      const payload = { contents: [{ parts: [{ text: prompt }] }] }
+      const payload = {
+        contents: [{
+          role: 'user',
+          parts: [{ text: prompt }],
+        }],
+        generationConfig: {
+          responseMimeType: 'text/plain',
+          maxOutputTokens: 4096,
+          temperature: 0.4,
+        },
+      }
 
       let retries = 3
       let delay = 1000
@@ -139,8 +149,16 @@ export default function AssessmentRoast() {
         if (resp.ok) {
           const result = await resp.json()
           const candidate = result.candidates?.[0]
-          const textOut = candidate?.content?.parts?.[0]?.text
-          if (!textOut) throw new Error('Invalid response from API.')
+          const textParts = candidate?.content?.parts
+            ?.map((part) => part?.text?.trim())
+            ?.filter(Boolean)
+          const textOut = textParts?.length ? textParts.join('\n\n') : ''
+          if (!textOut) {
+            const block = result.promptFeedback?.blockReason
+            const finish = candidate?.finishReason
+            const detail = block || finish
+            throw new Error(detail ? `Model returned no text (reason: ${detail}).` : 'Model returned no text.')
+          }
           setRoastResult(textOut)
           setStatus('Roast complete.')
           return
