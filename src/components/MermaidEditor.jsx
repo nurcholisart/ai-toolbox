@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useRef, useState } from 'react'
+import React, { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react'
 import mermaid from 'mermaid'
 import {
   IconSparkles,
@@ -6,6 +6,7 @@ import {
   IconZoomIn,
   IconZoomOut,
   IconZoomReset,
+  IconRotateClockwise,
 } from '@tabler/icons-react'
 import { getApiKey } from '../lib/config.js'
 
@@ -55,9 +56,13 @@ export default function MermaidEditor() {
   const [isPanning, setIsPanning] = useState(false)
   const [startPan, setStartPan] = useState({ x: 0, y: 0 })
   const [hasKey, setHasKey] = useState(!!getApiKey())
+  const [shouldCenter, setShouldCenter] = useState(false)
 
+  const contentRef = useRef(null)
   const previewRef = useRef(null)
+  const viewportRef = useRef(null)
   const aiDialogRef = useRef(null)
+  const hasAutoCentered = useRef(false)
 
   useEffect(() => {
     const onCfg = () => setHasKey(!!getApiKey())
@@ -70,6 +75,11 @@ export default function MermaidEditor() {
       startOnLoad: false,
       securityLevel: 'loose',
       theme: 'neutral',
+      flowchart: {
+        curve: 'linear',
+        nodeSpacing: 80,
+        rankSpacing: 120,
+      },
     })
   }, [])
 
@@ -78,8 +88,9 @@ export default function MermaidEditor() {
     const draw = async () => {
       if (!previewRef.current) return
       try {
-        mermaid.parse(code)
-        const id = `mermaid-editor-${Date.now()}`
+        // eslint-disable-next-line no-console
+        console.log('Rendering mermaid diagram', code)
+        const id = `mermaid-editor`
         const { svg } = await mermaid.render(id, code)
         if (/Syntax error/i.test(svg)) {
           throw new Error('Mermaid could not parse the diagram')
@@ -87,10 +98,16 @@ export default function MermaidEditor() {
         if (!cancelled && previewRef.current) {
           previewRef.current.innerHTML = svg
           setRenderError('')
+          if (!hasAutoCentered.current) {
+            hasAutoCentered.current = true
+            setShouldCenter(true)
+          }
         }
       } catch (error) {
         if (!cancelled) {
           if (previewRef.current) previewRef.current.innerHTML = ''
+          // eslint-disable-next-line no-console
+          console.error('Mermaid render error', error?.message, error?.stack)
           setRenderError(error?.message || 'Unable to render the diagram')
         }
       }
@@ -111,23 +128,43 @@ export default function MermaidEditor() {
     setCode(nextValue)
   }, [])
 
+  const zoomAtPoint = useCallback(
+    (nextScale, originX, originY) => {
+      setPosition((prevPosition) => {
+        const worldX = (originX - prevPosition.x) / scale
+        const worldY = (originY - prevPosition.y) / scale
+        const nextX = originX - worldX * nextScale
+        const nextY = originY - worldY * nextScale
+        return { x: nextX, y: nextY }
+      })
+      setScale(nextScale)
+      setShouldCenter(false)
+    },
+    [scale],
+  )
+
   const handleWheel = useCallback(
     (event) => {
       event.preventDefault()
-      const rect = event.currentTarget.getBoundingClientRect()
+      event.stopPropagation()
+      if (!viewportRef.current) return
+      const rect = viewportRef.current.getBoundingClientRect()
       const zoomStep = 0.1
       const nextScale = event.deltaY < 0 ? Math.min(scale * (1 + zoomStep), 8) : Math.max(scale * (1 - zoomStep), 0.2)
       const mouseX = event.clientX - rect.left
       const mouseY = event.clientY - rect.top
-      const worldX = (mouseX - position.x) / scale
-      const worldY = (mouseY - position.y) / scale
-      const nextX = mouseX - worldX * nextScale
-      const nextY = mouseY - worldY * nextScale
-      setScale(nextScale)
-      setPosition({ x: nextX, y: nextY })
+      zoomAtPoint(nextScale, mouseX, mouseY)
     },
-    [scale, position],
+    [scale, zoomAtPoint],
   )
+
+  useEffect(() => {
+    const viewport = viewportRef.current
+    if (!viewport) return undefined
+    const listener = (event) => handleWheel(event)
+    viewport.addEventListener('wheel', listener, { passive: false })
+    return () => viewport.removeEventListener('wheel', listener)
+  }, [handleWheel])
 
   const handleMouseDown = useCallback(
     (event) => {
@@ -135,6 +172,7 @@ export default function MermaidEditor() {
       setIsPanning(true)
       setStartPan({ x: event.clientX - position.x, y: event.clientY - position.y })
       event.currentTarget.style.cursor = 'grabbing'
+      setShouldCenter(false)
     },
     [position],
   )
@@ -160,12 +198,53 @@ export default function MermaidEditor() {
     [isPanning],
   )
 
-  const handleZoomIn = () => setScale((prev) => Math.min(prev * 1.25, 8))
-  const handleZoomOut = () => setScale((prev) => Math.max(prev / 1.25, 0.2))
+  const handleZoomIn = () => {
+    if (!viewportRef.current) return
+    const rect = viewportRef.current.getBoundingClientRect()
+    const nextScale = Math.min(scale * 1.25, 8)
+    zoomAtPoint(nextScale, rect.width / 2, rect.height / 2)
+  }
+
+  const handleZoomOut = () => {
+    if (!viewportRef.current) return
+    const rect = viewportRef.current.getBoundingClientRect()
+    const nextScale = Math.max(scale / 1.25, 0.2)
+    zoomAtPoint(nextScale, rect.width / 2, rect.height / 2)
+  }
+
   const handleResetView = () => {
     setScale(1)
     setPosition({ x: 0, y: 0 })
+    setShouldCenter(true)
   }
+
+  const centerDiagram = useCallback(() => {
+    if (!viewportRef.current || !previewRef.current) return
+    const svg = previewRef.current.querySelector('svg')
+    if (!svg) return
+    let diagramWidth = 0
+    let diagramHeight = 0
+    try {
+      const bbox = svg.getBBox()
+      diagramWidth = bbox.width
+      diagramHeight = bbox.height
+    } catch (error) {
+      const rect = svg.getBoundingClientRect()
+      diagramWidth = rect.width
+      diagramHeight = rect.height
+    }
+    if (!diagramWidth || !diagramHeight) return
+    const viewportRect = viewportRef.current.getBoundingClientRect()
+    const nextX = (viewportRect.width - diagramWidth * scale) / 2
+    const nextY = (viewportRect.height - diagramHeight * scale) / 2
+    setPosition({ x: nextX, y: nextY })
+  }, [scale])
+
+  useLayoutEffect(() => {
+    if (!shouldCenter) return
+    centerDiagram()
+    setShouldCenter(false)
+  }, [shouldCenter, centerDiagram])
 
   const openAiDialog = () => {
     setAiError('')
@@ -256,64 +335,66 @@ Failure behavior:
   }, [prompt])
 
   return (
-    <main className="min-h-screen w-full px-4 sm:px-6 lg:px-8 py-6 text-black bg-gray-50">
+    <main className="h-screen w-full px-4 sm:px-6 lg:px-8 py-6 text-black bg-gray-50 flex flex-col overflow-hidden">
       <style>{`.mermaid-preview svg { max-width: 100%; height: auto; }`}</style>
-      <header className="bg-white border-2 border-black rounded-xl shadow-md p-6 mb-6">
-        <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
+      <header className="py-2 mb-4 shrink-0">
+        <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
           <div>
-            <h1 className="text-3xl font-semibold">Mermaid Editor</h1>
-            <p className="text-gray-600 mt-2 max-w-2xl">
-              Write Mermaid code, preview it instantly, and optionally ask Gemini to draft diagrams from natural language.
-            </p>
-          </div>
-          <div className="flex flex-wrap gap-3">
-            <button
-              type="button"
-              onClick={openAiDialog}
-              className="inline-flex items-center gap-2 bg-black text-white rounded-lg px-4 py-2 hover:bg-gray-800 focus:ring-2 focus:ring-black"
-            >
-              <IconSparkles size={18} stroke={2} />
-              Open AI assistant
-            </button>
-            <button
-              type="button"
-              onClick={() => setCode(defaultCode)}
-              className="inline-flex items-center gap-2 bg-white border-2 border-black rounded-lg px-4 py-2 hover:bg-gray-100"
-            >
-              Reset to sample
-            </button>
+            <h1 className="text-3xl font-semibold leading-tight">Mermaid Editor</h1>
           </div>
         </div>
       </header>
 
-      <section className="flex flex-col gap-6 lg:flex-row lg:gap-8 lg:h-[calc(100vh-220px)]">
-        <article className="flex flex-col bg-white border-2 border-black rounded-xl shadow-md lg:w-[30%] lg:min-h-full">
-          <div className="border-b-2 border-black/10 px-4 py-3">
+      <section className="flex flex-1 flex-col gap-6 overflow-hidden lg:flex-row lg:gap-8">
+        <article className="flex flex-col bg-white border-2 border-black rounded-xl shadow-md lg:w-[30%] max-h-full">
+          <div className="border-b-2 border-black/10 px-4 py-3 flex items-center justify-between">
             <h2 className="text-xl font-semibold">Editor</h2>
-            <p className="text-sm text-gray-600">Mermaid syntax with live validation. Errors stay visible under the editor.</p>
-          </div>
-          <label htmlFor="mermaid-code" className="sr-only">
-            Mermaid code
-          </label>
-          <textarea
-            id="mermaid-code"
-            value={code}
-            onChange={handleCodeChange}
-            spellCheck="false"
-            autoComplete="off"
-            autoCorrect="off"
-            autoCapitalize="off"
-            className="min-h-[400px] h-full w-full p-4 font-mono text-sm leading-relaxed bg-white rounded-b-xl focus:outline-none"
-          />
-          {renderError && (
-            <div className="border-t-2 border-black/10 px-4 py-3 text-sm text-gray-800 bg-gray-50">
-              <p className="font-semibold">Syntax error</p>
-              <pre className="mt-2 whitespace-pre-wrap font-mono text-xs">{renderError}</pre>
+
+            <div className="flex flex-wrap gap-2">
+              <button
+                type="button"
+                onClick={openAiDialog}
+                className="inline-flex items-center justify-center bg-black text-white rounded-lg p-2.5 hover:bg-gray-800 focus:ring-2 focus:ring-black"
+                aria-label="Open AI assistant"
+              >
+                <IconSparkles size={18} stroke={2} />
+                <span className="sr-only">Open AI assistant</span>
+              </button>
+              <button
+                type="button"
+                onClick={() => setCode(defaultCode)}
+                className="inline-flex items-center justify-center bg-white border-2 border-black rounded-lg p-2.5 hover:bg-gray-100"
+                aria-label="Reset to sample"
+              >
+                <IconRotateClockwise size={18} stroke={2} />
+                <span className="sr-only">Reset to sample</span>
+              </button>
             </div>
-          )}
+          </div>
+          <div className="flex-1 flex flex-col min-h-0">
+            <label htmlFor="mermaid-code" className="sr-only">
+              Mermaid code
+            </label>
+            <textarea
+              id="mermaid-code"
+              value={code}
+              onChange={handleCodeChange}
+              spellCheck="false"
+              autoComplete="off"
+              autoCorrect="off"
+              autoCapitalize="off"
+              className="flex-1 min-h-0 w-full p-4 font-mono text-sm leading-relaxed bg-white rounded-b-xl focus:outline-none resize-none"
+            />
+            {renderError && (
+              <div className="border-t-2 border-black/10 px-4 py-3 text-sm text-gray-800 bg-gray-50">
+                <p className="font-semibold">Syntax error</p>
+                <pre className="mt-2 whitespace-pre-wrap font-mono text-xs">{renderError}</pre>
+              </div>
+            )}
+          </div>
         </article>
 
-        <article className="flex flex-col bg-white border-2 border-black rounded-xl shadow-md flex-1">
+        <article className="flex flex-col bg-white border-2 border-black rounded-xl shadow-md flex-1 min-h-0">
           <div className="border-b-2 border-black/10 px-4 py-3 flex items-center gap-2">
             <div className="flex flex-col">
               <h2 className="text-xl font-semibold">Live preview</h2>
@@ -347,29 +428,31 @@ Failure behavior:
             </div>
           </div>
           <div
-            className="flex-1 overflow-hidden mermaid-preview"
+            ref={viewportRef}
+            className="flex-1 overflow-hidden mermaid-preview p-4 min-h-0"
             style={{
               cursor: isPanning ? 'grabbing' : 'grab',
               backgroundColor: '#fff',
               backgroundImage: 'radial-gradient(circle, rgba(0,0,0,0.1) 1px, transparent 1px)',
               backgroundSize: '18px 18px',
-              minHeight: '400px',
+              height: '100%',
             }}
-            onWheel={handleWheel}
             onMouseDown={handleMouseDown}
             onMouseMove={handleMouseMove}
             onMouseUp={handleMouseUpOrLeave}
             onMouseLeave={handleMouseUpOrLeave}
           >
             <div
-              ref={previewRef}
-              className="p-4"
+              ref={contentRef}
+              className="inline-block"
               style={{
                 transform: `translate(${position.x}px, ${position.y}px) scale(${scale})`,
                 transformOrigin: '0 0',
                 transition: isPanning ? 'none' : 'transform 50ms linear',
               }}
-            />
+            >
+              <div ref={previewRef} className="inline-block" />
+            </div>
           </div>
         </article>
       </section>
