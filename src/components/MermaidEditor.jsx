@@ -27,6 +27,58 @@ const defaultCode = `flowchart TD
     B -- No --> E
 `
 
+const GEMINI_SYSTEM_PROMPT = `You are a compiler that transforms natural-language diagram requests into valid Mermaid v10 code.
+
+Output policy:
+- Return Mermaid code ONLY. No prose, no markdown fences, no comments, no explanations.
+- Emit a single diagram per request unless the input explicitly asks for multiple; if multiple are requested, output them back-to-back separated by one blank line.
+
+Diagram type selection:
+- If the input implies steps/flows: use flowchart (default to flowchart TD).
+- If it implies actors exchanging messages: use sequenceDiagram.
+- If it describes entities/attributes/relationships: use erDiagram.
+- If it is about classes/interfaces/inheritance: use classDiagram.
+- If it is about states/transitions: use stateDiagram-v2.
+- If it is a schedule with dates/durations: use gantt with dateFormat.
+- If it is a customer journey: use journey.
+- If it is hierarchical topics: use mindmap.
+- If it is chronological points without durations: use timeline.
+- When unclear, choose the least-surprising type (prefer flowchart TD) and proceed.
+
+General rules:
+- Ensure code is syntactically valid and renderable by Mermaid.
+- For flowcharts, include an explicit direction (TD or LR) and standard shapes (rectangles for steps, diamonds for decisions).
+- Use deterministic, short, unique IDs (e.g., A, B, C…) and keep human-readable labels in the node text.
+- Preserve described order (especially in sequenceDiagram), and use alt/opt/loop/par blocks when the text implies them.
+- Group related steps with subgraph when lanes/groups are implied; for sequences, declare explicit participants.
+- For erDiagram, declare entities with attributes when provided, and relationships with appropriate crow’s-foot cardinalities and labels.
+- For gantt, provide dateFormat, sections, tasks with start and duration or dependencies; mark milestones with milestone.
+- If the user provides Mermaid code, validate and return a corrected/normalized version that preserves intent.
+
+Labeling and escaping:
+- Keep labels concise; if necessary, wrap lines with <br/>.
+- Encode special characters that may break parsing: use &lt; and &gt;, and &#124; for literal pipes in labels.
+- If information is missing, make minimal, reasonable assumptions and mark with (unspecified) rather than inventing facts.
+
+Styling and extras:
+- Do not include init blocks (%%{init:...}%%) or custom CSS unless explicitly requested.
+- Do not include comments (%% ... %%) or external includes.
+
+Failure behavior:
+- Never refuse or ask questions; make the best, least-surprising diagram given the input and these rules.`
+
+const buildGeminiPayload = (text) => ({
+  contents: [{ parts: [{ text }] }],
+  systemInstruction: { parts: [{ text: GEMINI_SYSTEM_PROMPT }] },
+  generationConfig: {
+    temperature: 0.2,
+    maxOutputTokens: 1200,
+  },
+})
+
+const GEMINI_MODEL = 'gemini-2.5-flash-preview-09-2025'
+const GEMINI_API_BASE = 'https://generativelanguage.googleapis.com/v1beta/models'
+
 const fetchWithBackoff = async (url, options, retries = 3) => {
   let delay = 800
   for (let attempt = 0; attempt < retries; attempt += 1) {
@@ -51,6 +103,7 @@ export default function MermaidEditor() {
   const [prompt, setPrompt] = useState('Create a flowchart that explains how a pull request gets merged')
   const [aiError, setAiError] = useState('')
   const [isGenerating, setIsGenerating] = useState(false)
+  const [isFixing, setIsFixing] = useState(false)
   const [scale, setScale] = useState(1)
   const [position, setPosition] = useState({ x: 0, y: 0 })
   const [isPanning, setIsPanning] = useState(false)
@@ -268,54 +321,8 @@ export default function MermaidEditor() {
     setIsGenerating(true)
     setAiError('')
     try {
-      const systemPrompt = `You are a compiler that transforms natural-language diagram requests into valid Mermaid v10 code.
-
-Output policy:
-- Return Mermaid code ONLY. No prose, no markdown fences, no comments, no explanations.
-- Emit a single diagram per request unless the input explicitly asks for multiple; if multiple are requested, output them back-to-back separated by one blank line.
-
-Diagram type selection:
-- If the input implies steps/flows: use flowchart (default to flowchart TD).
-- If it implies actors exchanging messages: use sequenceDiagram.
-- If it describes entities/attributes/relationships: use erDiagram.
-- If it is about classes/interfaces/inheritance: use classDiagram.
-- If it is about states/transitions: use stateDiagram-v2.
-- If it is a schedule with dates/durations: use gantt with dateFormat.
-- If it is a customer journey: use journey.
-- If it is hierarchical topics: use mindmap.
-- If it is chronological points without durations: use timeline.
-- When unclear, choose the least-surprising type (prefer flowchart TD) and proceed.
-
-General rules:
-- Ensure code is syntactically valid and renderable by Mermaid.
-- For flowcharts, include an explicit direction (TD or LR) and standard shapes (rectangles for steps, diamonds for decisions).
-- Use deterministic, short, unique IDs (e.g., A, B, C…) and keep human-readable labels in the node text.
-- Preserve described order (especially in sequenceDiagram), and use alt/opt/loop/par blocks when the text implies them.
-- Group related steps with subgraph when lanes/groups are implied; for sequences, declare explicit participants.
-- For erDiagram, declare entities with attributes when provided, and relationships with appropriate crow’s-foot cardinalities and labels.
-- For gantt, provide dateFormat, sections, tasks with start and duration or dependencies; mark milestones with milestone.
-- If the user provides Mermaid code, validate and return a corrected/normalized version that preserves intent.
-
-Labeling and escaping:
-- Keep labels concise; if necessary, wrap lines with <br/>.
-- Encode special characters that may break parsing: use &lt; and &gt;, and &#124; for literal pipes in labels.
-- If information is missing, make minimal, reasonable assumptions and mark with (unspecified) rather than inventing facts.
-
-Styling and extras:
-- Do not include init blocks (%%{init:...}%%) or custom CSS unless explicitly requested.
-- Do not include comments (%% ... %%) or external includes.
-
-Failure behavior:
-- Never refuse or ask questions; make the best, least-surprising diagram given the input and these rules.`
-      const payload = {
-        contents: [{ parts: [{ text: prompt.trim() }] }],
-        systemInstruction: { parts: [{ text: systemPrompt }] },
-        generationConfig: {
-          temperature: 0.2,
-          maxOutputTokens: 1200,
-        },
-      }
-      const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-09-2025:generateContent?key=${apiKey}`
+      const payload = buildGeminiPayload(prompt.trim())
+      const url = `${GEMINI_API_BASE}/${GEMINI_MODEL}:generateContent?key=${apiKey}`
       const result = await fetchWithBackoff(url, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -332,6 +339,47 @@ Failure behavior:
       setIsGenerating(false)
     }
   }, [prompt])
+
+  const handleFixDiagram = useCallback(async () => {
+    if (!renderError) return
+    const apiKey = getApiKey()
+    if (!apiKey) {
+      setAiError('Add your Gemini API key in Settings before using the assistant.')
+      return
+    }
+    setIsFixing(true)
+    setAiError('')
+    try {
+      const fixPrompt = `The following Mermaid diagram fails to render. Fix it so it becomes valid Mermaid v10 code.
+
+Error message:
+${renderError}
+
+Diagram:
+${code}`
+      const payload = buildGeminiPayload(fixPrompt.trim())
+      const url = `${GEMINI_API_BASE}/${GEMINI_MODEL}:generateContent?key=${apiKey}`
+      const result = await fetchWithBackoff(url, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(payload),
+      })
+      const candidate = result?.candidates?.[0]?.content?.parts?.[0]?.text?.trim()
+      if (!candidate) {
+        throw new Error('Gemini returned an empty response')
+      }
+      const nextCode = extractMermaidCode(candidate)
+      setCode(nextCode)
+    } catch (error) {
+      // eslint-disable-next-line no-console
+      console.error('Gemini fix error', error)
+      setAiError('Gemini could not fix the diagram. Try again in a moment.')
+    } finally {
+      setIsFixing(false)
+    }
+  }, [code, renderError])
 
   return (
     <main className="h-screen w-full px-4 sm:px-6 lg:px-8 py-6 text-black bg-gray-50 flex flex-col overflow-hidden">
@@ -388,6 +436,20 @@ Failure behavior:
               <div className="border-t-2 border-black/10 px-4 py-3 text-sm text-gray-800 bg-gray-50">
                 <p className="font-semibold">Syntax error</p>
                 <pre className="mt-2 whitespace-pre-wrap font-mono text-xs">{renderError}</pre>
+                <div className="mt-3 flex items-center justify-end">
+                  <button
+                    type="button"
+                    onClick={handleFixDiagram}
+                    disabled={!hasKey || isFixing}
+                    className="inline-flex items-center gap-2 px-3 py-2 bg-black text-white rounded-lg hover:bg-gray-800 focus:outline-none border-2 border-black disabled:opacity-60 disabled:cursor-not-allowed"
+                  >
+                    <IconSparkles size={16} stroke={2} />
+                    <span>{isFixing ? 'Fixing...' : 'Fix with AI'}</span>
+                  </button>
+                </div>
+                {!hasKey && (
+                  <p className="mt-2 text-xs text-gray-600">Add a Gemini API key in Settings to enable auto-fix.</p>
+                )}
               </div>
             )}
           </div>
