@@ -90,11 +90,10 @@ export default function MermaidEditor() {
       try {
         // eslint-disable-next-line no-console
         console.log('Rendering mermaid diagram', code)
-        const id = `mermaid-editor`
+        const id = 'mermaid-editor'
+        // Validate first so Mermaid does not render its own error overlay
+        await mermaid.parse(code)
         const { svg } = await mermaid.render(id, code)
-        if (/Syntax error/i.test(svg)) {
-          throw new Error('Mermaid could not parse the diagram')
-        }
         if (!cancelled && previewRef.current) {
           previewRef.current.innerHTML = svg
           setRenderError('')
