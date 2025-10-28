@@ -1,5 +1,7 @@
 import React, { useEffect, useMemo, useState } from 'react'
-import { IconArrowLeft, IconSettings, IconInfoCircle } from '@tabler/icons-react'
+import { Link, NavLink, Navigate, Route, Routes, useLocation } from 'react-router-dom'
+import { IconInfoCircle, IconSettings } from '@tabler/icons-react'
+
 import PdfToMarkdown from './components/PdfToMarkdown.jsx'
 import AssessmentRoast from './components/AssessmentRoast.jsx'
 import AudioTranscriber from './components/AudioTranscriber.jsx'
@@ -25,821 +27,391 @@ import HillChart from './components/HillChart.jsx'
 import ShapeUpInfographic from './components/ShapeUpInfographic.jsx'
 import Settings from './components/Settings.jsx'
 import About from './components/About.jsx'
-import { getApiKey } from './lib/config.js'
 import InstallPrompt from './components/InstallPrompt.jsx'
 import MicrophoneTranscriber from './components/MicrophoneTranscriber.jsx'
 import Quizzes from './components/Quizzes.jsx'
 import QueryExplorer from './components/QueryExplorer.jsx'
 
-const tools = [
-  { name: 'PDF to Markdown', description: 'Convert PDF content into Markdown', link: '/pdf-to-markdown' },
-  { name: 'Assessment Roast', description: 'Brutally review a project assessment', link: '/assessment-roast' },
-  { name: 'Audio Transcriber', description: 'Transcribe audio to Markdown', link: '/audio-transcriber' },
-  { name: 'Microphone Transcriber', description: 'Record mic → Markdown transcript', link: '/microphone-transcriber' },
-  { name: 'Meeting Transcription', description: 'Upload audio/video → Markdown transcript', link: '/meeting-transcription' },
-  { name: 'MP4 to MP3', description: 'Convert video to MP3 in-browser', link: '/mp4-to-mp3' },
-  { name: 'PictureMe', description: 'Transform photos with Gemini', link: '/picture-me' },
-  { name: 'Remove Background', description: 'Erase backgrounds with Gemini', link: '/remove-background' },
-  { name: 'Flower Bouquet Generator', description: 'Craft a realistic bouquet photo', link: '/flower-bouquet' },
-  { name: 'Context Cards', description: 'Mitigate context failure modes', link: '/context-cards' },
-  { name: 'Tailwind Palette Generator', description: 'Generate Tailwind-style color palettes', link: '/tailwind-palette' },
-  { name: 'Hill Chart', description: 'Track tasks along a hill', link: '/hill-chart', extraLink: 'https://basecamp.com/hill-charts', extraLinkLabel: 'read more about hill chart' },
-  { name: 'Shape Up Infographic', description: 'One-page, printable Shape Up summary', link: '/shape-up' },
-  { name: 'Information Verifier', description: 'Verify information truthfulness + citations', link: '/information-verifier' },
-  { name: 'Lockfile Scanner', description: 'Check JS deps for vulnerabilities', link: '/lockfile-scanner' },
-  { name: 'Gemfile.lock Scanner', description: 'Check Ruby gems for vulnerabilities', link: '/gemfile-scanner' },
-  { name: 'go.sum Scanner', description: 'Check Go modules for vulnerabilities', link: '/go-sum-scanner' },
-  { name: 'Mermaid Validator', description: 'Validate a Mermaid diagram string', link: '/mermaid-validator' },
-  { name: 'Mermaid Editor', description: 'Edit Mermaid diagrams with live preview + AI assist', link: '/mermaid-editor' },
-  { name: 'SSE to JSON', description: 'Convert SSE streams into structured JSON', link: '/sse-to-json' },
-  { name: 'Token Counter', description: 'Count tokens with layered CDN fallbacks', link: '/token-counter' },
-  { name: 'Notable', description: 'Local notes with a rich-text editor', link: '/notable' },
-  { name: 'Promptable', description: 'Iterate on prompts with Gemini previews', link: '/promptable' },
-  { name: 'Chromatic Tuner', description: 'Tune instruments via microphone', link: '/chromatic-tuner' },
-  { name: 'Quizzes', description: 'Create embeddable knowledge quizzes', link: '/quizzes' },
-  { name: 'Query Explorer', description: 'Run SQL on CSV, NDJSON, or Parquet entirely offline', link: '/tools/query-explorer' },
+import PageLayout from './components/PageLayout.jsx'
+import { Button } from './components/ui/button.jsx'
+import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from './components/ui/card.jsx'
+import { getApiKey } from './lib/config.js'
+
+const toolDefinitions = [
+  {
+    path: '/pdf-to-markdown',
+    name: 'PDF to Markdown',
+    description: 'Convert PDF content into clean Markdown.',
+    component: PdfToMarkdown,
+  },
+  {
+    path: '/assessment-roast',
+    name: 'Assessment Roast',
+    description: 'Brutally review a project assessment.',
+    component: AssessmentRoast,
+  },
+  {
+    path: '/audio-transcriber',
+    name: 'Audio Transcriber',
+    description: 'Transcribe uploaded audio to Markdown.',
+    component: AudioTranscriber,
+  },
+  {
+    path: '/microphone-transcriber',
+    name: 'Microphone Transcriber',
+    description: 'Record directly from your mic into Markdown.',
+    component: MicrophoneTranscriber,
+  },
+  {
+    path: '/meeting-transcription',
+    name: 'Meeting Transcription',
+    description: 'Upload audio or video to receive a transcript.',
+    component: MeetingTranscription,
+  },
+  {
+    path: '/mp4-to-mp3',
+    name: 'MP4 to MP3',
+    description: 'Convert video to MP3 entirely in the browser.',
+    component: Mp4ToMp3,
+  },
+  {
+    path: '/picture-me',
+    name: 'PictureMe',
+    description: 'Transform photos with Gemini creative edits.',
+    component: PictureMe,
+    layout: { contentClassName: 'space-y-0' },
+  },
+  {
+    path: '/remove-background',
+    name: 'Remove Background',
+    description: 'Erase backgrounds from product photos with AI.',
+    component: RemoveBackground,
+    layout: { contentClassName: 'space-y-0' },
+  },
+  {
+    path: '/flower-bouquet',
+    name: 'Flower Bouquet Generator',
+    description: 'Craft a realistic bouquet photo from prompts.',
+    component: FlowerBouquetGenerator,
+    layout: { contentClassName: 'space-y-0' },
+  },
+  {
+    path: '/context-cards',
+    name: 'Context Cards',
+    description: 'Mitigate context failure modes with targeted cards.',
+    component: ContextCards,
+  },
+  {
+    path: '/tailwind-palette',
+    name: 'Tailwind Palette Generator',
+    description: 'Generate Tailwind-style color palettes.',
+    component: TailwindPaletteGenerator,
+  },
+  {
+    path: '/hill-chart',
+    name: 'Hill Chart',
+    description: 'Track progress along the Shape Up hill.',
+    component: HillChart,
+  },
+  {
+    path: '/shape-up',
+    name: 'Shape Up Infographic',
+    description: 'Printable summary of Shape Up product management.',
+    component: ShapeUpInfographic,
+  },
+  {
+    path: '/information-verifier',
+    name: 'Information Verifier',
+    description: 'Verify claims and request citations from Gemini.',
+    component: InformationVerifier,
+  },
+  {
+    path: '/lockfile-scanner',
+    name: 'Lockfile Scanner',
+    description: 'Check JavaScript dependencies for vulnerabilities.',
+    component: LockfileScanner,
+  },
+  {
+    path: '/gemfile-scanner',
+    name: 'Gemfile.lock Scanner',
+    description: 'Scan Ruby gems for known security issues.',
+    component: GemfileScanner,
+  },
+  {
+    path: '/go-sum-scanner',
+    name: 'go.sum Scanner',
+    description: 'Check Go modules for vulnerabilities.',
+    component: GoSumScanner,
+  },
+  {
+    path: '/mermaid-validator',
+    name: 'Mermaid Validator',
+    description: 'Validate Mermaid diagrams instantly.',
+    component: MermaidValidator,
+  },
+  {
+    path: '/mermaid-editor',
+    name: 'Mermaid Editor',
+    description: 'Edit Mermaid diagrams with live preview and AI.',
+    component: MermaidEditor,
+    layout: { contentClassName: 'space-y-0' },
+  },
+  {
+    path: '/sse-to-json',
+    name: 'SSE to JSON',
+    description: 'Convert Server-Sent Events streams into structured JSON.',
+    component: SSEToJSON,
+  },
+  {
+    path: '/token-counter',
+    name: 'Token Counter',
+    description: 'Count tokens with layered CDN fallbacks.',
+    component: TokenCounter,
+  },
+  {
+    path: '/notable',
+    name: 'Notable',
+    description: 'Take local notes with a rich-text editor.',
+    component: Notable,
+    layout: { contentClassName: 'space-y-0' },
+  },
+  {
+    path: '/promptable',
+    name: 'Promptable',
+    description: 'Iterate on prompts with Gemini previews.',
+    component: Promptable,
+    layout: { contentClassName: 'space-y-0 px-0' },
+  },
+  {
+    path: '/chromatic-tuner',
+    name: 'Chromatic Tuner',
+    description: 'Tune instruments via your microphone.',
+    component: ChromaticTuner,
+    layout: { contentClassName: 'space-y-0' },
+  },
+  {
+    path: '/quizzes',
+    name: 'Quizzes',
+    description: 'Create embeddable knowledge quizzes.',
+    component: Quizzes,
+  },
+  {
+    path: '/tools/query-explorer',
+    name: 'Query Explorer',
+    description: 'Run SQL on CSV, NDJSON, or Parquet entirely offline.',
+    component: QueryExplorer,
+    layout: { contentClassName: 'space-y-0 px-0' },
+  },
   {
     name: 'Propose new tool',
-    description: 'Suggest an idea on GitHub',
-    link: 'https://github.com/nurcholisart/ai-toolbox',
+    description: 'Suggest an idea on GitHub.',
+    path: 'https://github.com/nurcholisart/ai-toolbox',
     target: '_blank',
-    muted: true,
+    external: true,
   },
 ]
 
+function AppHeader() {
+  const location = useLocation()
+  const navItems = useMemo(
+    () => [
+      { to: '/about', label: 'About', icon: IconInfoCircle },
+      { to: '/settings', label: 'Settings', icon: IconSettings },
+    ],
+    []
+  )
+
+  return (
+    <header className='sticky top-0 z-50 border-b bg-background/90 backdrop-blur supports-[backdrop-filter]:bg-background/60'>
+      <div className='flex w-full items-center justify-between px-6 py-4'>
+        <Link to='/' className='text-xl font-semibold tracking-tight'>
+          AI Toolbox
+        </Link>
+        <div className='flex items-center gap-2'>
+          <InstallPrompt />
+          {navItems.map(({ to, label, icon: Icon }) => (
+            <Button
+              key={to}
+              variant={location.pathname === to ? 'default' : 'ghost'}
+              asChild
+              className='gap-2'
+            >
+              <NavLink to={to} className='flex items-center gap-2 text-sm font-medium'>
+                <Icon size={18} />
+                {label}
+              </NavLink>
+            </Button>
+          ))}
+        </div>
+      </div>
+    </header>
+  )
+}
+
+function HomePage({ hasKey }) {
+  const tools = useMemo(() => toolDefinitions.filter((tool) => !tool.external), [])
+  const externalLinks = useMemo(() => toolDefinitions.filter((tool) => tool.external), [])
+
+  return (
+    <div className='w-full px-6 py-10'>
+      <div className='space-y-4'>
+        <h1 className='text-4xl font-bold tracking-tight'>AI Toolbox</h1>
+        <p className='max-w-2xl text-lg text-muted-foreground'>
+          A collection of AI-first utilities for creative, developer, and productivity workflows.
+        </p>
+      </div>
+
+      {!hasKey ? (
+        <Card className='mt-8 border-destructive/30 bg-destructive/10'>
+          <CardContent className='flex items-start gap-3 py-4'>
+            <div className='mt-1 h-2.5 w-2.5 rounded-full bg-destructive' />
+            <div className='text-sm text-destructive-foreground'>
+              <p className='font-medium'>Gemini API key not set.</p>
+              <p>
+                Open{' '}
+                <Link to='/settings' className='font-medium text-destructive-foreground underline'>
+                  Settings
+                </Link>{' '}
+                to add your key before using tools.
+              </p>
+            </div>
+          </CardContent>
+        </Card>
+      ) : null}
+
+      <div className='mt-12 grid gap-6 lg:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4'>
+        {tools.map((tool) => (
+          <Link key={tool.path} to={tool.path} className='group block h-full'>
+            <Card className='flex h-full flex-col justify-between transition hover:-translate-y-1 hover:shadow-lg'>
+              <CardHeader>
+                <CardTitle>{tool.name}</CardTitle>
+                <CardDescription>{tool.description}</CardDescription>
+              </CardHeader>
+              <CardFooter className='pt-0'>
+                <span className='text-sm font-medium text-primary group-hover:underline'>Open tool</span>
+              </CardFooter>
+            </Card>
+          </Link>
+        ))}
+        {externalLinks.map((tool) => (
+          <a
+            key={tool.path}
+            href={tool.path}
+            target={tool.target}
+            rel='noreferrer'
+            className='group block h-full'
+          >
+            <Card className='flex h-full flex-col justify-between transition hover:-translate-y-1 hover:shadow-lg'>
+              <CardHeader>
+                <CardTitle>{tool.name}</CardTitle>
+                <CardDescription>{tool.description}</CardDescription>
+              </CardHeader>
+              <CardFooter className='pt-0'>
+                <span className='text-sm font-medium text-primary group-hover:underline'>Visit link</span>
+              </CardFooter>
+            </Card>
+          </a>
+        ))}
+      </div>
+    </div>
+  )
+}
+
+function ToolPage({ tool }) {
+  const Component = tool.component
+  const layoutProps = tool.layout ?? {}
+
+  return (
+    <PageLayout
+      title={tool.name}
+      description={tool.description}
+      actions={<SettingsButton />}
+      {...layoutProps}
+    >
+      <Component />
+    </PageLayout>
+  )
+}
+
+function SettingsButton({ variant = 'outline' }) {
+  return (
+    <Button variant={variant} asChild className='gap-2'>
+      <Link to='/settings' className='flex items-center gap-2'>
+        <IconSettings size={18} />
+        Edit config
+      </Link>
+    </Button>
+  )
+}
+
+function AppFooter() {
+  return (
+    <footer className='border-t bg-background/95 py-6'>
+      <div className='px-6 text-sm text-muted-foreground'>
+        Built with the default Shadcn UI theme.
+      </div>
+    </footer>
+  )
+}
+
+function AppRoutes({ hasKey }) {
+  const toolRoutes = toolDefinitions.filter((tool) => tool.component)
+
+  return (
+    <Routes>
+      <Route path='/' element={<HomePage hasKey={hasKey} />} />
+      {toolRoutes.map((tool) => (
+        <Route key={tool.path} path={tool.path} element={<ToolPage tool={tool} />} />
+      ))}
+      <Route
+        path='/settings'
+        element={
+          <PageLayout title='Settings' description='Configure your Gemini API credentials.'>
+            <Card className='shadow-sm'> 
+              <CardContent className='space-y-10 pt-6'>
+                <Settings />
+              </CardContent>
+            </Card>
+          </PageLayout>
+        }
+      />
+      <Route
+        path='/about'
+        element={
+          <PageLayout title='About' description='Learn more about the AI Toolbox project.' actions={<SettingsButton />}>
+            <Card className='shadow-sm'>
+              <CardContent className='space-y-6 pt-6'>
+                <About />
+              </CardContent>
+            </Card>
+          </PageLayout>
+        }
+      />
+      <Route path='*' element={<Navigate to='/' replace />} />
+    </Routes>
+  )
+}
+
 export default function App() {
-  const [path, setPath] = useState(window.location.pathname)
-  const [hasKey, setHasKey] = useState(!!getApiKey())
+  const [hasKey, setHasKey] = useState(() => !!getApiKey())
 
   useEffect(() => {
-    const onPopState = () => setPath(window.location.pathname)
-    window.addEventListener('popstate', onPopState, { passive: true })
-
-    // Intercept internal link clicks for SPA navigation
-    const onClick = (e) => {
-      if (e.defaultPrevented) return
-      // respect modifier keys
-      if (e.metaKey || e.ctrlKey || e.shiftKey || e.altKey) return
-      const a = e.target?.closest && e.target.closest('a')
-      if (!a) return
-      const href = a.getAttribute('href')
-      const target = a.getAttribute('target')
-      const download = a.hasAttribute('download')
-      if (!href || download || target === '_blank') return
-      // Only handle same-origin, root-relative links
-      if (href.startsWith('/') && a.origin === window.location.origin) {
-        e.preventDefault()
-        if (href !== window.location.pathname + window.location.search) {
-          window.history.pushState({}, '', href)
-          setPath(window.location.pathname)
-        }
-      }
-    }
-    window.addEventListener('click', onClick)
     const onCfg = () => setHasKey(!!getApiKey())
     window.addEventListener('ai-toolbox:config-updated', onCfg)
     window.addEventListener('storage', onCfg)
     return () => {
-      window.removeEventListener('popstate', onPopState)
-      window.removeEventListener('click', onClick)
+      window.removeEventListener('ai-toolbox:config-updated', onCfg)
+      window.removeEventListener('storage', onCfg)
     }
-    // cleanup extra listeners
-    // eslint-disable-next-line no-unreachable
-    , window.removeEventListener('ai-toolbox:config-updated', onCfg)
-    , window.removeEventListener('storage', onCfg)
   }, [])
 
-  // Normalize route path (ignore query string)
-  const basePath = useMemo(() => window.location.pathname, [path])
-
-  const isPdfTool = useMemo(() => basePath === '/pdf-to-markdown', [basePath])
-  const isRoastTool = useMemo(() => basePath === '/assessment-roast', [basePath])
-  const isAudioTool = useMemo(() => basePath === '/audio-transcriber', [basePath])
-  const isMicTranscriber = useMemo(() => basePath === '/microphone-transcriber', [basePath])
-  const isMeetingTranscription = useMemo(() => basePath === '/meeting-transcription', [basePath])
-  const isMp4ToMp3 = useMemo(() => basePath === '/mp4-to-mp3', [basePath])
-  const isPictureMe = useMemo(() => basePath === '/picture-me', [basePath])
-  const isRemoveBackground = useMemo(() => basePath === '/remove-background', [basePath])
-  const isFlowerBouquet = useMemo(() => basePath === '/flower-bouquet', [basePath])
-  const isContextCards = useMemo(() => basePath === '/context-cards', [basePath])
-  const isInformationVerifier = useMemo(() => basePath === '/information-verifier', [basePath])
-  const isLockfileScanner = useMemo(() => basePath === '/lockfile-scanner', [basePath])
-  const isGemfileScanner = useMemo(() => basePath === '/gemfile-scanner', [basePath])
-  const isGoSumScanner = useMemo(() => basePath === '/go-sum-scanner', [basePath])
-  const isMermaidValidator = useMemo(() => basePath === '/mermaid-validator', [basePath])
-  const isMermaidEditor = useMemo(() => basePath === '/mermaid-editor', [basePath])
-  const isSseToJson = useMemo(() => basePath === '/sse-to-json', [basePath])
-  const isTokenCounter = useMemo(() => basePath === '/token-counter', [basePath])
-  const isTailwindPalette = useMemo(() => basePath === '/tailwind-palette', [basePath])
-  const isHillChart = useMemo(() => basePath === '/hill-chart', [basePath])
-  const isShapeUpInfographic = useMemo(() => basePath === '/shape-up', [basePath])
-  const isNotable = useMemo(() => basePath === '/notable', [basePath])
-  const isPromptable = useMemo(() => basePath === '/promptable', [basePath])
-  const isChromaticTuner = useMemo(() => basePath === '/chromatic-tuner', [basePath])
-  const isQuizzes = useMemo(() => basePath === '/quizzes', [basePath])
-  const isQueryExplorer = useMemo(() => basePath === '/tools/query-explorer', [basePath])
-
-  const isSettings = useMemo(() => basePath === '/settings', [basePath])
-  const isAbout = useMemo(() => basePath === '/about', [basePath])
-
-  if (isPdfTool) {
-    return (
-      <div className="min-h-screen bg-gray-50">
-        <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 pt-6">
-          <div className="flex items-center justify-between">
-            <a
-              href="/"
-              className="inline-flex items-center gap-2 text-sm bg-white text-black border-2 border-black rounded-lg px-3 py-1 hover:bg-gray-100 shadow-sm"
-            >
-              <IconArrowLeft size={18} stroke={2} />
-              Back to tools
-            </a>
-            <div className="flex items-center gap-2">
-              <InstallPrompt />
-              <a
-                href="/settings"
-                className="inline-flex items-center gap-2 text-sm bg-white text-black border-2 border-black rounded-lg px-3 py-1 hover:bg-gray-100 shadow-sm"
-              >
-                <IconSettings size={16} stroke={2} />
-                Edit Config
-              </a>
-            </div>
-          </div>
-        </div>
-        <PdfToMarkdown />
-      </div>
-    )
-  }
-
-  if (isRoastTool) {
-    return (
-      <div className="min-h-screen bg-gray-50">
-        <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 pt-6">
-          <div className="flex items-center justify-between">
-            <a
-              href="/"
-              className="inline-flex items-center gap-2 text-sm bg-white text-black border-2 border-black rounded-lg px-3 py-1 hover:bg-gray-100 shadow-sm"
-            >
-              <IconArrowLeft size={18} stroke={2} />
-              Back to tools
-            </a>
-            <div className="flex items-center gap-2">
-              <InstallPrompt />
-              <a
-                href="/settings"
-                className="inline-flex items-center gap-2 text-sm bg-white text-black border-2 border-black rounded-lg px-3 py-1 hover:bg-gray-100 shadow-sm"
-              >
-                <IconSettings size={16} stroke={2} />
-                Edit Config
-              </a>
-            </div>
-          </div>
-        </div>
-        <AssessmentRoast />
-      </div>
-    )
-  }
-
-  if (isAudioTool) {
-    return (
-      <div className="min-h-screen bg-gray-50">
-        <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 pt-6">
-          <div className="flex items-center justify-between">
-            <a
-              href="/"
-              className="inline-flex items-center gap-2 text-sm bg-white text-black border-2 border-black rounded-lg px-3 py-1 hover:bg-gray-100 shadow-sm"
-            >
-              <IconArrowLeft size={18} stroke={2} />
-              Back to tools
-            </a>
-            <div className="flex items-center gap-2">
-              <InstallPrompt />
-              <a
-                href="/settings"
-                className="inline-flex items-center gap-2 text-sm bg-white text-black border-2 border-black rounded-lg px-3 py-1 hover:bg-gray-100 shadow-sm"
-              >
-                <IconSettings size={16} stroke={2} />
-                Edit Config
-              </a>
-            </div>
-          </div>
-        </div>
-        <AudioTranscriber />
-      </div>
-    )
-  }
-
-  if (isMicTranscriber) {
-    return (
-      <div className="min-h-screen bg-gray-50">
-        <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 pt-6">
-          <div className="flex items-center justify-between">
-            <a
-              href="/"
-              className="inline-flex items-center gap-2 text-sm bg-white text-black border-2 border-black rounded-lg px-3 py-1 hover:bg-gray-100 shadow-sm"
-            >
-              <IconArrowLeft size={18} stroke={2} />
-              Back to tools
-            </a>
-            <div className="flex items-center gap-2">
-              <InstallPrompt />
-              <a
-                href="/settings"
-                className="inline-flex items-center gap-2 text-sm bg-white text-black border-2 border-black rounded-lg px-3 py-1 hover:bg-gray-100 shadow-sm"
-              >
-                <IconSettings size={16} stroke={2} />
-                Edit Config
-              </a>
-            </div>
-          </div>
-        </div>
-        <MicrophoneTranscriber />
-      </div>
-    )
-  }
-
-  if (isMeetingTranscription) {
-    return (
-      <div className="min-h-screen bg-gray-50">
-        <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 pt-6">
-          <div className="flex items-center justify-between">
-            <a
-              href="/"
-              className="inline-flex items-center gap-2 text-sm bg-white text-black border-2 border-black rounded-lg px-3 py-1 hover:bg-gray-100 shadow-sm"
-            >
-              <IconArrowLeft size={18} stroke={2} />
-              Back to tools
-            </a>
-            <div className="flex items-center gap-2">
-              <InstallPrompt />
-              <a
-                href="/settings"
-                className="inline-flex items-center gap-2 text-sm bg-white text-black border-2 border-black rounded-lg px-3 py-1 hover:bg-gray-100 shadow-sm"
-              >
-                <IconSettings size={16} stroke={2} />
-                Edit Config
-              </a>
-            </div>
-          </div>
-        </div>
-        <MeetingTranscription />
-      </div>
-    )
-  }
-
-  if (isMp4ToMp3) {
-    return (
-      <div className="min-h-screen bg-gray-50">
-        <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 pt-6">
-          <div className="flex items-center justify-between">
-            <a
-              href="/"
-              className="inline-flex items-center gap-2 text-sm bg-white text-black border-2 border-black rounded-lg px-3 py-1 hover:bg-gray-100 shadow-sm"
-            >
-              <IconArrowLeft size={18} stroke={2} />
-              Back to tools
-            </a>
-            <div className="flex items-center gap-2">
-              <InstallPrompt />
-              <a
-                href="/settings"
-                className="inline-flex items-center gap-2 text-sm bg-white text-black border-2 border-black rounded-lg px-3 py-1 hover:bg-gray-100 shadow-sm"
-              >
-                <IconSettings size={16} stroke={2} />
-                Edit Config
-              </a>
-            </div>
-          </div>
-        </div>
-        <Mp4ToMp3 />
-      </div>
-    )
-  }
-
-  if (isPictureMe) {
-    return <PictureMe />
-  }
-
-  if (isRemoveBackground) {
-    return <RemoveBackground />
-  }
-
-  if (isFlowerBouquet) {
-    return <FlowerBouquetGenerator />
-  }
-
-  if (isTailwindPalette) {
-    return <TailwindPaletteGenerator />
-  }
-
-  if (isContextCards) {
-    return (
-      <div className="min-h-screen bg-gray-50">
-        <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 pt-6">
-          <div className="flex items-center justify-between">
-            <a
-              href="/"
-              className="inline-flex items-center gap-2 text-sm bg-white text-black border-2 border-black rounded-lg px-3 py-1 hover:bg-gray-100 shadow-sm"
-            >
-              <IconArrowLeft size={18} stroke={2} />
-              Back to tools
-            </a>
-            <div className="flex items-center gap-2">
-              <InstallPrompt />
-              <a
-                href="/settings"
-                className="inline-flex items-center gap-2 text-sm bg-white text-black border-2 border-black rounded-lg px-3 py-1 hover:bg-gray-100 shadow-sm"
-              >
-                <IconSettings size={16} stroke={2} />
-                Edit Config
-              </a>
-            </div>
-          </div>
-        </div>
-        <ContextCards />
-      </div>
-    )
-  }
-
-  if (isHillChart) {
-    return (
-      <div className="min-h-screen bg-gray-50">
-        <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 pt-6">
-          <div className="flex items-center justify-between">
-            <a
-              href="/"
-              className="inline-flex items-center gap-2 text-sm bg-white text-black border-2 border-black rounded-lg px-3 py-1 hover:bg-gray-100 shadow-sm"
-            >
-              <IconArrowLeft size={18} stroke={2} />
-              Back to tools
-            </a>
-            <div className="flex items-center gap-2">
-              <InstallPrompt />
-              <a
-                href="/settings"
-                className="inline-flex items-center gap-2 text-sm bg-white text-black border-2 border-black rounded-lg px-3 py-1 hover:bg-gray-100 shadow-sm"
-              >
-                <IconSettings size={16} stroke={2} />
-                Edit Config
-              </a>
-            </div>
-          </div>
-      </div>
-      <HillChart />
-      </div>
-    )
-  }
-
-  if (isShapeUpInfographic) {
-    return (
-      <div className="min-h-screen bg-gray-50">
-        <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 pt-6">
-          <div className="flex items-center justify-between">
-            <a
-              href="/"
-              className="inline-flex items-center gap-2 text-sm bg-white text-black border-2 border-black rounded-lg px-3 py-1 hover:bg-gray-100 shadow-sm"
-            >
-              <IconArrowLeft size={18} stroke={2} />
-              Back to tools
-            </a>
-            <div className="flex items-center gap-2">
-              <InstallPrompt />
-              <a
-                href="/settings"
-                className="inline-flex items-center gap-2 text-sm bg-white text-black border-2 border-black rounded-lg px-3 py-1 hover:bg-gray-100 shadow-sm"
-              >
-                <IconSettings size={16} stroke={2} />
-                Edit Config
-              </a>
-            </div>
-          </div>
-        </div>
-        <ShapeUpInfographic />
-      </div>
-    )
-  }
-
-  if (isInformationVerifier) {
-    return (
-      <div className="min-h-screen bg-gray-50">
-        <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 pt-6">
-          <div className="flex items-center justify-between">
-            <a
-              href="/"
-              className="inline-flex items-center gap-2 text-sm bg-white text-black border-2 border-black rounded-lg px-3 py-1 hover:bg-gray-100 shadow-sm"
-            >
-              <IconArrowLeft size={18} stroke={2} />
-              Back to tools
-            </a>
-            <div className="flex items-center gap-2">
-              <InstallPrompt />
-              <a
-                href="/settings"
-                className="inline-flex items-center gap-2 text-sm bg-white text-black border-2 border-black rounded-lg px-3 py-1 hover:bg-gray-100 shadow-sm"
-              >
-                <IconSettings size={16} stroke={2} />
-                Edit Config
-              </a>
-            </div>
-          </div>
-        </div>
-        <InformationVerifier />
-      </div>
-    )
-  }
-
-  if (isChromaticTuner) {
-    return (
-      <div className="min-h-screen bg-gray-50">
-        <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 pt-6">
-          <div className="flex items-center justify-between">
-            <a
-              href="/"
-              className="inline-flex items-center gap-2 text-sm bg-white text-black border-2 border-black rounded-lg px-3 py-1 hover:bg-gray-100 shadow-sm"
-            >
-              <IconArrowLeft size={18} stroke={2} />
-              Back to tools
-            </a>
-            <div className="flex items-center gap-2">
-              <InstallPrompt />
-              <a
-                href="/settings"
-                className="inline-flex items-center gap-2 text-sm bg-white text-black border-2 border-black rounded-lg px-3 py-1 hover:bg-gray-100 shadow-sm"
-              >
-                <IconSettings size={16} stroke={2} />
-                Edit Config
-              </a>
-            </div>
-          </div>
-        </div>
-        <ChromaticTuner />
-      </div>
-    )
-  }
-
-  if (isQuizzes) {
-    return <Quizzes />
-  }
-
-  if (isQueryExplorer) {
-    return <QueryExplorer />
-  }
-
-  if (isLockfileScanner) {
-    return (
-      <div className="min-h-screen bg-gray-50">
-        <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 pt-6">
-          <div className="flex items-center justify-between">
-            <a
-              href="/"
-              className="inline-flex items-center gap-2 text-sm bg-white text-black border-2 border-black rounded-lg px-3 py-1 hover:bg-gray-100 shadow-sm"
-            >
-              <IconArrowLeft size={18} stroke={2} />
-              Back to tools
-            </a>
-            <div className="flex items-center gap-2">
-              <InstallPrompt />
-              <a
-                href="/settings"
-                className="inline-flex items-center gap-2 text-sm bg-white text-black border-2 border-black rounded-lg px-3 py-1 hover:bg-gray-100 shadow-sm"
-              >
-                <IconSettings size={16} stroke={2} />
-                Edit Config
-              </a>
-            </div>
-          </div>
-        </div>
-        <LockfileScanner />
-      </div>
-    )
-  }
-
-  if (isGemfileScanner) {
-    return (
-      <div className="min-h-screen bg-gray-50">
-        <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 pt-6">
-          <div className="flex items-center justify-between">
-            <a
-              href="/"
-              className="inline-flex items-center gap-2 text-sm bg-white text-black border-2 border-black rounded-lg px-3 py-1 hover:bg-gray-100 shadow-sm"
-            >
-              <IconArrowLeft size={18} stroke={2} />
-              Back to tools
-            </a>
-            <div className="flex items-center gap-2">
-              <InstallPrompt />
-              <a
-                href="/settings"
-                className="inline-flex items-center gap-2 text-sm bg-white text-black border-2 border-black rounded-lg px-3 py-1 hover:bg-gray-100 shadow-sm"
-              >
-                <IconSettings size={16} stroke={2} />
-                Edit Config
-              </a>
-            </div>
-          </div>
-        </div>
-        <GemfileScanner />
-      </div>
-    )
-  }
-
-  if (isGoSumScanner) {
-    return (
-      <div className="min-h-screen bg-gray-50">
-        <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 pt-6">
-          <div className="flex items-center justify-between">
-            <a
-              href="/"
-              className="inline-flex items-center gap-2 text-sm bg-white text-black border-2 border-black rounded-lg px-3 py-1 hover:bg-gray-100 shadow-sm"
-            >
-              <IconArrowLeft size={18} stroke={2} />
-              Back to tools
-            </a>
-            <div className="flex items-center gap-2">
-              <InstallPrompt />
-              <a
-                href="/settings"
-                className="inline-flex items-center gap-2 text-sm bg-white text-black border-2 border-black rounded-lg px-3 py-1 hover:bg-gray-100 shadow-sm"
-              >
-                <IconSettings size={16} stroke={2} />
-                Edit Config
-              </a>
-            </div>
-          </div>
-        </div>
-        <GoSumScanner />
-      </div>
-    )
-  }
-
-  if (isMermaidValidator) {
-    return (
-      <div className="min-h-screen bg-gray-50">
-        <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 pt-6">
-          <div className="flex items-center justify-between">
-            <a
-              href="/"
-              className="inline-flex items-center gap-2 text-sm bg-white text-black border-2 border-black rounded-lg px-3 py-1 hover:bg-gray-100 shadow-sm"
-            >
-              <IconArrowLeft size={18} stroke={2} />
-              Back to tools
-            </a>
-            <div className="flex items-center gap-2">
-              <InstallPrompt />
-              <a
-                href="/settings"
-                className="inline-flex items-center gap-2 text-sm bg-white text-black border-2 border-black rounded-lg px-3 py-1 hover:bg-gray-100 shadow-sm"
-              >
-                <IconSettings size={16} stroke={2} />
-                Edit Config
-              </a>
-            </div>
-          </div>
-        </div>
-        <MermaidValidator />
-      </div>
-    )
-  }
-
-  if (isMermaidEditor) {
-    return (
-      <div className="min-h-screen bg-gray-50">
-        <header className="w-full px-4 sm:px-6 lg:px-8 pt-6">
-          <div className="flex items-center justify-between">
-            <a
-              href="/"
-              className="inline-flex items-center gap-2 text-sm bg-white text-black border-2 border-black rounded-lg px-3 py-1 hover:bg-gray-100 shadow-sm"
-            >
-              <IconArrowLeft size={18} stroke={2} />
-              Back to tools
-            </a>
-            <div className="flex items-center gap-2">
-              <InstallPrompt />
-              <a
-                href="/settings"
-                className="inline-flex items-center gap-2 text-sm bg-white text-black border-2 border-black rounded-lg px-3 py-1 hover:bg-gray-100 shadow-sm"
-              >
-                <IconSettings size={16} stroke={2} />
-                Edit Config
-              </a>
-            </div>
-          </div>
-        </header>
-        <MermaidEditor />
-      </div>
-    )
-  }
-
-  if (isSseToJson) {
-    return (
-      <div className="min-h-screen bg-gray-50">
-        <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 pt-6">
-          <div className="flex items-center justify-between">
-            <a
-              href="/"
-              className="inline-flex items-center gap-2 text-sm bg-white text-black border-2 border-black rounded-lg px-3 py-1 hover:bg-gray-100 shadow-sm"
-            >
-              <IconArrowLeft size={18} stroke={2} />
-              Back to tools
-            </a>
-            <div className="flex items-center gap-2">
-              <InstallPrompt />
-              <a
-                href="/settings"
-                className="inline-flex items-center gap-2 text-sm bg-white text-black border-2 border-black rounded-lg px-3 py-1 hover:bg-gray-100 shadow-sm"
-              >
-                <IconSettings size={16} stroke={2} />
-                Edit Config
-              </a>
-            </div>
-          </div>
-        </div>
-        <SSEToJSON />
-      </div>
-    )
-  }
-
-  if (isTokenCounter) {
-    return (
-      <div className="min-h-screen bg-gray-50">
-        <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 pt-6">
-          <div className="flex items-center justify-between">
-            <a
-              href="/"
-              className="inline-flex items-center gap-2 text-sm bg-white text-black border-2 border-black rounded-lg px-3 py-1 hover:bg-gray-100 shadow-sm"
-            >
-              <IconArrowLeft size={18} stroke={2} />
-              Back to tools
-            </a>
-            <div className="flex items-center gap-2">
-              <InstallPrompt />
-              <a
-                href="/settings"
-                className="inline-flex items-center gap-2 text-sm bg-white text-black border-2 border-black rounded-lg px-3 py-1 hover:bg-gray-100 shadow-sm"
-              >
-                <IconSettings size={16} stroke={2} />
-                Edit Config
-              </a>
-            </div>
-          </div>
-        </div>
-        <TokenCounter />
-      </div>
-    )
-  }
-
-  if (isPromptable) {
-    return (
-      <div className="min-h-screen bg-gray-50">
-        <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 pt-6">
-          <div className="flex items-center justify-between">
-            <a
-              href="/"
-              className="inline-flex items-center gap-2 text-sm bg-white text-black border-2 border-black rounded-lg px-3 py-1 hover:bg-gray-100 shadow-sm"
-            >
-              <IconArrowLeft size={18} stroke={2} />
-              Back to tools
-            </a>
-            <div className="flex items-center gap-2">
-              <InstallPrompt />
-              <a
-                href="/settings"
-                className="inline-flex items-center gap-2 text-sm bg-white text-black border-2 border-black rounded-lg px-3 py-1 hover:bg-gray-100 shadow-sm"
-              >
-                <IconSettings size={16} stroke={2} />
-                Edit Config
-              </a>
-            </div>
-          </div>
-        </div>
-        <div className="px-4 sm:px-6 lg:px-8 pb-8 mt-6">
-          <Promptable />
-        </div>
-      </div>
-    )
-  }
-
-  if (isNotable) {
-    return (
-      <div className="min-h-screen bg-gray-50">
-        <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 pt-6">
-          <div className="flex items-center justify-between">
-            <a
-              href="/"
-              className="inline-flex items-center gap-2 text-sm bg-white text-black border-2 border-black rounded-lg px-3 py-1 hover:bg-gray-100 shadow-sm"
-            >
-              <IconArrowLeft size={18} stroke={2} />
-              Back to tools
-            </a>
-            <div className="flex items-center gap-2">
-              <InstallPrompt />
-              <a
-                href="/settings"
-                className="inline-flex items-center gap-2 text-sm bg-white text-black border-2 border-black rounded-lg px-3 py-1 hover:bg-gray-100 shadow-sm"
-              >
-                <IconSettings size={16} stroke={2} />
-                Edit Config
-              </a>
-            </div>
-          </div>
-        </div>
-        <div className="px-4 sm:px-6 lg:px-8 pb-8 mt-6">
-          <Notable />
-        </div>
-      </div>
-    )
-  }
-
-  
-
-  if (isSettings) {
-    return <Settings />
-  }
-
-  if (isAbout) {
-    return <About />
-  }
-
   return (
-    <div className="min-h-screen bg-gray-50 flex flex-col items-center p-8">
-      <h1 className="text-4xl font-bold mb-2">Toolbox</h1>
-      <p className="text-gray-600 mb-8">Your one-stop hub for powerful AI-driven tools</p>
-
-      {!hasKey && (
-        <div className="w-full max-w-6xl mb-6">
-          <div className="flex items-start gap-3 border-2 border-black bg-white text-gray-900 rounded-xl p-3 shadow-sm">
-            <svg className="h-5 w-5 mt-0.5" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
-              <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm.75-11.5a.75.75 0 00-1.5 0v4.5a.75.75 0 001.5 0V6.5zM10 14a1 1 0 100-2 1 1 0 000 2z" clipRule="evenodd" />
-            </svg>
-            <div className="text-sm">
-              <p className="font-medium">Gemini API key not set.</p>
-              <p>Open <a href="/settings" className="underline text-black hover:text-gray-700">Settings</a> to add your key before using tools.</p>
-            </div>
-          </div>
-        </div>
-      )}
-
-      <div className="w-full max-w-6xl mb-6 flex justify-end gap-3">
-        <InstallPrompt />
-        <a
-          href="/about"
-          className="inline-flex items-center gap-2 text-sm bg-white text-black border-2 border-black rounded-lg px-3 py-1 hover:bg-gray-100 shadow-sm"
-        >
-          <IconInfoCircle size={16} stroke={2} />
-          About
-        </a>
-        <a
-          href="/settings"
-          className="inline-flex items-center gap-2 text-sm bg-white text-black border-2 border-black rounded-lg px-3 py-1 hover:bg-gray-100 shadow-sm"
-        >
-          <IconSettings size={16} stroke={2} />
-          Edit Config
-        </a>
-      </div>
-
-      <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6 w-full max-w-6xl">
-        {tools.map((tool, index) => {
-          const isMuted = tool.muted
-          const cardClass = isMuted
-            ? 'border-2 border-dashed border-gray-400 rounded-xl p-4 bg-gray-50 text-gray-700 shadow-none hover:bg-gray-100 hover:shadow-sm transition duration-200 flex flex-col justify-between'
-            : 'border-2 border-black rounded-xl p-4 bg-white shadow-md hover:shadow-xl transition duration-200 flex flex-col justify-between'
-          const titleClass = isMuted ? 'font-semibold text-lg mb-2 text-gray-800' : 'font-semibold text-lg mb-2'
-          const descClass = isMuted ? 'text-gray-600 text-sm' : 'text-gray-600 text-sm'
-          if (tool.extraLink) {
-            return (
-              <article key={index} className={cardClass}>
-                <h2 className={titleClass}>
-                  <a href={tool.link} className='hover:underline text-black'>{tool.name}</a>
-                </h2>
-                <p className={descClass}>
-                  {tool.description}{' '}
-                  <a
-                    href={tool.extraLink}
-                    target='_blank'
-                    rel='noopener noreferrer'
-                    className='underline hover:text-black'
-                  >
-                    {tool.extraLinkLabel || 'read more'}
-                  </a>
-                  .
-                </p>
-              </article>
-            )
-          }
-          return (
-            <a
-              key={index}
-              href={tool.link}
-              target={tool.target || undefined}
-              rel={tool.target === '_blank' ? 'noopener noreferrer' : undefined}
-              className={cardClass}
-            >
-              <h2 className={titleClass}>{tool.name}</h2>
-              <p className={descClass}>{tool.description}</p>
-            </a>
-          )
-        })}
-      </div>
+    <div className='flex min-h-screen flex-col bg-background text-foreground'>
+      <AppHeader />
+      <main className='flex-1'>
+        <AppRoutes hasKey={hasKey} />
+      </main>
+      <AppFooter />
     </div>
   )
 }

@@ -1,6 +1,9 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react'
 import { IconDownload } from '@tabler/icons-react'
 
+import { Button } from './ui/button.jsx'
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from './ui/card.jsx'
+
 export default function InstallPrompt() {
   const [deferredPrompt, setDeferredPrompt] = useState(null)
   const [installed, setInstalled] = useState(false)
@@ -11,7 +14,6 @@ export default function InstallPrompt() {
     if (typeof window === 'undefined') return false
     return (
       window.matchMedia?.('(display-mode: standalone)')?.matches ||
-      // iOS Safari
       window.navigator.standalone === true
     )
   }, [])
@@ -73,35 +75,27 @@ export default function InstallPrompt() {
   }
 
   return (
-    <div ref={containerRef} className="relative inline-flex">
-      <button
-        type="button"
-        onClick={onClick}
-        className="inline-flex items-center gap-2 text-sm bg-white text-black border-2 border-black rounded-lg px-3 py-1 hover:bg-gray-100 shadow-sm"
-      >
-        <IconDownload size={16} stroke={2} />
-        Install App
-      </button>
+    <div ref={containerRef} className='relative inline-flex'>
+      <Button type='button' onClick={onClick} variant='outline' className='gap-2'>
+        <IconDownload size={18} />
+        Install app
+      </Button>
 
-      {showIosHelp && (
-        <div className="absolute right-0 mt-2 w-72 bg-white border-2 border-black rounded-xl shadow-md p-3 z-20">
-          <p className="text-sm text-gray-800 font-medium mb-1">Install on iOS</p>
-          <p className="text-sm text-gray-700">
-            Open the Share menu in Safari, then choose
-            {' '}<span className="font-semibold">Add to Home Screen</span>.
-          </p>
-          <div className="mt-2 flex justify-end">
-            <button
-              type="button"
-              onClick={() => setShowIosHelp(false)}
-              className="bg-white border-2 border-black text-black px-2 py-1 rounded-lg hover:bg-gray-100 text-xs"
-            >
+      {showIosHelp ? (
+        <Card className='absolute right-0 top-full mt-2 w-72 shadow-lg'>
+          <CardHeader className='pb-3'>
+            <CardTitle className='text-base'>Install on iOS</CardTitle>
+            <CardDescription>
+              Open the Share menu in Safari, then choose <span className='font-medium text-foreground'>Add to Home Screen</span>.
+            </CardDescription>
+          </CardHeader>
+          <CardContent className='flex justify-end pt-0'>
+            <Button size='sm' variant='ghost' onClick={() => setShowIosHelp(false)}>
               Close
-            </button>
-          </div>
-        </div>
-      )}
+            </Button>
+          </CardContent>
+        </Card>
+      ) : null}
     </div>
   )
 }
-

@@ -1,9 +1,86 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
-html, body, #root {
-  height: 100%;
+@layer base {
+  :root {
+    --background: 0 0% 100%;
+    --foreground: 240 10% 3.9%;
+
+    --card: 0 0% 100%;
+    --card-foreground: 240 10% 3.9%;
+
+    --popover: 0 0% 100%;
+    --popover-foreground: 240 10% 3.9%;
+
+    --primary: 240 5.9% 10%;
+    --primary-foreground: 0 0% 98%;
+
+    --secondary: 240 4.8% 95.9%;
+    --secondary-foreground: 240 5.9% 10%;
+
+    --muted: 240 4.8% 95.9%;
+    --muted-foreground: 240 3.8% 46.1%;
+
+    --accent: 240 4.8% 95.9%;
+    --accent-foreground: 240 5.9% 10%;
+
+    --destructive: 0 84.2% 60.2%;
+    --destructive-foreground: 0 0% 98%;
+
+    --border: 240 5.9% 90%;
+    --input: 240 5.9% 90%;
+    --ring: 240 5.9% 10%;
+
+    --radius: 0.75rem;
+  }
+
+  .dark {
+    --background: 240 10% 3.9%;
+    --foreground: 0 0% 98%;
+
+    --card: 240 10% 3.9%;
+    --card-foreground: 0 0% 98%;
+
+    --popover: 240 10% 3.9%;
+    --popover-foreground: 0 0% 98%;
+
+    --primary: 0 0% 98%;
+    --primary-foreground: 240 5.9% 10%;
+
+    --secondary: 240 3.7% 15.9%;
+    --secondary-foreground: 0 0% 98%;
+
+    --muted: 240 3.7% 15.9%;
+    --muted-foreground: 240 5% 64.9%;
+
+    --accent: 240 3.7% 15.9%;
+    --accent-foreground: 0 0% 98%;
+
+    --destructive: 0 62.8% 30.6%;
+    --destructive-foreground: 0 0% 98%;
+
+    --border: 240 3.7% 15.9%;
+    --input: 240 3.7% 15.9%;
+    --ring: 0 0% 98%;
+  }
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+
+  body {
+    @apply bg-background text-foreground;
+  }
+
+  html,
+  body,
+  #root {
+    height: 100%;
+  }
 }
 
 /* Tailwind Typography will style .prose */
@@ -31,15 +108,25 @@ html, body, #root {
   Lexical editor styles
   Keep these scoped to .lexical-content so they don't affect the rest of the site.
 */
-.lexical-content, .markdown-preview {
-  color: #111827; /* gray-900 */
-  line-height: 1.7; /* slightly more relaxed, Notion-like */
+.lexical-content,
+.markdown-preview {
+  color: #111827;
+  line-height: 1.7;
 }
 
-.lexical-content > :first-child, .markdown-preview > :first-child { margin-top: 0; }
-.lexical-content > :last-child, .markdown-preview > :last-child { margin-bottom: 0; }
+.lexical-content > :first-child,
+.markdown-preview > :first-child {
+  margin-top: 0;
+}
+.lexical-content > :last-child,
+.markdown-preview > :last-child {
+  margin-bottom: 0;
+}
 
-.lexical-content p, .markdown-preview p { margin: 0 0 0.6rem; }
+.lexical-content p,
+.markdown-preview p {
+  margin: 0 0 0.6rem;
+}
 
 .lexical-content h1,
 .lexical-content h2,
@@ -58,23 +145,43 @@ html, body, #root {
   line-height: 1.25;
   margin: 1.25rem 0 0.75rem;
 }
-.lexical-content h1, .markdown-preview h1 { font-size: 1.875rem; } /* text-3xl */
-.lexical-content h2, .markdown-preview h2 { font-size: 1.5rem; }   /* text-2xl */
-.lexical-content h3, .markdown-preview h3 { font-size: 1.25rem; }  /* text-xl */
-.lexical-content h4, .markdown-preview h4 { font-size: 1.125rem; } /* text-lg */
-.lexical-content h5, .markdown-preview h5 { font-size: 1rem; }
-.lexical-content h6, .markdown-preview h6 { font-size: 0.875rem; }
+.lexical-content h1,
+.markdown-preview h1 {
+  font-size: 1.875rem;
+}
+.lexical-content h2,
+.markdown-preview h2 {
+  font-size: 1.5rem;
+}
+.lexical-content h3,
+.markdown-preview h3 {
+  font-size: 1.25rem;
+}
+.lexical-content h4,
+.markdown-preview h4 {
+  font-size: 1.125rem;
+}
+.lexical-content h5,
+.markdown-preview h5 {
+  font-size: 1rem;
+}
+.lexical-content h6,
+.markdown-preview h6 {
+  font-size: 0.875rem;
+}
 
-.lexical-content a, .markdown-preview a {
+.lexical-content a,
+.markdown-preview a {
   color: inherit;
   text-decoration: underline;
 }
 
-.lexical-content blockquote, .markdown-preview blockquote {
+.lexical-content blockquote,
+.markdown-preview blockquote {
   margin: 0.75rem 0;
   padding-left: 0.9rem;
-  border-left: 3px solid #e5e7eb; /* gray-200, subtler like Notion */
-  color: #374151; /* gray-700 */
+  border-left: 3px solid #e5e7eb;
+  color: #374151;
   font-style: normal;
 }
 
@@ -85,50 +192,64 @@ html, body, #root {
   margin: 0.75rem 0 0.75rem 0;
   padding-left: 1.25rem;
 }
-.lexical-content ul, .markdown-preview ul { list-style: disc; }
-.lexical-content ol, .markdown-preview ol { list-style: decimal; }
+.lexical-content ul,
+.markdown-preview ul {
+  list-style: disc;
+}
+.lexical-content ol,
+.markdown-preview ol {
+  list-style: decimal;
+}
 
-.lexical-content li, .markdown-preview li { margin: 0.25rem 0; }
+.lexical-content li,
+.markdown-preview li {
+  margin: 0.25rem 0;
+}
 
-.lexical-content code, .markdown-preview code {
-  background-color: #f3f4f6; /* gray-100 */
+.lexical-content code,
+.markdown-preview code {
+  background-color: #f3f4f6;
   border: 0;
-  border-radius: 0.25rem; /* rounded */
+  border-radius: 0.25rem;
   padding: 0.125rem 0.25rem;
-  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, 'Liberation Mono', 'Courier New', monospace;
   font-size: 0.9em;
 }
 
-.lexical-content pre, .markdown-preview pre {
-  background-color: #f3f4f6; /* gray-100 */
-  border: 1px solid #e5e7eb; /* subtle */
-  border-radius: 0.5rem; /* lg */
+.lexical-content pre,
+.markdown-preview pre {
+  background-color: #f3f4f6;
+  border: 1px solid #e5e7eb;
+  border-radius: 0.5rem;
   padding: 0.75rem;
   overflow-x: auto;
   overflow-y: hidden;
   margin: 0.75rem 0;
-  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
-  font-size: 0.9rem; /* slightly larger */
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, 'Liberation Mono', 'Courier New', monospace;
+  font-size: 0.9rem;
   line-height: 1.65;
   tab-size: 2;
-  color: #111827; /* gray-900 */
+  color: #111827;
 }
 
 /* Avoid double styling inside fenced code blocks */
-.lexical-content pre code, .markdown-preview pre code {
+.lexical-content pre code,
+.markdown-preview pre code {
   background: transparent;
   border: 0;
   padding: 0;
   font-size: inherit;
 }
 
-.lexical-content hr, .markdown-preview hr {
+.lexical-content hr,
+.markdown-preview hr {
   border: 0;
   border-top: 2px solid #000;
   margin: 1rem 0;
 }
 
-.lexical-content table, .markdown-preview table {
+.lexical-content table,
+.markdown-preview table {
   border-collapse: collapse;
   border: 2px solid #000;
 }
@@ -144,8 +265,8 @@ html, body, #root {
 /* Notable editor textarea caret/line-height fix */
 .notable-editor textarea {
   line-height: 1.5;
-  overflow: hidden; /* avoid inner scrollbars */
-  resize: none;     /* disable manual resize handle */
+  overflow: hidden;
+  resize: none;
 }
 .notable-editor textarea:focus {
   caret-color: #000;
