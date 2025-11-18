@@ -30,6 +30,7 @@ import InstallPrompt from './components/InstallPrompt.jsx'
 import MicrophoneTranscriber from './components/MicrophoneTranscriber.jsx'
 import Quizzes from './components/Quizzes.jsx'
 import QueryExplorer from './components/QueryExplorer.jsx'
+import SentimentAnalyzer from './components/SentimentAnalyzer.jsx'
 
 const tools = [
   { name: 'PDF to Markdown', description: 'Convert PDF content into Markdown', link: '/pdf-to-markdown' },
@@ -57,6 +58,7 @@ const tools = [
   { name: 'Promptable', description: 'Iterate on prompts with Gemini previews', link: '/promptable' },
   { name: 'Chromatic Tuner', description: 'Tune instruments via microphone', link: '/chromatic-tuner' },
   { name: 'Quizzes', description: 'Create embeddable knowledge quizzes', link: '/quizzes' },
+  { name: 'Sentiment Analyzer', description: 'Batch score feedback in CSV/Excel files', link: '/sentiment-analyzer' },
   { name: 'Query Explorer', description: 'Run SQL on CSV, NDJSON, or Parquet entirely offline', link: '/tools/query-explorer' },
   {
     name: 'Propose new tool',
@@ -137,6 +139,7 @@ export default function App() {
   const isPromptable = useMemo(() => basePath === '/promptable', [basePath])
   const isChromaticTuner = useMemo(() => basePath === '/chromatic-tuner', [basePath])
   const isQuizzes = useMemo(() => basePath === '/quizzes', [basePath])
+  const isSentimentAnalyzer = useMemo(() => basePath === '/sentiment-analyzer', [basePath])
   const isQueryExplorer = useMemo(() => basePath === '/tools/query-explorer', [basePath])
 
   const isSettings = useMemo(() => basePath === '/settings', [basePath])
@@ -473,6 +476,37 @@ export default function App() {
           </div>
         </div>
         <ChromaticTuner />
+      </div>
+    )
+  }
+
+  if (isSentimentAnalyzer) {
+    return (
+      <div className="min-h-screen bg-gray-50">
+        <div className="w-full px-4 sm:px-6 lg:px-10 pt-6">
+          <div className="flex items-center justify-between">
+            <a
+              href="/"
+              className="inline-flex items-center gap-2 text-sm bg-white text-black border-2 border-black rounded-lg px-3 py-1 hover:bg-gray-100 shadow-sm"
+            >
+              <IconArrowLeft size={18} stroke={2} />
+              Back to tools
+            </a>
+            <div className="flex items-center gap-2">
+              <InstallPrompt />
+              <a
+                href="/settings"
+                className="inline-flex items-center gap-2 text-sm bg-white text-black border-2 border-black rounded-lg px-3 py-1 hover:bg-gray-100 shadow-sm"
+              >
+                <IconSettings size={16} stroke={2} />
+                Edit Config
+              </a>
+            </div>
+          </div>
+        </div>
+        <div className="w-full px-4 sm:px-6 lg:px-10 pb-8 mt-6">
+          <SentimentAnalyzer />
+        </div>
       </div>
     )
   }
