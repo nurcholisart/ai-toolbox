@@ -273,7 +273,7 @@ export default function MicrophoneTranscriber() {
     try {
       const segments = buildSegmentBlobs()
       if (!segments.length) throw new Error('Audio data is empty.')
-      const model = 'gemini-2.5-flash-preview-05-20'
+      const model = 'gemini-2.5-flash'
       const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`
       const parts = []
       for (let idx = 0; idx < segments.length; idx++) {

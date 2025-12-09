@@ -176,7 +176,7 @@ export default function InformationVerifier() {
     setStatus("Verifying with Gemini…");
     setResult(null);
 
-    const model = "gemini-2.5-flash-preview-05-20";
+    const model = "gemini-2.5-flash";
     const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`;
 
     const languageName = reasonLang === "id" ? "Bahasa Indonesia" : "English";

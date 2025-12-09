@@ -31,6 +31,7 @@ export default function MeetingTranscription() {
   const dropRef = useRef(null)
   const CORE_URL = '/ffmpeg/esm/ffmpeg-core.js'
   const WASM_URL = CORE_URL.replace(/\.js$/, '.wasm')
+  const MODEL = 'gemini-2.5-flash'
 
   useEffect(() => {
     const load = () => setApiKey(getApiKey())
@@ -202,7 +203,7 @@ export default function MeetingTranscription() {
 
   const transcribeChunk = async (chunkBlob, idx, total) => {
     const base64 = await blobToBase64(chunkBlob)
-    const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-05-20:generateContent?key=${apiKey}`
+    const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/${MODEL}:generateContent?key=${apiKey}`
     const lang = language
     const prompt = `Transcribe this audio segment. Output only GitHub Flavored Markdown. Use clear paragraphs and, if multiple speakers are detected, label as "Speaker 1:", "Speaker 2:". Respond in ${lang}.`
     const payload = {

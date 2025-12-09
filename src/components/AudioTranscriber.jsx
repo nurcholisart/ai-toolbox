@@ -122,7 +122,7 @@ export default function AudioTranscriber() {
 
     try {
       const { base64, mimeType } = await fileToBase64(audioFile)
-      const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-05-20:generateContent?key=${apiKey}`
+      const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${apiKey}`
 
       const userPrompt = 'Transcribe this audio file. Format as GitHub Flavored Markdown with clear headings, paragraphs, and add speaker labels like "Speaker 1:" if multiple speakers are detected.'
 

@@ -4,6 +4,7 @@ import { getApiKey } from '../lib/config.js'
 import Disclosure from './Disclosure.jsx'
 
 export default function AssessmentRoast() {
+  const MODEL = 'gemini-2.5-flash'
   const [inputType, setInputType] = useState('markdown') // 'markdown' | 'file'
   const [assessmentContent, setAssessmentContent] = useState('')
   const [fileName, setFileName] = useState('')
@@ -125,7 +126,7 @@ export default function AssessmentRoast() {
     const prompt = `\n# ROLE & PERSONA\nYou are 'RoastMaster,' a jaded but brilliant Principal Engineer with 20 years of battle-hardened experience shipping complex software. ${personaDescription}\n\n# TASK\nAnalyze the provided project assessment (which could be unstructured text, Markdown, or CSV data). Generate a critical review—a "roast"—of the assessment. Your output MUST be in GitHub-Flavored Markdown (GFM).\n\n${detailedCritiquePoints}\n\n# LANGUAGE\nYour entire response MUST be in ${language}. Do not mix languages.\n\n# INPUT (User-provided assessment text)\n\`\`\`\n${assessmentContent}\n\`\`\`\n\n# REQUIRED OUTPUT STRUCTURE (Strictly follow this format in ${language})\n${outputStructure}\n`
 
     try {
-      const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-05-20:generateContent?key=${apiKey}`
+      const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/${MODEL}:generateContent?key=${apiKey}`
       const payload = {
         contents: [{
           role: 'user',
