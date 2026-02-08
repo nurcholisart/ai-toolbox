@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react'
-import { IconMicrophone, IconPlayerStop, IconUpload, IconCopy, IconDownload } from '@tabler/icons-react'
+import { IconMicrophone, IconPlayerStop, IconUpload, IconCopy, IconDownload, IconShare } from '@tabler/icons-react'
 import { marked } from 'marked'
 import { getApiKey } from '../lib/config.js'
 import Disclosure from './Disclosure.jsx'
@@ -359,12 +359,7 @@ export default function MicrophoneTranscriber() {
     URL.revokeObjectURL(url)
   }
 
-  const handleDownloadAudio = () => {
-    if (!audioBlob) return
-    const url = URL.createObjectURL(audioBlob)
-    const a = document.createElement('a')
-    a.href = url
-    // pick extension from mime
+  const getRecordingFileName = () => {
     let ext = 'webm'
     const mt = (mimeType || '').split(';')[0]
     if (mt === 'audio/ogg') ext = 'ogg'
@@ -372,12 +367,46 @@ export default function MicrophoneTranscriber() {
     else if (mt === 'audio/webm') ext = 'webm'
     const ts = new Date()
     const pad = (n) => String(n).padStart(2, '0')
-    const name = `recording-${ts.getFullYear()}${pad(ts.getMonth()+1)}${pad(ts.getDate())}-${pad(ts.getHours())}${pad(ts.getMinutes())}${pad(ts.getSeconds())}.${ext}`
+    return `recording-${ts.getFullYear()}${pad(ts.getMonth()+1)}${pad(ts.getDate())}-${pad(ts.getHours())}${pad(ts.getMinutes())}${pad(ts.getSeconds())}.${ext}`
+  }
+
+  const handleDownloadAudio = () => {
+    if (!audioBlob) return
+    const url = URL.createObjectURL(audioBlob)
+    const a = document.createElement('a')
+    a.href = url
+    const name = getRecordingFileName()
     a.download = name
     document.body.appendChild(a)
     a.click()
     document.body.removeChild(a)
     URL.revokeObjectURL(url)
+  }
+
+  const handleShareAudio = async () => {
+    if (!audioBlob) return
+    if (!navigator.share) {
+      setStatus('Sharing is not supported on this browser.')
+      return
+    }
+    try {
+      const name = getRecordingFileName()
+      const file = new File([audioBlob], name, { type: mimeType || 'audio/webm' })
+      const shareData = {
+        files: [file],
+        title: 'Microphone Transcriber recording',
+        text: 'Recorded with the Microphone Transcriber tool.',
+      }
+      if (navigator.canShare && !navigator.canShare(shareData)) {
+        setStatus('Sharing is not available for audio files on this device.')
+        return
+      }
+      await navigator.share(shareData)
+      setStatus('Share sheet opened.')
+    } catch (error) {
+      if (error?.name === 'AbortError') return
+      setStatus('Failed to share audio.')
+    }
   }
 
   const previewHtml = useMemo(() => (markdown ? marked.parse(markdown) : ''), [markdown])
@@ -411,6 +440,15 @@ export default function MicrophoneTranscriber() {
                       title="Download audio"
                     >
                       <IconDownload size={18} stroke={2} />
+                    </button>
+                    <button
+                      onClick={handleShareAudio}
+                      aria-label="Share audio"
+                      className="shrink-0 bg-white border-2 border-black text-black rounded-lg p-2 hover:bg-gray-100 focus:outline-none"
+                      disabled={!audioBlob}
+                      title="Share audio"
+                    >
+                      <IconShare size={18} stroke={2} />
                     </button>
                   </div>
                   <div className="mt-1 text-sm text-gray-700">
